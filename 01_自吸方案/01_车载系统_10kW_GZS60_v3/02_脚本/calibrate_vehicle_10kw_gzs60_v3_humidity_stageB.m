@@ -771,14 +771,14 @@ P.StackParam = [
     P.h_amb_W_K
     P.E_nernst_ref_V
     P.E_nernst_temp_coeff_V_K
-    P.book_xi1
-    P.book_xi2
-    P.book_xi3
-    P.book_xi4
+    P.book_theta1
+    P.book_theta2
+    P.book_theta3
+    P.book_theta4
     P.membraneThickness_cm
-    P.book_contact_resistance_ohm
-    P.book_concentration_m_V
-    P.book_concentration_n_1_A
+    P.book_theta8
+    P.book_theta9
+    P.book_theta10
     P.thermoneutralVoltage_V
     P.anode_stoich
     P.RH_an_in
@@ -795,6 +795,9 @@ P.StackParam = [
     P.cool_flow_curve_enabled
     P.cool_flow_curve_L_min(:)
     P.cool_flow_curve_h_W_K(:)
+    P.book_theta5
+    P.book_theta6
+    P.book_theta7
     ];
 end
 

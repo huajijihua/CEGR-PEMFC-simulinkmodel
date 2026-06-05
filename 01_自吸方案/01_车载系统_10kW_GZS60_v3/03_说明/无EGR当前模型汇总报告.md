@@ -41,7 +41,7 @@
 00_输入参数/标定参数/thermal_stageA_params.csv
 00_输入参数/标定参数/thermal_stageA_cooling_flow_curve.csv
 00_输入参数/标定参数/humidity_stageB_params.csv
-00_输入参数/电堆物理模型/stack_voltage_book_fit_params_stage2.csv
+00_输入参数/电堆物理模型/stack_voltage_book_theta_params.csv
 ```
 
 当前验证结果主要来自：

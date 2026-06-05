@@ -15,7 +15,7 @@ rootDir = P0.rootDir;
 benchFile = fullfile(rootDir, '00_输入参数', '全电流段极化标定', 'full_range_polarization_data.csv');
 priorFile = fullfile(rootDir, '00_输入参数', '旧版提炼', 'GZS通用化数据与参数反演', 'gzs_humidifier_standard_four_port_dataset.csv');
 gzsParamFile = fullfile(rootDir, '00_输入参数', '加湿器_GZS60', 'GZS60车载模型参数_v02.csv');
-voltageFitFile = fullfile(rootDir, '00_输入参数', '电堆物理模型', 'stack_voltage_book_fit_params_stage2.csv');
+voltageFitFile = fullfile(rootDir, '00_输入参数', '电堆物理模型', 'stack_voltage_book_theta_params.csv');
 outDir = fullfile(rootDir, '04_验证结果');
 docDir = fullfile(rootDir, '03_说明');
 
@@ -746,14 +746,14 @@ P.StackParam = [
     P.h_amb_W_K
     P.E_nernst_ref_V
     P.E_nernst_temp_coeff_V_K
-    P.book_xi1
-    P.book_xi2
-    P.book_xi3
-    P.book_xi4
+    P.book_theta1
+    P.book_theta2
+    P.book_theta3
+    P.book_theta4
     P.membraneThickness_cm
-    P.book_contact_resistance_ohm
-    P.book_concentration_m_V
-    P.book_concentration_n_1_A
+    P.book_theta8
+    P.book_theta9
+    P.book_theta10
     P.thermoneutralVoltage_V
     P.anode_stoich
     P.RH_an_in
@@ -770,6 +770,9 @@ P.StackParam = [
     P.cool_flow_curve_enabled
     P.cool_flow_curve_L_min(:)
     P.cool_flow_curve_h_W_K(:)
+    P.book_theta5
+    P.book_theta6
+    P.book_theta7
     ];
 end
 

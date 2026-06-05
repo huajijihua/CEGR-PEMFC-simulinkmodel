@@ -41,24 +41,24 @@ Date: 2026-06-05
 - Points: 13.
 - Steady points: 13/13.
 - Pressure-order pass: 13/13.
-- T_stack RMSE: 0.588 C.
-- V_cell RMSE: 0.0760 V/cell.
-- Q_cool RMSE: 629.9 W.
-- Vehicle-vs-bench RH RMSE: 0.122.
+- T_stack RMSE: 0.651 C.
+- V_cell RMSE: 0.0085 V/cell.
+- Q_cool RMSE: 656.5 W.
+- Vehicle-vs-bench RH RMSE: 0.131.
 - Vehicle-vs-bench pH2O RMSE: 10.509 kPa.
 - Minimum lambda_O2_actual: 1.788.
 
 ## Voltage State Audit
 
-- Current vehicle-state V_cell RMSE: 0.0760 V/cell.
-- Current vehicle-state V_cell max abs: 0.1553 V/cell.
+- Current vehicle-state V_cell RMSE: 0.0085 V/cell.
+- Current vehicle-state V_cell max abs: 0.0173 V/cell.
 - High-current points: 6.
-- High-current V_cell bias: -0.1036 V/cell.
-- High-current V_cell RMSE: 0.1104 V/cell.
+- High-current V_cell bias: 0.0082 V/cell.
+- High-current V_cell RMSE: 0.0108 V/cell.
 - Voltage reconstruction max abs error: 0 V/cell.
 - Stage2 internal-state fit available: true.
-- Stage2 internal-state fit RMSE: 0.0036 V/cell.
-- Stage2 internal-state fit scope: stage2_internal_state_no_egr.
+- Stage2 internal-state fit RMSE: 0.0042 V/cell.
+- Stage2 internal-state fit scope: bench_stack_conditions_no_egr_book_theta.
 
 ## Decision
 

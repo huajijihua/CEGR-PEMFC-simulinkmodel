@@ -96,18 +96,21 @@ P.cool_flow_curve_L_min = zeros(1, 13);
 P.cool_flow_curve_h_W_K = zeros(1, 13);
 P.k_mem_water_kg_s = 1.2e-4;
 
-% Book voltage model parameters. These are not old polarization-fit
-% parameters; they are direct coefficients for the current book-form model.
+% Book voltage model parameters. Current code uses the book-form theta
+% coefficients directly.
 P.E_nernst_ref_V = 1.229;
-P.E_nernst_temp_coeff_V_K = 163.23 / (2 * P.F_C_mol);
-P.book_xi1 = -0.9514;
-P.book_xi2 = 0.00312;
-P.book_xi3 = 7.4e-5;
-P.book_xi4 = -1.87e-4;
+P.E_nernst_temp_coeff_V_K = 8.5e-4;
+P.book_theta1 = 0.7084;
+P.book_theta2 = 1.43e-3;
+P.book_theta3 = -1.527e-4;
+P.book_theta4 = 1.043e-4;
+P.book_theta5 = 0.525;
+P.book_theta6 = 0.2173;
+P.book_theta7 = -302.06;
+P.book_theta8 = 5.13e-4;
+P.book_theta9 = 5.2e-10;
+P.book_theta10 = 0.0335;
 P.membraneThickness_cm = 0.005;
-P.book_contact_resistance_ohm = 0.0;
-P.book_concentration_m_V = 3.0e-5;
-P.book_concentration_n_1_A = 8.0e-3;
 P.thermoneutralVoltage_V = 1.254;
 P.LHV_H2_J_mol = 241.8e3;
 P.stack_m_act_O2 = 0.65;
@@ -267,7 +270,7 @@ end
 end
 
 function P = readVoltageFitParams(P, inputDir)
-fitCsv = fullfile(inputDir, '电堆物理模型', 'stack_voltage_book_fit_params.csv');
+fitCsv = fullfile(inputDir, '电堆物理模型', 'stack_voltage_book_theta_params.csv');
 if ~isfile(fitCsv)
     return;
 end
@@ -278,13 +281,16 @@ if height(T) < 1
 end
 
 fields = {
-    "xi1", "book_xi1"
-    "xi2", "book_xi2"
-    "xi3", "book_xi3"
-    "xi4", "book_xi4"
-    "contact_resistance_ohm", "book_contact_resistance_ohm"
-    "concM_V", "book_concentration_m_V"
-    "concN_1_A", "book_concentration_n_1_A"
+    "theta1", "book_theta1"
+    "theta2", "book_theta2"
+    "theta3", "book_theta3"
+    "theta4", "book_theta4"
+    "theta5", "book_theta5"
+    "theta6", "book_theta6"
+    "theta7", "book_theta7"
+    "theta8", "book_theta8"
+    "theta9", "book_theta9"
+    "theta10", "book_theta10"
     };
 
 for k = 1:size(fields, 1)
@@ -337,18 +343,21 @@ if ismember(calibrationMode, ["current", "stageB"]) && isfile(stageBHumidityCsv)
     P = applyNameValueTable(P, T, "parameter", "value");
 end
 
-stage2VoltageCsv = fullfile(inputDir, '电堆物理模型', 'stack_voltage_book_fit_params_stage2.csv');
+stage2VoltageCsv = fullfile(inputDir, '电堆物理模型', 'stack_voltage_book_theta_params.csv');
 if ismember(calibrationMode, ["current", "stageA", "stageB", "stage2", "stage3"]) && isfile(stage2VoltageCsv)
     T = readtable(stage2VoltageCsv, 'TextType', 'string');
     if height(T) >= 1
         fields = {
-            "xi1", "book_xi1"
-            "xi2", "book_xi2"
-            "xi3", "book_xi3"
-            "xi4", "book_xi4"
-            "contact_resistance_ohm", "book_contact_resistance_ohm"
-            "concM_V", "book_concentration_m_V"
-            "concN_1_A", "book_concentration_n_1_A"
+            "theta1", "book_theta1"
+            "theta2", "book_theta2"
+            "theta3", "book_theta3"
+            "theta4", "book_theta4"
+            "theta5", "book_theta5"
+            "theta6", "book_theta6"
+            "theta7", "book_theta7"
+            "theta8", "book_theta8"
+            "theta9", "book_theta9"
+            "theta10", "book_theta10"
             };
         for k = 1:size(fields, 1)
             if ismember(fields{k, 1}, string(T.Properties.VariableNames))
@@ -481,14 +490,14 @@ P.StackParam = [
     P.h_amb_W_K
     P.E_nernst_ref_V
     P.E_nernst_temp_coeff_V_K
-    P.book_xi1
-    P.book_xi2
-    P.book_xi3
-    P.book_xi4
+    P.book_theta1
+    P.book_theta2
+    P.book_theta3
+    P.book_theta4
     P.membraneThickness_cm
-    P.book_contact_resistance_ohm
-    P.book_concentration_m_V
-    P.book_concentration_n_1_A
+    P.book_theta8
+    P.book_theta9
+    P.book_theta10
     P.thermoneutralVoltage_V
     P.anode_stoich
     P.RH_an_in
@@ -505,6 +514,9 @@ P.StackParam = [
     P.cool_flow_curve_enabled
     P.cool_flow_curve_L_min(:)
     P.cool_flow_curve_h_W_K(:)
+    P.book_theta5
+    P.book_theta6
+    P.book_theta7
     ];
 
 P.SeparatorParam = [
@@ -587,4 +599,3 @@ end
 function pws = saturationPressureKPa(T_C)
 pws = 0.61121 * exp((18.678 - T_C / 234.5) * (T_C / (257.14 + T_C)));
 end
-

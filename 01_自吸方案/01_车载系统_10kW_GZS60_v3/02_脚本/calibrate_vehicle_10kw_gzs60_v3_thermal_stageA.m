@@ -141,13 +141,6 @@ P.hum_mem_D_eff_m2_s = 1.0e-9;
 P.hum_beta_wet_m_s = 0.06;
 P.hum_beta_dry_m_s = 0.06;
 P.hum_heat_eff = 0.5825;
-P.book_xi1 = -1.18256193784984;
-P.book_xi2 = 0.00294108739022835;
-P.book_xi3 = 5.21269240295832e-05;
-P.book_xi4 = -8.54349163446432e-05;
-P.book_contact_resistance_ohm = 2.2204486714779e-14;
-P.book_concentration_m_V = 3.97280101897563e-05;
-P.book_concentration_n_1_A = 0.00982352283961081;
 end
 
 function D = addBenchCoolingColumns(D, P)
@@ -544,14 +537,14 @@ P.StackParam = [
     P.h_amb_W_K
     P.E_nernst_ref_V
     P.E_nernst_temp_coeff_V_K
-    P.book_xi1
-    P.book_xi2
-    P.book_xi3
-    P.book_xi4
+    P.book_theta1
+    P.book_theta2
+    P.book_theta3
+    P.book_theta4
     P.membraneThickness_cm
-    P.book_contact_resistance_ohm
-    P.book_concentration_m_V
-    P.book_concentration_n_1_A
+    P.book_theta8
+    P.book_theta9
+    P.book_theta10
     P.thermoneutralVoltage_V
     P.anode_stoich
     P.RH_an_in
@@ -568,6 +561,9 @@ P.StackParam = [
     P.cool_flow_curve_enabled
     P.cool_flow_curve_L_min(:)
     P.cool_flow_curve_h_W_K(:)
+    P.book_theta5
+    P.book_theta6
+    P.book_theta7
     ];
 end
 
