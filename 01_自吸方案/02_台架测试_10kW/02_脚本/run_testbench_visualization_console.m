@@ -19,29 +19,39 @@ end
 constantCurrent = testbench_viz_utils("loadConstantCurrent", C);
 constantVoltage = testbench_viz_utils("loadConstantVoltage", C);
 [constantPO2, constantPO2Comparison] = testbench_viz_utils("loadConstantPO2TwoPoint", C);
+[validation, validationStats] = testbench_viz_utils("loadNoEgrValidation", C);
 
+topologyRow = testbench_viz_utils("selectTopologyCase", constantCurrent);
+figTopology = testbench_viz_utils("plotBenchTopology", topologyRow);
 figCurrentMain = testbench_viz_utils("plotEgrMain", constantCurrent, "constant_current");
 figCurrentDiag = testbench_viz_utils("plotEgrDiagnostics", constantCurrent, "constant_current");
 figVoltageMain = testbench_viz_utils("plotEgrMain", constantVoltage, "constant_voltage");
 figVoltageDiag = testbench_viz_utils("plotEgrDiagnostics", constantVoltage, "constant_voltage");
 figPO2TwoPoint = testbench_viz_utils("plotConstantPO2TwoPoint", constantPO2, constantPO2Comparison);
+figValidation = testbench_viz_utils("plotNoEgrValidation", validation, validationStats);
 
+testbench_viz_utils("writeSheet", C, "topology_case", topologyRow);
 testbench_viz_utils("writeSheet", C, "constant_current", constantCurrent);
 testbench_viz_utils("writeSheet", C, "constant_voltage", constantVoltage);
 testbench_viz_utils("writeSheet", C, "constant_pO2_DQ60_two_point", constantPO2);
 testbench_viz_utils("writeSheet", C, "constant_pO2_DQ60_comparison", constantPO2Comparison);
+testbench_viz_utils("writeSheet", C, "no_egr_validation", validation);
+testbench_viz_utils("writeSheet", C, "no_egr_validation_stats", validationStats);
 
 runInfo = testbench_viz_utils("makeRunInfo", C, "testbench_visualization_existing_results");
 testbench_viz_utils("writeSheet", C, "run_info", runInfo);
 
 results = struct();
+results.topologyCase = topologyRow;
 results.constantCurrent = constantCurrent;
 results.constantVoltage = constantVoltage;
 results.constantPO2TwoPoint = constantPO2;
 results.constantPO2Comparison = constantPO2Comparison;
-results.figures = [figCurrentMain, figCurrentDiag, figVoltageMain, figVoltageDiag, figPO2TwoPoint];
+results.validation = validation;
+results.validationStats = validationStats;
+results.figures = [figTopology, figCurrentMain, figCurrentDiag, figVoltageMain, figVoltageDiag, figPO2TwoPoint, figValidation];
 results.workbookFile = C.workbookFile;
 
 assignin('base', 'testbenchVisualizationConsoleResults', results);
-fprintf('Testbench visualization console opened 5 figures. Data workbook updated: %s\n', C.workbookFile);
+fprintf('Testbench visualization console opened 7 figures. Data workbook updated: %s\n', C.workbookFile);
 end

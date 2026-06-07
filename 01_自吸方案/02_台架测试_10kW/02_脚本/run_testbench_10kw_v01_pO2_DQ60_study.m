@@ -171,8 +171,6 @@ function results = runTwoPointRepresentativeStudy(P0, studyModel, studyFile)
 jTarget = 0.10;
 egrTarget = 0.25;
 caseIndex = caseIndexFromCurrentDensity(jTarget);
-representativeFlowScale = 4.0;
-representativeSpeedRpm = 4000;
 
 Pbase = configureStudyCase(caseIndex, 0.0, jTarget, 1.0, 3000, studyModel, studyFile);
 baseRow = runCase(Pbase, "constant_pO2_DQ60_two_point", caseIndex, 0.0);
@@ -180,10 +178,9 @@ pO2Target = baseRow.pO2_ca_in_kPa;
 baseRow.case_label = "baseline_j0p10_EGR0";
 baseRow.solve_status = "no_egr_reference";
 
-Prep = configureStudyCase(caseIndex, egrTarget, jTarget, representativeFlowScale, representativeSpeedRpm, studyModel, studyFile);
-repRow = runCase(Prep, "constant_pO2_DQ60_two_point", caseIndex, egrTarget);
-repRow.case_label = "representative_j0p10_EGR0p25_DQ60_4000rpm_flowScale4";
-repRow.solve_status = "representative_DQ60_map_point_no_search";
+repRow = solveSpeedFlowForPO2(caseIndex, jTarget, egrTarget, pO2Target, studyModel, studyFile);
+repRow.condition = "constant_pO2_DQ60_two_point";
+repRow.case_label = "representative_j0p10_EGR0p25_DQ60_solved_min_stable_flow";
 
 rows = {baseRow; repRow};
 for k = 1:numel(rows)
@@ -195,10 +192,11 @@ for k = 1:numel(rows)
     rows{k}.abs_pO2_error_kPa = abs(rows{k}.pO2_ca_in_target_error_kPa);
     rows{k}.pressure_order_ok = rows{k}.p_ca_in_kPa > rows{k}.p_stack_internal_kPa;
     [rows{k}.dq60_speed_min_flow_lpm, rows{k}.dq60_speed_max_flow_lpm, rows{k}.dq60_speed_flow_in_grid] = speedFlowEnvelope(rows{k}.dq60_speed_rpm, rows{k}.dq60_flow_lpm);
-    rows{k}.air_flow_control = "two_point_fixed_representative_DQ60_point";
+    rows{k}.air_flow_control = "two_point_solved_min_stable_DQ60_flow";
     rows{k}.lookup_quality = lookupQuality(rows{k}.abs_pO2_error_kPa, 0.10, 0.30);
 end
 
+rows = alignStructFields(rows);
 T = vertcat(struct2table(rows{1}), struct2table(rows{2}));
 T = addStudyCriteria(T);
 comparison = buildTwoPointComparison(T);
@@ -208,7 +206,7 @@ comparisonFile = fullfile(P0.resultDir, 'condition_study_constant_pO2_DQ60_two_p
 summaryFile = fullfile(P0.resultDir, 'condition_study_constant_pO2_DQ60_two_point_j0p10_egr0p25_summary.md');
 writetable(T, outFile);
 writetable(comparison, comparisonFile);
-writeTwoPointSummary(summaryFile, T, comparison, representativeFlowScale, representativeSpeedRpm);
+writeTwoPointSummary(summaryFile, T, comparison);
 
 results = struct();
 results.table = T;
@@ -251,10 +249,10 @@ comparison.normal_operation_ok = T.normal_operation_ok;
 end
 
 function rowBest = solveSpeedFlowForPO2(caseIndex, jTarget, egr, pO2Target, studyModel, studyFile)
-speedGrid = [4000 6000 8000];
+speedGrid = [3000 4000 5000 6000 7000 8000];
 baseP = configureStudyCase(caseIndex, egr, jTarget, 1.0, 3000, studyModel, studyFile);
 maxScale = min(24.0, max(1.0, 1200.0 / max(baseP.cathode_flow_nlpm, 1e-6)));
-flowGrid = unique([2.0 4.0 6.0 8.0 12.0 16.0]);
+flowGrid = unique([1.0 1.2 1.5 1.8 2.0 2.5 3.0 4.0 5.0 6.0 8.0 12.0 16.0]);
 flowGrid = flowGrid(flowGrid <= maxScale + 1e-12);
 
 trials = runTrialGrid(caseIndex, jTarget, egr, pO2Target, speedGrid, flowGrid, studyModel, studyFile);
@@ -291,18 +289,67 @@ end
 function row = selectBestTrial(T)
 T.abs_pO2_error_kPa = abs(T.pO2_ca_in_target_error_kPa);
 T.pressure_order_ok = T.p_ca_in_kPa > T.p_stack_internal_kPa;
-mapValid = T.dq60_speed_flow_in_grid & T.pressure_order_ok & T.dq60_map_flow_clamped == 0;
-if any(mapValid)
-    candidates = T(mapValid, :);
+if ~ismember("is_dynamic_stable", string(T.Properties.VariableNames))
+    T.is_dynamic_stable = true(height(T), 1);
+end
+if ~ismember("thermal_ok", string(T.Properties.VariableNames))
+    T.thermal_ok = T.T_stack_C >= 45 & T.T_stack_C <= 90;
+end
+if ~ismember("humidity_ok", string(T.Properties.VariableNames))
+    T.humidity_ok = T.RH_ca_in >= 0 & T.RH_ca_in <= 1.05;
+end
+T.pO2_target_ok = T.abs_pO2_error_kPa <= 0.10;
+T.oxygen_ok = T.lambda_O2_actual >= 1.0 & T.pO2_ca_in_kPa >= 3.0;
+T.dq60_operating_map_ok = T.dq60_speed_flow_in_grid & T.dq60_map_flow_clamped == 0;
+usable = T.pO2_target_ok & T.oxygen_ok & T.thermal_ok & T.humidity_ok ...
+    & T.pressure_order_ok & T.dq60_operating_map_ok & T.is_dynamic_stable;
+if any(usable)
+    candidates = T(usable, :);
+    candidates = sortrows(candidates, ["air_flow_scale", "abs_pO2_error_kPa", "dq60_speed_rpm"]);
+elseif any(T.dq60_operating_map_ok & T.pressure_order_ok & T.is_dynamic_stable)
+    candidates = T(T.dq60_operating_map_ok & T.pressure_order_ok & T.is_dynamic_stable, :);
+    candidates.selection_score = candidates.abs_pO2_error_kPa + 0.02 * candidates.air_flow_scale;
+    candidates = sortrows(candidates, ["selection_score", "air_flow_scale", "dq60_speed_rpm"]);
+elseif any(T.dq60_operating_map_ok & T.pressure_order_ok)
+    candidates = T(T.dq60_operating_map_ok & T.pressure_order_ok, :);
+    candidates.selection_score = candidates.abs_pO2_error_kPa + 0.05 * candidates.air_flow_scale + 10 * ~candidates.is_dynamic_stable;
+    candidates = sortrows(candidates, ["selection_score", "air_flow_scale", "dq60_speed_rpm"]);
 else
     candidates = T;
+    candidates.selection_score = candidates.abs_pO2_error_kPa + 0.05 * candidates.air_flow_scale;
+    candidates = sortrows(candidates, ["selection_score", "air_flow_scale", "dq60_speed_rpm"]);
 end
-[~, idx] = min(candidates.abs_pO2_error_kPa);
-row = table2struct(candidates(idx, :));
+row = table2struct(candidates(1, :));
+end
+
+function rows = alignStructFields(rows)
+allFields = strings(0, 1);
+for k = 1:numel(rows)
+    allFields = union(allFields, string(fieldnames(rows{k})), 'stable');
+end
+for k = 1:numel(rows)
+    missing = setdiff(allFields, string(fieldnames(rows{k})), 'stable');
+    for f = missing.'
+        rows{k}.(char(f)) = missingValueForField(char(f));
+    end
+    rows{k} = orderfields(rows{k}, cellstr(allFields));
+end
+end
+
+function value = missingValueForField(fieldName)
+if endsWith(fieldName, "_ok") || startsWith(fieldName, "is_") || startsWith(fieldName, "dq60_") && endsWith(fieldName, "_in_grid")
+    value = false;
+elseif contains(fieldName, "status") || contains(fieldName, "label") || contains(fieldName, "quality") || contains(fieldName, "control") || fieldName == "condition" || fieldName == "case_id"
+    value = "";
+else
+    value = NaN;
+end
 end
 
 function status = solveStatus(row)
-if abs(row.pO2_ca_in_target_error_kPa) <= 0.10 && row.dq60_speed_flow_in_grid && row.pressure_order_ok && row.dq60_map_flow_clamped == 0 && row.lambda_O2_actual >= 1.0
+if isfield(row, 'is_dynamic_stable') && ~row.is_dynamic_stable
+    status = "dynamic_oscillation";
+elseif abs(row.pO2_ca_in_target_error_kPa) <= 0.10 && row.dq60_speed_flow_in_grid && row.pressure_order_ok && row.dq60_map_flow_clamped == 0 && row.lambda_O2_actual >= 1.0
     status = "solved_within_DQ60_map";
 elseif abs(row.pO2_ca_in_target_error_kPa) <= 0.10 && row.dq60_speed_flow_in_grid && row.pressure_order_ok && row.dq60_map_flow_clamped == 0
     status = "pO2_solved_but_stack_oxygen_limited";
@@ -335,16 +382,22 @@ row = extractFinalRow(P, simOut, condition, boundaryCaseIndex, egr);
 end
 
 function row = extractFinalRow(P, simOut, condition, boundaryCaseIndex, egr)
-summary = finalValue(simOut, 'summary_vector');
-fresh = finalValue(simOut, 'bench_air_in_node');
-egrNode = finalValue(simOut, 'egr_return_node');
-benchOut = finalValue(simOut, 'bench_out_node');
-mixed = finalValue(simOut, 'mixer_node');
-compressorOut = finalValue(simOut, 'compressor_node');
-conditioned = finalValue(simOut, 'bench_conditioned_node');
-separatorGas = finalValue(simOut, 'separator_gas_node');
-stackCaOut = finalValue(simOut, 'stack_ca_out_node');
+summaryFinal = finalValue(simOut, 'summary_vector');
+summaryWindow = signalWindow(simOut, 'summary_vector', P, 30);
+summary = mean(summaryWindow, 2, 'omitnan');
+fresh = windowMeanValue(simOut, 'bench_air_in_node', P, 30);
+egrNode = windowMeanValue(simOut, 'egr_return_node', P, 30);
+benchOut = windowMeanValue(simOut, 'bench_out_node', P, 30);
+mixed = windowMeanValue(simOut, 'mixer_node', P, 30);
+compressorOut = windowMeanValue(simOut, 'compressor_node', P, 30);
+conditioned = windowMeanValue(simOut, 'bench_conditioned_node', P, 30);
+separatorGas = windowMeanValue(simOut, 'separator_gas_node', P, 30);
+stackCaOut = windowMeanValue(simOut, 'stack_ca_out_node', P, 30);
 [~, dq60Diag] = dq60_map_apply_v01(mixed, P.CompressorParam);
+lambdaWindow = summaryWindow(40, :);
+mInWindow = summaryWindow(41, :);
+pStackWindow = summaryWindow(5, :);
+vCellWindow = summaryWindow(2, :);
 
 row = struct();
 row.condition = string(condition);
@@ -368,6 +421,19 @@ row.Q_cool_W = summary(33);
 row.Q_amb_W = summary(34);
 row.Q_gas_W = summary(35);
 row.lambda_O2_actual = summary(40);
+row.lambda_O2_final_sample = summaryFinal(40);
+row.lambda_O2_window_min = min(lambdaWindow, [], 'omitnan');
+row.lambda_O2_window_max = max(lambdaWindow, [], 'omitnan');
+row.lambda_O2_window_range = row.lambda_O2_window_max - row.lambda_O2_window_min;
+row.m_ca_in_actual_kg_s = summary(41);
+row.m_ca_in_final_sample_kg_s = summaryFinal(41);
+row.ca_in_flowing_fraction_30s = mean(mInWindow > 1e-9, 'omitnan');
+row.dV_cell_30s = max(vCellWindow, [], 'omitnan') - min(vCellWindow, [], 'omitnan');
+row.dp_stack_internal_30s_kPa = max(pStackWindow, [], 'omitnan') - min(pStackWindow, [], 'omitnan');
+row.is_dynamic_stable = row.dV_cell_30s <= 0.01 ...
+    && row.dp_stack_internal_30s_kPa <= 1.0 ...
+    && row.lambda_O2_window_range <= 0.5 ...
+    && row.ca_in_flowing_fraction_30s >= 0.95;
 row.m_bench_air_in_kg_s = sum(fresh(1:3));
 row.m_egr_return_kg_s = sum(egrNode(1:3));
 row.m_bench_out_kg_s = sum(benchOut(1:3));
@@ -439,6 +505,26 @@ assignin(mw, 'StackInitialState_v2', P.stack_initial_state);
 end
 
 function value = finalValue(simOut, name)
+data = signalMatrix(simOut, name);
+value = data(:, end);
+end
+
+function value = windowMeanValue(simOut, name, P, window_s)
+data = signalWindow(simOut, name, P, window_s);
+value = mean(data, 2, 'omitnan');
+end
+
+function data = signalWindow(simOut, name, P, window_s)
+data = signalMatrix(simOut, name);
+if size(data, 2) <= 1
+    return;
+end
+windowN = max(1, min(size(data, 2), round(window_s / max(P.dt_s, eps)) + 1));
+idxStart = size(data, 2) - windowN + 1;
+data = data(:, idxStart:end);
+end
+
+function data = signalMatrix(simOut, name)
 raw = simOut.get(name);
 if isa(raw, 'timeseries')
     data = raw.Data;
@@ -448,11 +534,20 @@ else
     data = raw;
 end
 if ndims(data) == 3
-    value = data(:, :, end);
-elseif ismatrix(data) && size(data, 1) > 1 && size(data, 2) > 1
-    value = data(end, :)';
+    data = squeeze(data);
+    if size(data, 2) <= 100 && size(data, 1) > 100
+        data = data.';
+    end
+elseif ismatrix(data)
+    % Simulink To Workspace may be signal-by-time or time-by-signal.
+    if size(data, 2) <= 100 && size(data, 1) > 100
+        data = data.';
+    end
 else
-    value = data(:);
+    data = data(:);
+end
+if isvector(data)
+    data = data(:);
 end
 end
 
@@ -498,12 +593,17 @@ T.oxygen_ok = T.lambda_O2_actual >= 1.0 & T.pO2_ca_in_kPa >= 3.0;
 T.thermal_ok = T.T_stack_C >= 45 & T.T_stack_C <= 90;
 T.humidity_ok = T.RH_ca_in >= 0 & T.RH_ca_in <= 1.05;
 T.pressure_order_ok = T.p_ca_in_kPa > T.p_stack_internal_kPa;
+if ~ismember("is_dynamic_stable", string(T.Properties.VariableNames))
+    T.is_dynamic_stable = true(height(T), 1);
+end
 T.dq60_global_map_ok = T.dq60_map_flow_clamped == 0;
 T.dq60_operating_map_ok = T.dq60_global_map_ok & T.dq60_speed_flow_in_grid;
-T.normal_operation_ok = T.pO2_target_ok & T.oxygen_ok & T.thermal_ok & T.humidity_ok & T.pressure_order_ok & T.dq60_operating_map_ok;
+T.normal_operation_ok = T.pO2_target_ok & T.oxygen_ok & T.thermal_ok & T.humidity_ok & T.pressure_order_ok & T.dq60_operating_map_ok & T.is_dynamic_stable;
 T.risk_label = strings(height(T), 1);
 for k = 1:height(T)
-    if ~T.pO2_target_ok(k)
+    if ~T.is_dynamic_stable(k)
+        T.risk_label(k) = "dynamic_oscillation";
+    elseif ~T.pO2_target_ok(k)
         T.risk_label(k) = "pO2_target_miss";
     elseif ~T.oxygen_ok(k)
         T.risk_label(k) = "oxygen_limit";
@@ -553,7 +653,7 @@ lines = [
 writeText(path, lines);
 end
 
-function writeTwoPointSummary(path, T, comparison, representativeFlowScale, representativeSpeedRpm)
+function writeTwoPointSummary(path, T, comparison)
 base = comparison(comparison.EGR == 0, :);
 rep = comparison(comparison.EGR > 0, :);
 lines = [
@@ -564,16 +664,16 @@ lines = [
     "## Scope"
     ""
     "- Model: `CEGR_TestBench_10kW_v01_pO2_DQ60.slx`."
-    "- Study mode: no grid search; only two requested operating points are simulated."
+    "- Study mode: two-point comparison using the same DQ60 flow-compensation search logic as the grid study."
     "- Baseline: 0.1 A/cm2, EGR = 0."
-    sprintf("- Representative DQ60 point: 0.1 A/cm2, EGR = 0.25, flow scale = %.1f, speed = %.0f rpm.", representativeFlowScale, representativeSpeedRpm)
+    "- Representative point: 0.1 A/cm2, EGR = 0.25, solved for minimum stable DQ60 flow compensation."
     "- Target: compare EGR=0.25 against same-current no-EGR `pO2_ca_in_kPa`."
     ""
     "## Key Comparison"
     ""
     sprintf("- Baseline pO2_ca_in: %.4f kPa.", base.pO2_ca_in_kPa)
     sprintf("- EGR=0.25 pO2_ca_in: %.4f kPa; delta: %.4f kPa.", rep.pO2_ca_in_kPa, rep.delta_pO2_ca_in_kPa)
-    sprintf("- EGR=0.25 DQ60 operating point: %.1f L/min at %.0f rpm; map-ok = %d.", rep.dq60_flow_lpm, rep.dq60_speed_rpm, rep.dq60_operating_map_ok)
+    sprintf("- EGR=0.25 DQ60 operating point: %.1f L/min at %.0f rpm; flow scale = %.3f; map-ok = %d.", rep.dq60_flow_lpm, rep.dq60_speed_rpm, rep.air_flow_scale, rep.dq60_operating_map_ok)
     sprintf("- EGR=0.25 voltage delta vs baseline: %.6f V/cell.", rep.delta_V_cell_sim)
     sprintf("- EGR=0.25 risk label: `%s`; normal operation = %d.", rep.risk_label, rep.normal_operation_ok)
     ""

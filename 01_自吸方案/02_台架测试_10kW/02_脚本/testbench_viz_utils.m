@@ -10,12 +10,20 @@ switch string(action)
         varargout{1} = loadConstantVoltage(varargin{:});
     case "loadConstantPO2TwoPoint"
         [varargout{1:nargout}] = loadConstantPO2TwoPoint(varargin{:});
+    case "loadNoEgrValidation"
+        [varargout{1:nargout}] = loadNoEgrValidation(varargin{:});
+    case "selectTopologyCase"
+        varargout{1} = selectTopologyCase(varargin{:});
+    case "plotBenchTopology"
+        varargout{1} = plotBenchTopology(varargin{:});
     case "plotEgrMain"
         varargout{1} = plotEgrMain(varargin{:});
     case "plotEgrDiagnostics"
         varargout{1} = plotEgrDiagnostics(varargin{:});
     case "plotConstantPO2TwoPoint"
         varargout{1} = plotConstantPO2TwoPoint(varargin{:});
+    case "plotNoEgrValidation"
+        varargout{1} = plotNoEgrValidation(varargin{:});
     case "writeSheet"
         writeResultSheet(varargin{:});
     case "makeRunInfo"
@@ -40,6 +48,9 @@ C.constantCurrentFile = fullfile(C.resultDir, 'condition_study_constant_current_
 C.constantVoltageFile = fullfile(C.resultDir, 'condition_study_constant_voltage_solved.csv');
 C.constantPO2TwoPointFile = fullfile(C.resultDir, 'condition_study_constant_pO2_DQ60_two_point_j0p10_egr0p25.csv');
 C.constantPO2ComparisonFile = fullfile(C.resultDir, 'condition_study_constant_pO2_DQ60_two_point_j0p10_egr0p25_comparison.csv');
+C.noEgrScanFile = fullfile(C.resultDir, 'testbench_constant_current_egr_scan.csv');
+C.thermalDiagnosticFile = fullfile(C.resultDir, 'testbench_thermal_stageA_diagnostic.csv');
+C.benchDataFile = fullfile(fileparts(fileparts(C.rootDir)), '00_支撑材料', '实验数据-设备说明书', '10kw短堆稳态测试_阴极尾气循环系统模型数据.txt');
 if ~exist(C.resultDir, 'dir')
     mkdir(C.resultDir);
 end
@@ -72,6 +83,72 @@ else
 end
 end
 
+function [T, stats] = loadNoEgrValidation(C)
+scan = readRequiredTable(C.noEgrScanFile);
+scan = scan(abs(scan.egr_fraction_cmd) < 1e-12, :);
+scan = sortrows(scan, "case_index");
+
+thermal = readRequiredTable(C.thermalDiagnosticFile);
+thermal = sortrows(thermal, "case_index");
+
+bench = readBenchTable(C.benchDataFile);
+bench = sortrows(bench, "case_index");
+
+if height(scan) ~= height(thermal) || height(scan) ~= height(bench) || ...
+        any(scan.case_index ~= thermal.case_index) || any(scan.case_index ~= bench.case_index)
+    error('CEGR:ValidationTableMismatch', 'No-EGR scan, thermal diagnostic, and bench data case indexes do not align.');
+end
+
+T = table();
+T.case_index = scan.case_index;
+T.case_id = scan.case_id;
+T.current_A = scan.current_A;
+T.current_density_A_cm2 = bench.current_density_A_cm2;
+T.V_cell_bench = thermal.V_cell_bench;
+T.V_cell_sim = scan.V_cell_sim;
+T.T_stack_fit_C = thermal.T_stack_fit_C;
+T.T_stack_C = scan.T_stack_C;
+T.cathode_in_pressure_abs_kPa = bench.cathode_in_pressure_abs_kPa;
+T.p_ca_in_kPa = scan.p_ca_in_kPa;
+T.cathode_RH = bench.cathode_RH;
+T.RH_ca_in = scan.RH_ca_in;
+T.V_cell_err = T.V_cell_sim - T.V_cell_bench;
+T.T_stack_err_C = T.T_stack_C - T.T_stack_fit_C;
+T.p_ca_in_err_kPa = T.p_ca_in_kPa - T.cathode_in_pressure_abs_kPa;
+T.RH_ca_in_err = T.RH_ca_in - T.cathode_RH;
+T = sortrows(T, "current_density_A_cm2");
+
+stats = table();
+stats.metric = ["V_cell"; "T_stack_C"; "p_ca_in_kPa"; "RH_ca_in"];
+stats.rmse = [localRmse(T.V_cell_err); localRmse(T.T_stack_err_C); localRmse(T.p_ca_in_err_kPa); localRmse(T.RH_ca_in_err)];
+stats.max_abs_error = [max(abs(T.V_cell_err)); max(abs(T.T_stack_err_C)); max(abs(T.p_ca_in_err_kPa)); max(abs(T.RH_ca_in_err))];
+stats.point_count = repmat(height(T), height(stats), 1);
+end
+
+function B = readBenchTable(path)
+if ~isfile(path)
+    error('CEGR:MissingBenchData', 'Missing bench data file: %s', path);
+end
+lines = splitlines(string(fileread(path)));
+headerIdx = find(startsWith(lines, '电流_A'), 1);
+if isempty(headerIdx)
+    error('CEGR:MissingBenchHeader', 'Cannot find bench table header in %s', path);
+end
+dataLines = lines(headerIdx + 1:end);
+dataLines = dataLines(strlength(strtrim(dataLines)) > 0);
+values = zeros(numel(dataLines), 33);
+for k = 1:numel(dataLines)
+    parts = split(dataLines(k), sprintf('\t'));
+    values(k, :) = str2double(parts).';
+end
+B = table();
+B.case_index = (1:size(values, 1)).';
+B.current_A = values(:, 1);
+B.current_density_A_cm2 = values(:, 2);
+B.cathode_in_pressure_abs_kPa = values(:, 19) + 101.325;
+B.cathode_RH = values(:, 16) / 100;
+end
+
 function T = readRequiredTable(path)
 if ~isfile(path)
     error('CEGR:MissingBenchVizData', 'Missing visualization input table: %s', path);
@@ -100,6 +177,77 @@ for k = 1:height(T)
     end
 end
 T.interpretation_status = status;
+end
+
+function row = selectTopologyCase(T)
+mask = abs(T.current_density_target_A_cm2 - 0.10) < 1e-9 & abs(T.egr_fraction_cmd - 0.30) < 1e-9;
+if ~any(mask)
+    mask = abs(T.current_density_target_A_cm2 - 0.10) < 1e-9;
+end
+if ~any(mask)
+    mask = true(height(T), 1);
+end
+row = T(find(mask, 1, 'first'), :);
+end
+
+function fig = plotBenchTopology(rowTable)
+row = table2struct(rowTable(1, :));
+fig = figure('Name', 'Testbench 00 Bench Topology', 'Color', 'w');
+ax = axes(fig);
+axis(ax, [0 1 0 1]);
+axis(ax, 'off');
+hold(ax, 'on');
+
+fig.Position(3:4) = [1260 720];
+airColor = [0.10 0.38 0.67];
+egrColor = [0.12 0.50 0.28];
+stackColor = [0.70 0.18 0.14];
+exhaustColor = [0.42 0.46 0.50];
+
+drawPanel(ax, [0.018 0.875 0.964 0.095], '当前工况', [0.93 0.96 0.99], airColor);
+drawPanel(ax, [0.025 0.565 0.950 0.285], '台架空气供给链路', [0.965 0.982 0.995], airColor);
+drawPanel(ax, [0.025 0.200 0.950 0.315], '电堆反应与尾气循环', [0.985 0.978 0.968], stackColor);
+
+boxes = {
+    "台架空气入口", [0.035 0.625 0.170 0.200], sprintf('入口压力 %.1f kPa\n入口温度 %.1f C\n新鲜空气 %.5f kg/s\n固定流量倍率 %.2f', ...
+        row.p_dq60_in_kPa, row.T_dq60_in_C, row.m_bench_air_in_kg_s, row.air_flow_scale), airColor, [0.91 0.96 1.00]
+    "EGR混合器", [0.245 0.625 0.165 0.200], sprintf('循环比命令 %.2f\n实际循环比 %.2f\n新鲜空气 %.5f\n循环气 %.5f\n混合xO2 %.3f', ...
+        row.egr_fraction_cmd, row.alpha_EGR_actual, row.m_bench_air_in_kg_s, row.m_egr_return_kg_s, row.xO2_ca_in), egrColor, [0.92 0.98 0.94]
+    "DQ60空气机", [0.450 0.625 0.155 0.200], sprintf('转速 %.0f rpm\n流量 %.1f L/min\n压升 %.1f kPa\n功率 %.1f W', ...
+        row.dq60_speed_rpm, row.dq60_flow_lpm, row.dq60_dp_kPa, row.dq60_power_W), airColor, [0.92 0.96 1.00]
+    "阴极条件调节", [0.645 0.625 0.160 0.200], sprintf('入堆温度 %.1f C\n入堆压力 %.1f kPa\npO2 %.1f kPa\nRH %.2f', ...
+        row.T_ca_in_C, row.p_ca_in_kPa, row.pO2_ca_in_kPa, row.RH_ca_in), airColor, [0.92 0.96 1.00]
+    "PEMFC电堆", [0.720 0.260 0.250 0.230], sprintf('电流密度 %.2f A/cm2\n电流 %.2f A\n单电池电压 %.3f V  功率 %.0f W\n温度 %.1f C  氧计量比 %.2f\n入堆压力 %.1f kPa\n堆内压力 %.1f kPa', ...
+        row.current_density_command_A_cm2, row.current_A, row.V_cell_sim, row.P_stack_sim_W, row.T_stack_C, row.lambda_O2_actual, row.p_ca_in_kPa, row.p_stack_internal_kPa), stackColor, [1.00 0.94 0.92]
+    "气水分离器", [0.455 0.260 0.175 0.230], sprintf('分离气 %.5f kg/s\n液水排出 %.2g kg/s\n出口温度 %.1f C\n出口压力 %.1f kPa', ...
+        row.m_separator_gas_kg_s, row.liquid_drain_separator_kg_s, row.T_separator_C, row.p_stack_internal_kPa), exhaustColor, [0.96 0.97 0.98]
+    "EGR阀 / 排气", [0.180 0.260 0.220 0.230], sprintf('循环气 %.5f kg/s\n排气 %.5f kg/s\n实际EGR %.2f\n排气温度 %.1f C\n排气压力 %.1f kPa', ...
+        row.m_egr_return_kg_s, row.m_bench_out_kg_s, row.alpha_EGR_actual, row.T_separator_C, row.p_stack_internal_kPa), egrColor, [0.94 0.98 0.94]
+    };
+
+for k = 1:size(boxes, 1)
+    drawBox(ax, boxes{k, 2}, boxes{k, 1}, boxes{k, 3}, boxes{k, 4}, boxes{k, 5});
+end
+
+drawArrow(ax, [0.205 0.725], [0.245 0.725], airColor, 2.2, '-');
+drawArrow(ax, [0.410 0.725], [0.450 0.725], airColor, 2.2, '-');
+drawArrow(ax, [0.605 0.725], [0.645 0.725], airColor, 2.2, '-');
+drawPolylineArrow(ax, [0.725 0.625; 0.800 0.545; 0.830 0.490], airColor, 2.0, '-');
+drawArrow(ax, [0.720 0.375], [0.630 0.375], exhaustColor, 2.0, '-');
+drawArrow(ax, [0.455 0.375], [0.400 0.375], exhaustColor, 2.0, '-');
+drawArrow(ax, [0.180 0.375], [0.055 0.375], exhaustColor, 2.0, '-');
+drawPolylineArrow(ax, [0.290 0.490; 0.345 0.560; 0.330 0.625], egrColor, 2.4, '--');
+
+text(ax, 0.055, 0.560, '空气主流', 'FontSize', 9, 'FontWeight', 'bold', 'Color', airColor);
+text(ax, 0.305, 0.545, 'EGR回流支路', 'FontSize', 9, 'FontWeight', 'bold', 'Color', egrColor);
+text(ax, 0.070, 0.350, '排气', 'FontSize', 9, 'FontWeight', 'bold', 'Color', exhaustColor);
+
+conditionText = sprintf(['单工况计算   电流密度 %.2f A/cm2   电流 %.2f A   EGR %.2f   ', ...
+    '固定台架空气入口流量 %.2f   DQ60转速 %.0f rpm'], ...
+    row.current_density_command_A_cm2, row.current_A, row.egr_fraction_cmd, row.air_flow_scale, row.dq60_speed_rpm);
+text(ax, 0.050, 0.918, conditionText, 'FontSize', 12, 'FontWeight', 'bold', 'Interpreter', 'none', 'Color', [0.10 0.12 0.14]);
+title(ax, '10 kW短堆台架cEGR测试结构单工况仿真控制台', 'FontWeight', 'bold');
+assignin('base', 'testbenchTopologyLayout', boxes);
 end
 
 function fig = plotEgrMain(T, studyType)
@@ -215,14 +363,41 @@ title('Air supply command');
 grid on;
 
 nexttile;
-plotStatusMapPO2(T, x, labels);
-title('Risk label');
+plot(x, T.p_ca_in_kPa, '-o', 'LineWidth', 1.4, 'DisplayName', 'cathode inlet');
+formatPO2Axis(x, labels);
+ylabel('Cathode inlet pressure (kPa abs)');
+title('Cathode inlet pressure');
+grid on;
 
 sgtitle('Constant pO2: 0.1 A/cm2 EGR=0 baseline vs EGR=0.25 DQ60 representative point');
 
 if nargin >= 2 && ~isempty(comparison)
     assignin('base', 'testbenchConstantPO2TwoPointComparison', comparison);
 end
+end
+
+function fig = plotNoEgrValidation(T, stats)
+fig = figure('Name', 'Testbench 06 No-EGR Validation', 'Color', 'w');
+tiledlayout(fig, 2, 2, 'Padding', 'compact', 'TileSpacing', 'compact');
+j = T.current_density_A_cm2;
+
+nexttile;
+plotCompare(j, T.V_cell_bench, T.V_cell_sim, 'V_{cell} (V)');
+title(sprintf('Cell voltage  RMSE %.4f V', metricRmse(stats, "V_cell")));
+
+nexttile;
+plotCompare(j, T.T_stack_fit_C, T.T_stack_C, 'T_{stack} (degC)');
+title(sprintf('Stack temperature  RMSE %.2f degC', metricRmse(stats, "T_stack_C")));
+
+nexttile;
+plotCompare(j, T.cathode_in_pressure_abs_kPa, T.p_ca_in_kPa, 'Cathode inlet pressure (kPa abs)');
+title(sprintf('Cathode inlet pressure  RMSE %.2f kPa', metricRmse(stats, "p_ca_in_kPa")));
+
+nexttile;
+plotCompare(j, T.cathode_RH, T.RH_ca_in, 'Cathode inlet RH (-)');
+title(sprintf('Cathode inlet humidity  RMSE %.3f RH', metricRmse(stats, "RH_ca_in")));
+
+sgtitle('Testbench no-EGR validation against bench data');
 end
 
 function [groupVar, groupLabel, titlePrefix, fixedFlowText, metrics] = plotMainContext(~, studyType)
@@ -376,19 +551,22 @@ xlabel('EGR fraction (-)');
 legend('Location', 'best');
 end
 
-function plotStatusMapPO2(T, x, labels)
-statuses = unique(string(T.interpretation_status), 'stable');
-y = statusIndex(string(T.interpretation_status), statuses);
-plot(x, y, 'o', 'MarkerSize', 8, 'LineWidth', 1.5);
+function plotCompare(x, yBench, ySim, yLabelText)
+plot(x, yBench, 'o-', 'LineWidth', 1.4, 'DisplayName', 'bench');
 hold on;
-for k = 1:numel(x)
-    text(x(k) + 0.05, y(k), string(T.interpretation_status(k)), 'Interpreter', 'none');
-end
-yticks(1:numel(statuses));
-yticklabels(statuses);
-formatPO2Axis(x, labels);
+plot(x, ySim, 's--', 'LineWidth', 1.4, 'DisplayName', 'simulation');
 grid on;
-ylim([0.5, max(numel(statuses) + 0.5, 1.5)]);
+xlabel('Current density (A/cm^2)');
+ylabel(yLabelText);
+legend('Location', 'best');
+end
+
+function value = metricRmse(stats, metric)
+value = stats.rmse(stats.metric == string(metric));
+end
+
+function value = localRmse(x)
+value = sqrt(mean(x .^ 2, 'omitnan'));
 end
 
 function idx = statusIndex(values, statuses)
@@ -493,6 +671,8 @@ if nargin < 1 || isempty(names)
         "Testbench 03 Constant Voltage Main"
         "Testbench 04 Constant Voltage Diagnostics"
         "Testbench 05 Constant pO2 DQ60 Two Point"
+        "Testbench 06 No-EGR Validation"
+        "Testbench 00 Bench Topology"
         ];
 end
 for k = 1:numel(names)
@@ -501,4 +681,40 @@ for k = 1:numel(names)
         close(figs);
     end
 end
+end
+
+function drawPanel(ax, pos, labelText, faceColor, edgeColor)
+rectangle(ax, 'Position', pos, 'Curvature', 0.025, 'FaceColor', faceColor, ...
+    'EdgeColor', edgeColor, 'LineWidth', 0.9);
+text(ax, pos(1) + 0.012, pos(2) + pos(4) - 0.028, labelText, 'FontWeight', 'bold', ...
+    'FontSize', 9, 'Color', edgeColor, 'Interpreter', 'none');
+end
+
+function h = drawBox(ax, pos, titleText, bodyText, edgeColor, faceColor)
+rectangle(ax, 'Position', pos + [0.006 -0.006 0 0], 'Curvature', 0.045, 'FaceColor', [0.84 0.87 0.90], ...
+    'EdgeColor', 'none', 'FaceAlpha', 0.35);
+rectangle(ax, 'Position', pos, 'Curvature', 0.04, 'FaceColor', faceColor, ...
+    'EdgeColor', edgeColor, 'LineWidth', 1.6);
+rectangle(ax, 'Position', [pos(1), pos(2)+pos(4)-0.052, pos(3), 0.052], ...
+    'Curvature', 0.04, 'FaceColor', edgeColor, 'EdgeColor', edgeColor, 'LineWidth', 0.8);
+hTitle = text(ax, pos(1) + 0.01, pos(2) + pos(4) - 0.035, titleText, 'FontWeight', 'bold', ...
+    'FontSize', 10.5, 'Interpreter', 'none', 'Color', 'w');
+hBody = text(ax, pos(1) + 0.012, pos(2) + pos(4) - 0.070, bodyText, 'FontSize', 8.1, ...
+    'VerticalAlignment', 'top', 'Interpreter', 'none', 'Color', [0.10 0.12 0.14]);
+h = [hTitle, hBody];
+end
+
+function drawArrow(ax, p1, p2, color, lineWidth, lineStyle)
+quiver(ax, p1(1), p1(2), p2(1) - p1(1), p2(2) - p1(2), 0, ...
+    'MaxHeadSize', 0.28, 'Color', color, 'LineWidth', lineWidth, 'LineStyle', lineStyle);
+end
+
+function drawPolylineArrow(ax, points, color, lineWidth, lineStyle)
+if size(points, 1) < 2
+    return;
+end
+for k = 1:size(points, 1)-2
+    plot(ax, points(k:k+1, 1), points(k:k+1, 2), 'Color', color, 'LineWidth', lineWidth, 'LineStyle', lineStyle);
+end
+drawArrow(ax, points(end-1, :), points(end, :), color, lineWidth, lineStyle);
 end

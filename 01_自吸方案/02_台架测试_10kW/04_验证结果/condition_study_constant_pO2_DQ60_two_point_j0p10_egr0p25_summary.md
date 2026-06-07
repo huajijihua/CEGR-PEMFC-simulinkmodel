@@ -1,22 +1,22 @@
 # DQ60 Constant-pO2 Two-Point Summary
 
-Date: 2026-06-07 13:14:49
+Date: 2026-06-07 15:00:07
 
 ## Scope
 
 - Model: `CEGR_TestBench_10kW_v01_pO2_DQ60.slx`.
-- Study mode: no grid search; only two requested operating points are simulated.
+- Study mode: two-point comparison using the same DQ60 flow-compensation search logic as the grid study.
 - Baseline: 0.1 A/cm2, EGR = 0.
-- Representative DQ60 point: 0.1 A/cm2, EGR = 0.25, flow scale = 4.0, speed = 4000 rpm.
+- Representative point: 0.1 A/cm2, EGR = 0.25, solved for minimum stable DQ60 flow compensation.
 - Target: compare EGR=0.25 against same-current no-EGR `pO2_ca_in_kPa`.
 
 ## Key Comparison
 
 - Baseline pO2_ca_in: 26.4314 kPa.
-- EGR=0.25 pO2_ca_in: 26.5117 kPa; delta: 0.0804 kPa.
-- EGR=0.25 DQ60 operating point: 229.3 L/min at 4000 rpm; map-ok = 1.
-- EGR=0.25 voltage delta vs baseline: -0.000419 V/cell.
-- EGR=0.25 risk label: `oxygen_limit`; normal operation = 0.
+- EGR=0.25 pO2_ca_in: 25.3309 kPa; delta: -1.1004 kPa.
+- EGR=0.25 DQ60 operating point: 86.0 L/min at 3000 rpm; flow scale = 1.500; map-ok = 1.
+- EGR=0.25 voltage delta vs baseline: 0.000126 V/cell.
+- EGR=0.25 risk label: `pO2_target_miss`; normal operation = 0.
 
 ## Outputs
 

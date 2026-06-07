@@ -546,7 +546,7 @@ lines = [
     "## Scope"
     ""
     "- Constant-current and constant-voltage studies keep compressor flow fixed to the no-EGR bench reference for the selected/nearest boundary point."
-    "- Constant-voltage solves current density to two decimals, then uses the nearest bench test point for inlet pressure, temperature, humidity and coolant boundary."
+    "- Constant-voltage solves current density to three decimals, then uses the nearest bench test point for inlet pressure, temperature, humidity and coolant boundary."
     "- Constant-pO2-inlet study uses `pO2_ca_in` as target and solves air-flow scale after EGR is enabled."
     ""
     "## Inputs"

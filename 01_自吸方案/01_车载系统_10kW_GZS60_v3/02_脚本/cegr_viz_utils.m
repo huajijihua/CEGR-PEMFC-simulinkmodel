@@ -343,7 +343,7 @@ elseif contains(string(T.condition(1)), "constant_pO2")
         "lambda_O2_actual", "Actual O_2 stoich (-)", "Oxygen stoich"
         "flow_breakdown", "kg/s", "Compressor inlet mass flow"
         "pH2O_caIn_kPa", "pH_2O cathode in (kPa)", "Water vapor pressure"
-        "T_stack_sim_C", "T_{stack} (degC)", "Stack temperature"
+        "p_ca_in_sim_kPa", "Cathode inlet pressure (kPa abs)", "Cathode inlet pressure"
         };
 else
     metrics = {
@@ -559,12 +559,8 @@ if lowRow.V_cell_sim >= targetV && highRow.V_cell_sim <= targetV
         candidateP{end + 1} = midP; %#ok<AGROW>
         if midRow.V_cell_sim >= targetV
             low = mid;
-            lowRow = midRow;
-            lowP = midP;
         else
             high = mid;
-            highRow = midRow;
-            highP = midP;
         end
     end
 end
@@ -615,12 +611,8 @@ if lowRow.V_cell_sim >= targetV && highRow.V_cell_sim <= targetV
         candidateP{end + 1} = midP; %#ok<AGROW>
         if midRow.V_cell_sim >= targetV
             low = mid;
-            lowRow = midRow;
-            lowP = midP;
         else
             high = mid;
-            highRow = midRow;
-            highP = midP;
         end
     end
 end
