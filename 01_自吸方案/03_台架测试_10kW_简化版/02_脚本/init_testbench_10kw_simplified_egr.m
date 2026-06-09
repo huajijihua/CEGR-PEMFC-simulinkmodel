@@ -1,8 +1,10 @@
 function P = init_testbench_10kw_simplified_egr(caseIndex, dataMode, verbose)
 %INIT_TESTBENCH_10KW_SIMPLIFIED_EGR Init data and parameters for simplified bench EGR model.
 %
-% The Simulink model is the main artifact. This script only prepares
-% workspace parameters for one steady bench point.
+% The Simulink model is the main artifact. This script prepares one steady
+% bench point from the measured gas conditions. Nominal cathode stoichiometry
+% values are not imposed during calibration; use them later for normalized
+% post-calibration sweeps.
 
 if nargin < 1 || isempty(caseIndex)
     caseIndex = 1;
@@ -88,19 +90,21 @@ main = readcell(noEgrFile, 'Sheet', 'Sheet1');
 cool = readcell(noEgrFile, 'Sheet', 'Sheet3');
 flow = readcell(noEgrFile, 'Sheet', 'Sheet4');
 nRows = size(main, 1) - 2;
-vals = zeros(nRows, 18);
+vals = zeros(nRows, 20);
 for k = 1:nRows
     r = k + 2;
     vals(k, :) = [
         num(main{r, 1}), num(main{r, 2}), num(main{r, 4}) / PcellCount(), ...
         num(main{r, 6}), num(main{r, 7}) / 100, num(main{r, 8}), num(main{r, 9}), num(main{r, 10}), ...
-        num(main{r, 11}), num(main{r, 12}), num(main{r, 13}) / 100, num(main{r, 14}), num(main{r, 15}), ...
+        num(main{r, 11}), num(main{r, 12}), num(main{r, 13}) / 100, num(main{r, 14}), ...
+        num(main{r, 15}), num(main{r, 16}), num(main{r, 17}), ...
         num(flow{r, 2}), num(flow{r, 4}), num(cool{r, 2}), num(cool{r, 3}), num(cool{r, 8})];
 end
 noEgr = array2table(vals, 'VariableNames', { ...
     'current_A', 'current_density_A_cm2', 'cell_voltage_V', ...
     'anode_stoich', 'anode_RH', 'anode_in_T_C', 'anode_in_p_g_kPa', 'anode_out_p_g_kPa', ...
-    'anode_out_T_C', 'cathode_stoich', 'cathode_RH', 'cathode_in_T_C', 'cathode_in_p_g_kPa', ...
+    'anode_out_T_C', 'cathode_stoich', 'cathode_RH', 'cathode_in_T_C', ...
+    'cathode_in_p_g_kPa', 'cathode_out_p_g_kPa', 'cathode_out_T_C', ...
     'anode_flow_SLPM', 'cathode_flow_SLPM', 'coolant_in_T_C', 'coolant_out_T_C', 'coolant_flow_L_min'});
 noEgr.case_index = (1:height(noEgr)).';
 
@@ -144,6 +148,8 @@ if ~isempty(extra20)
     extra.cell_voltage_V = extra20.cell_voltage_V(1);
     extra.cathode_in_T_C = extra20.stack_in_T_C(1);
     extra.cathode_in_p_g_kPa = extra20.stack_in_p_kPa(1);
+    extra.cathode_out_p_g_kPa = finiteOr(extra20.stack_out_p_kPa(1), extra20.bench_out_p_kPa(1));
+    extra.cathode_out_T_C = finiteOr(extra20.stack_out_T_C(1), extra20.bench_out_T_C(1));
     extra.cathode_RH = extra20.stack_in_RH(1);
     extra.cathode_flow_SLPM = extra20.stack_in_flow_SLPM(1);
     extra.coolant_in_T_C = extra20.coolant_in_T_C(1);
@@ -169,8 +175,8 @@ P.fresh_supply_flow_kg_s = P.stack_in_flow_kg_s;
 P.bench_stack_in_T_C = row.cathode_in_T_C;
 P.bench_stack_in_p_kPa = row.cathode_in_p_g_kPa;
 P.bench_stack_in_RH = row.cathode_RH;
-P.separator_T_C = row.coolant_out_T_C + 3.0;
-P.separator_p_kPa = max(row.cathode_in_p_g_kPa - 5.0, 0.0);
+P.separator_T_C = row.cathode_out_T_C;
+P.separator_p_kPa = row.cathode_out_p_g_kPa;
 
 P.anode_stoich = row.anode_stoich;
 P.RH_an_in = row.anode_RH;
@@ -242,6 +248,7 @@ P.BenchBoundaryParam = [
     P.xN2_dry
     P.stack_in_flow_kg_s
     P.fresh_supply_flow_kg_s
+    P.inlet_condition_mode
     ];
 P.EgrSplitParam = [
     P.egr_fraction_cmd
@@ -258,6 +265,8 @@ P.StackParam(34) = P.RH_an_in;
 P.StackParam(37) = P.p_anode_in_kPa;
 P.StackParam(38) = P.K_ca_in_kg_s_kPa;
 P.StackParam(44) = P.coolant_flow_L_min;
+P.V_ca_m3 = P.StackParam(11) * P.ca_volume_scale;
+P.StackParam(11) = P.V_ca_m3;
 if numel(P.StackParam) < 78
     P.StackParam(78) = 0;
 end
@@ -265,6 +274,13 @@ P.StackParam(75) = P.egr_fraction_cmd;
 P.StackParam(76) = P.egr_loss_k_V;
 P.StackParam(77) = P.egr_loss_exp;
 P.StackParam(78) = P.egr_loss_rh_V;
+P.StackParam(79) = 1.0; % simplified bench: imposed inlet flow, pressure remains diagnostic/internal state
+P.StackParam(80) = P.separator_T_C; % simplified bench outlet/separator gas temperature boundary
+P.StackParam(81) = P.ca_out_K_scale;
+P.StackParam(82) = P.pem_sigma_scale; % membrane conductivity correction in sigma_PEM(lambda,T)
+P.StackParam(83) = P.asr0_ohm_cm2; % non-membrane area specific ohmic resistance
+P.StackParam(84) = P.rho_PEM_kg_m3; % dry PEM density for dissolved-water concentration
+P.StackParam(85) = P.EW_PEM_kg_mol; % PEM equivalent weight for dissolved-water concentration
 end
 
 function P = readLocalCalibration(P)
@@ -277,6 +293,16 @@ P.fresh_supply_flow_scale = 1.0;
 P.egr_loss_k_V = 0.0;
 P.egr_loss_exp = 1.0;
 P.egr_loss_rh_V = 0.0;
+P.ca_out_K_scale = 1.1;
+P.ca_volume_scale = 1.0;
+P.pem_sigma_scale = 1.0;
+P.asr0_ohm_cm2 = 0.0;
+P.rho_PEM_kg_m3 = 1980.0;
+P.EW_PEM_kg_mol = 1.1;
+% 0 = calibration replay: force inlet vapor to measured RH.
+% 1 = composition-preserve study: keep mixed O2/N2/H2O vapor fractions and
+%     only impose inlet p/T. Used for no-humidifier CEGR self-humidification studies.
+P.inlet_condition_mode = 0.0;
 
 paramDir = fullfile(P.rootDir, '00_输入参数', '标定参数');
 stackFile = fullfile(paramDir, 'simplified_noegr_stack_params.csv');
