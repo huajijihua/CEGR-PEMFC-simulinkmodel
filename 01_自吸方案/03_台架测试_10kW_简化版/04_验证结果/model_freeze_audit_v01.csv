@@ -1,0 +1,27 @@
+check_id,category,severity,status,pass,value,threshold,detail,recommendation
+data_case_count,data,blocker,pass,1,29,29,"Unified case table and v02 audit should both contain 29 cases.",OK.
+data_noegr_case_count,data,blocker,pass,1,13,13,"Initial no-EGR baseline should contain 13 steady points.",OK.
+data_cegr_case_count,data,blocker,pass,1,16,16,"CEGR0608 set should contain 16 points.",OK.
+data_required_fields_present,data,blocker,pass,1,0,0,"Required current, voltage, cathode inlet flow, inlet pressure, temperature and RH fields should be present.",OK.
+data_outlet_pressure_fields_present,data,warn,warn,0,4,0,"Outlet pressure and cathode dp are important fitting targets; missing 20 A values can be filled or excluded from pressure fitting.",Review during staged calibration.
+simulation_success_all_cases,simulation,blocker,pass,1,29,29,"All cases should complete simulation before fitting.",OK.
+simulation_key_outputs_finite,simulation,blocker,pass,1,0,0,"Key simulated outputs should be finite.",OK.
+flow_coefficients_not_overwritten_per_case,flow_coeff,blocker,pass,1,1,1,"K_ca_in, K_ca_out and K_an_out should remain global coefficients, not per-case back-calculated values.",OK.
+flow_coefficients_positive,flow_coeff,blocker,pass,1,6.67e-06,0,"Pressure-flow coefficients used by the stack should be positive.",OK.
+anode_inlet_pressure_flow_mode_present,flow_coeff,warn,warn,0,0,1,"Current stack core has no K_an_in; anode inlet is set by anode stoichiometry, not linear pressure-flow.",Review during staged calibration.
+data_cathode_dp_matches_in_minus_out,pressure,blocker,pass,1,1.4210854715202e-14,1e-06,"Measured cathode pressure drop should equal inlet gauge pressure minus outlet gauge pressure.",OK.
+stack_pressure_between_inlet_and_outlet,pressure,warn,pass,1,1.45994770989699,3,"Stack cathode gas pressure should stay close to the measured inlet/outlet pressure band.",OK.
+noegr_stack_flow_equals_fresh_flow,flow,blocker,pass,1,0,1e-09,"No-EGR direct bench-to-stack flow should use measured stack inlet flow as fresh flow.",OK.
+cegr_stack_flow_not_below_fresh_flow,flow,blocker,pass,1,9.8,0,"CEGR stack inlet flow should not be lower than fresh bench supply flow.",OK.
+oxygen_excess_not_depleted,oxygen,blocker,block,0,0,1,"Actual oxygen excess should remain above one; zero values indicate inlet-flow gating or variable handoff problems.",Fix before calibration.
+actual_stack_inlet_flow_stable,flow,blocker,block,0,1396440000,0.02,"Actual stack inlet mass flow should not pulse between zero and target flow in the final window.",Fix before calibration.
+cegr_xO2_decreases_with_egr,oxygen,warn,pass,1,-0.906611615760576,0,"Inlet oxygen mole fraction should generally decrease as CEGR fraction increases.",OK.
+gas_mass_residual_small,conservation,blocker,pass,1,1.0842021724855e-18,1e-10,"O2/N2/H2/H2O gas residuals should be near numerical roundoff.",OK.
+interface_consistency_all_pass,interface,blocker,pass,1,0,0,"Detailed interface consistency checks should all pass.",OK.
+voltage_decomposition_closure,voltage,blocker,pass,1,5.44009282066327e-15,1e-09,"V_sim should equal E_Nernst - etaAct - etaOhm - etaCon.",OK.
+membrane_mmem_no_last_window_sign_flip,membrane,blocker,pass,1,0,0,"mMem should not flip sign in the final audit window.",OK.
+water_activity_limited_range,membrane,blocker,pass,1,0,0,"Limited cathode/anode/membrane water activities should stay within [0,1].",OK.
+membrane_inventory_limiter_inactive_at_final,membrane,warn,pass,1,0,1e-12,"Final mMem should not be dominated by inventory clipping.",OK.
+noegr_dp_increases_with_current,pressure,warn,pass,1,0.976665428045575,0.5,"Initial no-EGR measured cathode pressure drop should increase with current before fitting pressure-flow parameters.",OK.
+voltage_prefit_noegr_rmse_record,voltage,info,pass,1,0.00642446844348989,NaN,"Recorded no-EGR voltage RMSE before calibration.",OK.
+voltage_prefit_cegr_rmse_record,voltage,info,pass,1,0.0160849334078799,NaN,"Recorded CEGR voltage RMSE before calibration.",OK.

@@ -7,14 +7,14 @@
 
 ## Key Metrics
 
-- Voltage RMSE, all successful cases: 0.011279 V
+- Voltage RMSE, all successful cases: 0.011457 V
 - Max absolute voltage error: 0.043528 V
 - Initial no-EGR cathode dp range in data: 7.500 to 55.300 kPa
-- Max gas residual: 1.30104e-18 kg/s
-- Max cathode condensation diagnostic: 1.89689e-05 kg
+- Max gas residual: 1.0842e-18 kg/s
+- Max cathode condensation diagnostic: 2.95118e-05 kg
 - Default tau_memb_s: 10 s
 - Default k_mem_eff: 0.05
 - Max raw cathode water activity: 1
-- Max raw anode water activity: 0.918775
+- Max raw anode water activity: 0.898906
 - EGR voltage penalty terms are frozen outside the core equation in this pass.
 

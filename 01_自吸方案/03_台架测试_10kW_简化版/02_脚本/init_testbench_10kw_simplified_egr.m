@@ -154,9 +154,9 @@ P.T_cool_C = finiteOr(row.coolant_in_T_C, ref.coolant_in_T_C);
 P.coolant_out_C = finiteOr(row.coolant_out_T_C, ref.coolant_out_T_C);
 P.coolant_flow_L_min = finiteOr(row.coolant_flow_L_min, ref.coolant_flow_L_min);
 
-% First core-fix pass: measured stack inlet flow is the inlet mass boundary.
-% Keep the inlet coefficient diagnostic-only instead of back-fitting it per point.
-P.K_ca_in_kg_s_kPa = 1.0e6;
+% Keep the inherited stack inlet pressure-flow coefficient. The measured
+% stack inlet flow is the upstream boundary target, but the stack core still
+% uses K_ca_in to couple inlet manifold pressure to internal cathode pressure.
 end
 
 function P = buildSimplifiedBenchParams(P)
