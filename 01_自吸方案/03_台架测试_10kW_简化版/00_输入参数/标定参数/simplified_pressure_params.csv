@@ -1,0 +1,5 @@
+parameter,stack_model_index,value,old_value,unit,meaning_cn
+V_ca_m3,3,0.0008,0.0002,m3,阴极等效气体库存体积，K-only 压力拟合不合格后开放
+V_an_m3,4,0.00015,0.00015,m3,阳极等效气体库存体积，K-only 压力拟合不合格后开放但当前保持默认
+K_ca_out_kg_s_kPa,5,0.000317005332950444,0.00012,kg/(s*kPa),阴极出口等效导纳，使内部 pCa 接近进出口绝压平均值
+K_an_out_kg_s_kPa,6,2.195302844285e-05,6.67e-06,kg/(s*kPa),阳极出口等效导纳，使内部 pAn 接近进出口绝压平均值

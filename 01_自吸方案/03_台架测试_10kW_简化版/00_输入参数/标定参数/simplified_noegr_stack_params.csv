@@ -1,8 +1,6 @@
-parameter,stack_model_index,value
-book_theta1,12,0.313798014570513
-book_theta3,14,-2.16840434497101e-18
-book_theta4,15,6.22923762412631e-05
-book_theta8,17,0.000204593457740055
-book_theta9,18,2.28206062923902e-157
-book_theta10,19,0.025
-tau_mem_s,24,1
+parameter,stack_model_index,value,unit,model_location,meaning_cn,calibration_role,source_note
+ASR0_ohm_cm2,12,1.61390165685937e-26,ohm*cm2,StackModelParam_simplified(12),膜外接触/装配等效面积比内阻，参与 etaOhm 计算,noEGR voltage fit,"欧姆极化可拟合参数；膜电导率 sigma_PEM 由电堆膜水含量 lambda 计算"
+j0_c_A_cm2,13,1e-10,A/cm2,StackModelParam_simplified(13),阴极交换电流密度，参与 etaAct 计算,noEGR voltage fit,"以书中 I0,c=3e-6 A/cm2 为初值，用无 EGR 极化数据拟合"
+sigma_pem_correction,16,1.5,-,StackModelParam_simplified(16),膜电导率 sigma_PEM 修正系数，参与 etaOhm 计算,noEGR voltage fit,"欧姆极化可拟合参数；sigma_PEM 的 lambda 来自电堆内部膜水含量"
+alpha_O2,17,0.389098824627273,-,StackModelParam_simplified(17),阴极电荷转移系数，参与 etaActCa 计算,noEGR voltage fit,"书中参考值 0.3；当前开放范围 0.15..1.00，需和 j0_c 联合检查可辨识性"
+tau_mem_s,19,1,s,StackModelParam_simplified(19),膜水通量一阶松弛时间常数,model dynamic setting,"膜水动态设置，不作为本轮电压拟合参数"

@@ -1,0 +1,5 @@
+parameter,stack_model_index,scale,lower,upper,default_value,segmented_initial,fitted_value,bound_fraction,boundary_warning
+ASR0_ohm_cm2,12,linear,0,0.5,0.0001,5.36945150657557e-66,1.61390165685937e-26,3.22780331371873e-26,1
+j0_c_A_cm2,13,log10,1e-10,0.001,3e-06,1.0000000000023e-10,1e-10,0,1
+sigma_pem_correction,16,linear,0.05,1.5,0.21,1.5,1.5,0.999999999999999,1
+alpha_O2,17,linear,0.15,1,0.3,0.398095970348595,0.389098824627273,0.281292734855615,0

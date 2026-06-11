@@ -4,6 +4,8 @@ Active runtime table:
 
 - `00_输入参数/实验数据/combined_noegr_cegr_fit_points.csv`: the only active case table for fitting, replay, and audit.
 - The table contains 13 initial no-EGR points and 16 CEGR 0608 points.
+- The table is now a slim runtime input table with 31 columns. It keeps only fields read by the initialization, calibration, or audit scripts.
+- `is_no_egr=1` means the row has zero EGR fraction. Besides the 13 initial no-EGR points, four CEGR 0608 baseline rows also have zero EGR, so the runtime split is 17 zero-EGR rows and 12 positive-EGR rows.
 
 Key pressure note:
 
@@ -21,18 +23,15 @@ Boundary completion note:
 - EGR rows require return-branch temperature and pressure for the separator node. Missing return measurements are completed from similar CEGR points: `cegr0608_002` from the nearest same-series low-EGR point, `cegr0608_010` by interpolation between neighboring low-stoich CEGR points, and `cegr0608_014` from the nearest low-EGR 38 A / 2000 rpm point. `cegr0608_007` return RH is filled as saturated. No-EGR rows do not require return-branch temperature, pressure, or RH.
 - No-EGR cases do not pass through the separator. Separator temperature and pressure retained by the initializer for no-EGR rows are initialization placeholders only, not active gas-path boundaries.
 
-Stoichiometry note:
+Runtime boundary note:
 
-- `nominal_cathode_stoich_group` and `nominal_cathode_stoich_group_filled` are design/group labels, not model runtime boundaries.
-- `actual_cathode_stoich_noegr` is calculated only for no-EGR rows from measured stack inlet flow, inlet pressure, inlet temperature, inlet RH, current, and dry-air composition.
-- EGR rows leave `actual_cathode_stoich_noegr` blank because the inlet oxygen fraction must be calculated by the model from mixed fresh and recirculated gas.
 - Runtime setup uses stack inlet mass flow, stack inlet temperature, stack inlet pressure, cathode supply mass fractions, anode inlet mass flow and mass fractions, and EGR fraction; it does not use cathode stoichiometry as an input boundary.
 - For EGR cases, runtime separator boundaries use `egr_return_T_C` and `egr_return_p_kPa`; `egr_return_RH_pct` is not passed into the Simulink parameter interface because separator humidity is derived from the return gas composition.
-- `egr_valve_target_pct`, `egr_valve_input_pct`, return RH, source labels, parse notes, and raw valve diagnostics remain outside the Simulink runtime parameter interface.
+- Design/group labels, raw valve diagnostics, source-row labels, parse notes, and derived visualization-only fields were removed from the active CSV.
 
 Voltage note:
 
-- For the initial no-EGR workbook, `cell_voltage_V` is computed as total stack voltage divided by 16 cells to stay consistent with the existing initialization script. The workbook's bar-chart average cell voltage is retained as `cell_voltage_bar_avg_V` for audit.
+- For the initial no-EGR workbook, `cell_voltage_V` is computed as total stack voltage divided by 16 cells to stay consistent with the existing initialization script.
 
 Summary:
 

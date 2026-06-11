@@ -1,0 +1,3 @@
+stage,free_parameters,row_count,rmse_before,rmse_after,max_abs_after
+low_current_activation,"j0_c_A_cm2,alpha_O2",8,0.124883212608102,0.0250589945171108,0.0405762847177856
+mid_current_ohmic,"ASR0_ohm_cm2,sigma_pem_correction",4,0.0956122498812954,0.0126505586520429,0.014746591646937
