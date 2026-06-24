@@ -6,6 +6,7 @@ Desktop.ini
 .idea/
 
 # Temporary and backup files
+.cache/
 *.tmp
 *.bak
 *.log

@@ -48,20 +48,17 @@ P.h_cool_W_K = 836.0;
 P.h_amb_W_K = 9.0;
 
 % Voltage fit defaults for the simplified bench fit.
-% 电压标定默认值。PEMFCStackCore 内部直接固定书籍参考常数：
-% alpha_H2=0.5, I0_a=0.1 A/cm2, I_leak=0.01 A/cm2,
-% delta_PEM=25 um, sigma_PEM 修正系数=0.21, rho_PEM=1980 kg/m3, EW=1.1 kg/mol。
-% 这里保留最基础的电压拟合/占位参数：
-% 当前拟合 ASR0、I0_c、sigma_PEM 修正系数和 alpha_O2；
-% 浓差系数 c 和极限电流密度 Ilim 仅保留为接口占位，当前 etaCon=0。
+% 电压标定默认值。当前采用书籍中的活化极化经验形式和膜电导率欧姆项：
+% eta_act = theta1 + theta2*T + theta3*T*ln(C_O2) + theta4*T*ln(j + I_leak)
+% eta_ohm = j*delta_PEM/sigma_PEM，sigma_PEM = alpha_c*sigma_PEM0(lambda,T)。
+% 浓差极化当前关闭 etaCon=0；ASR0、j0_c、alpha_O2 不再作为本轮接口参数。
 P.E_nernst_ref_V = 1.229;
 P.E_nernst_temp_coeff_V_K = 8.5e-4;
-P.ASR0_ohm_cm2 = 1.0e-4;
-P.j0_c_A_cm2 = 3.0e-6;
-P.conc_loss_c = 0.3;
-P.iL_A_cm2 = 10.0;
+P.theta1_act = 2.875354e-4;
+P.theta2_act = 3.6268845e-4;
+P.theta3_act = -2.2905e-4;
+P.theta4_act = 1.0e-5;
 P.sigma_pem_correction = 0.21;
-P.alpha_O2 = 0.3;
 P.thermoneutralVoltage_V = 1.254;
 P.tau_mem_s = 1.0;
 

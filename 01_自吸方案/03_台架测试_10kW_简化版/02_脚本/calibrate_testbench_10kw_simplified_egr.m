@@ -2,8 +2,9 @@ function result = calibrate_testbench_10kw_simplified_egr()
 %CALIBRATE_TESTBENCH_10KW_SIMPLIFIED_EGR Refit simplified bench EGR model.
 %
 % Fits the no-EGR polarization curve on the same voltage equation used in
-% PEMFCStackCore, then validates with Simulink. EGR voltage effects are kept
-% on the physical gas/water/voltage chain, not on a direct EGR penalty term.
+% PEMFCStackCore, with a weak EGR delta-voltage trend objective. EGR absolute
+% voltage is still treated as validation so that gas/water errors are not
+% hidden by a direct EGR voltage offset.
 %
 % 在当前简化台架模型体系中的作用：
 % 1. 这是 Simulink 主模型的“电压参数标定与回放脚本”，不是气路模型本体。
@@ -11,8 +12,8 @@ function result = calibrate_testbench_10kw_simplified_egr()
 %    PEMFCStackCore 输出的 Nernst 电压、活化损失、欧姆损失、浓差损失等诊断量。
 % 3. 只对允许标定的电压相关参数做拟合，并写回
 %    00_输入参数/标定参数/simplified_noegr_stack_params.csv。
-% 4. 写回参数后再用同一个 Simulink 模型回放 no-EGR 和 EGR 工况，
-%    检查误差与入口氧分数、实际氧计量比等诊断趋势。
+% 4. 当前目标函数以 no-EGR 绝对电压为主，并加入较小权重的 EGR 相对
+%    no-EGR 基准电压变化量；EGR 绝对电压仍作为验证输出。
 % 5. 本脚本会覆盖标定参数 CSV；运行前应确认当前参数可以被新的拟合结果替换。
 
 % 定位参数目录。这个标定脚本会重写 simplified_noegr_stack_params.csv，
@@ -42,14 +43,15 @@ noEgr = P0.noEgrTable;
 % 4) 再用 Simulink 回放无 EGR 和 EGR 工况，检查误差。
 fprintf('Stage 1: no-EGR voltage-equation fit using %d points.\n', height(noEgr));
 baseNoEgr = evaluateNoEgr(noEgr);
-stackFit = fitNoEgrVoltageEquation(baseNoEgr, P0);
+baseEgr = evaluateEgr(P0.egrTable(isfinite(P0.egrTable.cell_voltage_V), :));
+stackFit = fitNoEgrVoltageEquation(baseNoEgr, P0, baseEgr);
 writeStackParams(stackFile, stackFit.spec, stackFit.values, P0);
 fitNoEgr = evaluateNoEgr(noEgr);
 fprintf('Stage 1 done: RMSE %.5f V, max abs %.5f V.\n', ...
     rmse(fitNoEgr.err_V), max(abs(fitNoEgr.err_V)));
 
 fitEgr = evaluateEgr(P0.egrTable(isfinite(P0.egrTable.cell_voltage_V), :));
-fprintf('EGR replay done without direct voltage penalty: RMSE %.5f V, max abs %.5f V.\n', ...
+fprintf('EGR replay done after weak delta-voltage weighting: RMSE %.5f V, max abs %.5f V.\n', ...
     rmse(fitEgr.err_V), max(abs(fitEgr.err_V)));
 
 fprintf('FINAL_NOEGR_RMSE=%.6f\n', rmse(fitNoEgr.err_V));
@@ -58,7 +60,7 @@ fprintf('NOEGR_MAX_ABS=%.6f\n', max(abs(fitNoEgr.err_V)));
 fprintf('EGR_MAX_ABS=%.6f\n', max(abs(fitEgr.err_V)));
 
 outputFiles = writeCalibrationOutputs(resultDir, stackFit, baseNoEgr, fitNoEgr, fitEgr, P0);
-plotCalibration(fitNoEgr, fitEgr);
+plotCalibration(fitNoEgr, fitEgr, rootDir);
 
 % 返回结构体，方便命令行继续查看 noegr/egr 误差表和最终写入的参数。
 result = struct();
@@ -71,60 +73,79 @@ end
 
 function spec = baseVoltageSpec(P)
 % 定义本次允许拟合的电压参数、它们在 StackModelParam 中的位置、默认值和边界。
-% 当前四参数版本暂不考虑浓差极化：
-% ASR0、阴极交换电流密度 I0_c、sigma_PEM 修正系数和阴极电荷转移系数 alpha_O2。
-names = ["ASR0_ohm_cm2"; "j0_c_A_cm2"; "sigma_pem_correction"; "alpha_O2"];
-idx = [12; 13; 16; 17];
+% 当前五参数版本暂不考虑浓差极化：
+% theta1~theta4 拟合书籍活化极化经验式，sigma_pem_correction 拟合膜电导率修正。
+names = ["theta1_act"; "theta2_act"; "theta3_act"; "theta4_act"; "sigma_pem_correction"];
+idx = [12; 13; 14; 15; 16];
 default = P.StackModelParam(idx);
-lower = [0.0; 1.0e-10; 0.05; 0.15];
-upper = [0.50; 1.0e-3; 1.50; 1.00];
+lower = [0.0; -5.0e-3; -5.0e-4; 0.0; 0.05];
+upper = [2.0; 5.0e-3; -5.0e-5; 5.0e-4; 1.50];
 default = min(max(default, lower), upper);
-scale = ["linear"; "log10"; "linear"; "linear"];
+scale = ["linear"; "linear"; "linear"; "linear"; "linear"];
 spec = struct('names', names, 'stackModelIndex', idx, ...
     'default', default, 'lower', lower, 'upper', upper, 'scale', scale);
 end
 
-function fit = fitNoEgrVoltageEquation(simFit, P)
-% 用无 EGR 回放得到的中间变量做解析拟合。
+function fit = fitNoEgrVoltageEquation(simFit, P, egrFit)
+% 用 no-EGR/EGR 回放得到的中间变量做解析拟合。
 % 这里没有每次都调用 Simulink 优化，而是把 PEMFCStackCore 的电压方程拆出来快速拟合。
 spec = baseVoltageSpec(P);
-I = simFit.current_A;
-j = I ./ P.A_cell_cm2;
-TK = simFit.T_stack_C + 273.15;
-E = simFit.E_Nernst_V;
+egrDeltaWeight = 0.6;
+j = simFit.current_A ./ P.A_cell_cm2;
 Vexp = simFit.V_exp;
-lambdaM = simFit.lambda_m;
-alphaH2 = 0.5;
-j0A = 0.1;
+egrJ = egrFit.current_A ./ P.A_cell_cm2;
+egrVexp = egrFit.V_exp;
 jLeak = 0.01;
 deltaCm = 0.0025;
 
-    function V = predict(param)
+    function [V, etaAct, etaOhm, etaCon] = predictFromTable(T, param)
         % 给定候选参数，按 Nernst - 活化 - 欧姆计算单片电压；当前版本暂不考虑浓差极化。
         param = min(max(param(:), spec.lower), spec.upper);
-        ASR0 = param(1);
-        j0C = param(2);
-        sigmaPemCorrection = param(3);
-        alphaO2 = param(4);
-        etaActAn = 8.314462618 .* TK ./ (2 * alphaH2 * 96485.33212) .* ...
-            log(max((j + jLeak) ./ j0A, 1));
-        etaActCa = 8.314462618 .* TK ./ (4 * alphaO2 * 96485.33212) .* ...
-            log(max((j + jLeak) ./ j0C, 1));
-        etaAct = etaActAn + etaActCa;
-        sigmaPem = sigmaPemCorrection .* (0.005193 .* lambdaM - 0.00326) .* ...
+        theta1 = param(1);
+        theta2 = param(2);
+        theta3 = param(3);
+        theta4 = param(4);
+        sigmaPemCorrection = param(5);
+        jLocal = T.current_A ./ P.A_cell_cm2;
+        TK = T.T_stack_C + 273.15;
+        etaAct = theta1 + theta2 .* TK + theta3 .* TK .* log(T.C_O2_mol_m3) + ...
+            theta4 .* TK .* log(jLocal + jLeak);
+        sigmaPem = sigmaPemCorrection .* (0.005193 .* T.lambda_m - 0.00326) .* ...
             exp(1268 .* (1 / 303.15 - 1 ./ TK));
         assert(all(sigmaPem > 0));
-        etaOhm = j .* (deltaCm ./ sigmaPem + ASR0);
-        etaCon = zeros(size(j));
-        V = E - etaAct - etaOhm - etaCon;
+        etaOhm = jLocal .* (deltaCm ./ sigmaPem);
+        etaCon = zeros(size(jLocal));
+        V = T.E_Nernst_V - etaAct - etaOhm - etaCon;
+    end
+
+    function [V, etaAct, etaOhm, etaCon] = predict(param)
+        [V, etaAct, etaOhm, etaCon] = predictFromTable(simFit, param);
     end
 
     function f = objective(z, rowMask)
-        % 优化目标是平均平方误差。当前只拟合四个电压参数，不额外加经验正则项。
+        % 优化目标：no-EGR 绝对电压为主，EGR 只按相对 no-EGR 基准的电压变化趋势加权。
         param = physicalFromUnit(z, spec);
-        err = predict(param) - Vexp;
-        err = err(rowMask);
-        f = mean(err.^2);
+        [V, etaAct, etaOhm] = predict(param);
+        err = V - Vexp;
+        errMain = err(rowMask);
+        egrDeltaErr = egrDeltaResidual(param);
+        negLoss = [min(etaAct(rowMask), 0); min(etaOhm(rowMask), 0)];
+        f = mean(errMain.^2) + egrDeltaWeight * mean(egrDeltaErr.^2) + 100 * mean(negLoss.^2);
+    end
+
+    function err = egrDeltaResidual(param)
+        Vno = predict(param);
+        Vegr = predictFromTable(egrFit, param);
+        VnoExpRef = interpNoEgrReference(Vexp);
+        VnoSimRef = interpNoEgrReference(Vno);
+        err = (Vegr - VnoSimRef) - (egrVexp - VnoExpRef);
+    end
+
+    function yq = interpNoEgrReference(y)
+        % no-EGR 数据中可能有重复电流点；先按电流密度合并，再作为 EGR 相对基准。
+        [jUnique, ~, groupIdx] = unique(j);
+        yUnique = accumarray(groupIdx, y(:), [], @mean);
+        yq = interp1(jUnique, yUnique, egrJ, 'pchip', 'extrap');
     end
 
 [stageParam, stageTable] = estimateSegmentedInitial(spec.default);
@@ -133,20 +154,20 @@ opts = optimset('Display', 'off', 'MaxIter', 6000, 'MaxFunEvals', 24000, ...
     'TolX', 1e-10, 'TolFun', 1e-12);
 z = fminsearch(@(z) objective(z, true(size(j))), zBest, opts);
 values = physicalFromUnit(z, spec);
-fit = struct('spec', spec, 'values', values, ...
+fit = struct('spec', spec, 'values', values, 'egrDeltaWeight', egrDeltaWeight, ...
     'stageInitial', stageParam, 'stageTable', stageTable, ...
     'multiStartTable', multiStartTable);
 fprintf('Stage 1 analytic RMSE %.5f V before Simulink replay.\n', ...
     rmse(predict(values) - Vexp));
 
     function [param, stageTable] = estimateSegmentedInitial(param0)
-        % 分段初值估计：低电流定 I0_c/alpha_O2，中电流定欧姆相关项。
+        % 分段初值估计：低电流定活化项，中电流定膜电导率修正。
         param = param0(:);
         stageTable = table('Size', [0 6], ...
             'VariableTypes', {'string','string','double','double','double','double'}, ...
             'VariableNames', {'stage','free_parameters','row_count','rmse_before','rmse_after','max_abs_after'});
-        [param, stageTable] = runStage(param, stageTable, "low_current_activation", [2 4], j <= 0.4);
-        [param, stageTable] = runStage(param, stageTable, "mid_current_ohmic", [1 3], j > 0.4 & j <= 1.1);
+        [param, stageTable] = runStage(param, stageTable, "low_current_activation", [1 2 3 4], j <= 0.4);
+        [param, stageTable] = runStage(param, stageTable, "mid_current_ohmic", 5, j > 0.4 & j <= 1.1);
         fprintf('Segmented initial RMSE %.5f V before joint fit.\n', rmse(predict(param) - Vexp));
     end
 
@@ -252,7 +273,7 @@ n = height(data);
 fit = table('Size', [n 18], 'VariableTypes', repmat("double", 1, 18), ...
     'VariableNames', {'case_index','current_A','egr_fraction','V_exp','V_sim','err_V', ...
     'xO2In','RHIn','lambdaO2','pCa_kPa','T_stack_C','E_Nernst_V','etaAct_V', ...
-    'etaOhm_V','etaCon_V','i0Scale','lambda_m','max_gas_residual'});
+    'etaOhm_V','etaCon_V','C_O2_mol_m3','lambda_m','max_gas_residual'});
 for k = 1:n
     P = init_testbench_10kw_simplified_egr(data.case_index(k), 'all', false);
     out = simulateCase(P);
@@ -274,9 +295,10 @@ function fit = evaluateEgr(data)
 % 逐个 EGR 工况运行 Simulink。这里不重新拟合 EGR 经验扣压项，
 % 用同一套电压参数检查混合气、氧分压、湿度和膜态链路能否解释趋势。
 n = height(data);
-fit = table('Size', [n 15], 'VariableTypes', repmat("double", 1, 15), ...
+fit = table('Size', [n 18], 'VariableTypes', repmat("double", 1, 18), ...
     'VariableNames', {'case_index','current_A','egr_fraction_raw','egr_fraction_used','V_exp','V_sim','err_V', ...
-    'xO2In','RHIn','lambdaO2','E_Nernst_V','etaAct_V','etaOhm_V','etaCon_V','max_gas_residual'});
+    'xO2In','RHIn','lambdaO2','T_stack_C','E_Nernst_V','etaAct_V','etaOhm_V','etaCon_V', ...
+    'C_O2_mol_m3','lambda_m','max_gas_residual'});
 for k = 1:n
     P = init_testbench_10kw_simplified_egr(data.case_index(k), 'all', false);
     out = simulateCase(P);
@@ -297,7 +319,8 @@ end
 
 function fit = fillCommonFit(fit, k, s, P, caIn, caOut, egrReturn, benchOut)
 % 从 summary_vector 取出通用诊断量。索引必须和 Simulink 中 SystemSummary 的输出顺序一致。
-% 关键索引：2=V_cell，20=xO2In，21=RHIn，31=maxGasRes，36~39=电压损失项，40=lambdaO2。
+% 关键索引：2=V_cell，20=xO2In，21=RHIn，31=maxGasRes，36~39=电压损失项，
+% 40=lambdaO2，43=C_O2_mol_m3。43 号位沿用原 i0Scale 诊断位，避免改变 summary 向量长度。
 fit.V_exp(k) = P.cell_voltage_bench_V;
 fit.V_sim(k) = s(2);
 fit.err_V(k) = s(2) - P.cell_voltage_bench_V;
@@ -311,10 +334,14 @@ fit.etaCon_V(k) = s(39);
 fit.max_gas_residual(k) = s(31);
 if ismember('pCa_kPa', fit.Properties.VariableNames)
     fit.pCa_kPa(k) = s(5);
+end
+if ismember('T_stack_C', fit.Properties.VariableNames)
     fit.T_stack_C(k) = s(9);
-    fit.i0Scale(k) = s(43);
+end
+if ismember('lambda_m', fit.Properties.VariableNames)
     fit.lambda_m(k) = s(8);
 end
+fit.C_O2_mol_m3(k) = s(43);
 fit = fillConditionDiagnostics(fit, k, P, caIn, caOut, egrReturn, benchOut);
 end
 
@@ -409,7 +436,7 @@ x = lb(:) + r .* (ub(:) - lb(:));
 end
 
 function z = unitFromPhysical(x, spec)
-% 把物理参数映射到优化变量。j0_c 使用 log10 空间，其余参数使用线性空间。
+% 把物理参数映射到优化变量。当前五参数全部使用线性有界空间，保留 log10 分支用于后续扩展。
 x = x(:);
 z = zeros(size(x));
 for k = 1:numel(x)
@@ -425,7 +452,7 @@ end
 end
 
 function x = physicalFromUnit(z, spec)
-% 把优化变量映射回物理参数。j0_c 使用 log10 空间，其余参数使用线性空间。
+% 把优化变量映射回物理参数。当前五参数全部使用线性有界空间，保留 log10 分支用于后续扩展。
 z = z(:);
 x = zeros(size(z));
 for k = 1:numel(z)
@@ -452,7 +479,7 @@ if ~isfolder(folder), mkdir(folder); end
 T = table(spec.names(:), spec.stackModelIndex(:), values(:), ...
     'VariableNames', {'parameter', 'stack_model_index', 'value'});
 if nargin >= 4 && isfield(P, 'tau_mem_s')
-    T = [T; table("tau_mem_s", 19, P.tau_mem_s, ...
+    T = [T; table("tau_mem_s", 18, P.tau_mem_s, ...
         'VariableNames', {'parameter', 'stack_model_index', 'value'})];
 end
 T = addStackParamMetadata(T);
@@ -468,7 +495,7 @@ paramReport = buildParameterReport(stackFit.spec, stackFit.values, stackFit.stag
 baseNoEgr = addResidualDiagnostics(baseNoEgr, P);
 fitNoEgr = addResidualDiagnostics(fitNoEgr, P);
 fitEgr = addResidualDiagnostics(fitEgr, P);
-metrics = buildMetricsTable(fitNoEgr, fitEgr);
+metrics = buildMetricsTable(fitNoEgr, fitEgr, stackFit.egrDeltaWeight);
 
 outputFiles = struct();
 outputFiles.parameter_report = fullfile(resultDir, 'voltage_fit_parameter_report.csv');
@@ -529,9 +556,10 @@ T.conc_loss_fraction = T.etaCon_V ./ max(lossTotal, eps);
 T.loss_terms_nonnegative = T.etaAct_V >= 0 & T.etaOhm_V >= 0 & T.etaCon_V >= 0;
 end
 
-function T = buildMetricsTable(noEgrFit, egrFit)
+function T = buildMetricsTable(noEgrFit, egrFit, egrDeltaWeight)
 % 汇总 no-EGR 拟合和 EGR 验证的总体误差，以及 EGR 误差与输入诊断的相关性。
 names = ["noEGR_fit"; "EGR_validation"];
+egrWeight = repmat(egrDeltaWeight, 2, 1);
 rmseV = [rmse(noEgrFit.err_V); rmse(egrFit.err_V)];
 maxAbsV = [max(abs(noEgrFit.err_V)); max(abs(egrFit.err_V))];
 meanErrV = [mean(noEgrFit.err_V, 'omitnan'); mean(egrFit.err_V, 'omitnan')];
@@ -549,11 +577,11 @@ egrReturnRHRmse = [NaN; rmse(egrFit.egr_return_RH_err)];
 egrReturnPRmse = [NaN; rmse(egrFit.egr_return_p_err_kPa)];
 corrVErrStackOutT = [safeCorr(noEgrFit.err_V, noEgrFit.stack_out_T_err_C); safeCorr(egrFit.err_V, egrFit.stack_out_T_err_C)];
 corrVErrEgrReturnRH = [NaN; safeCorr(egrFit.err_V, egrFit.egr_return_RH_err)];
-T = table(names, rows, rmseV, maxAbsV, meanErrV, corrErrEgr, corrErrXO2, ...
+T = table(names, rows, egrWeight, rmseV, maxAbsV, meanErrV, corrErrEgr, corrErrXO2, ...
     stackOutTRmse, stackOutTMax, stackInRHRmse, stackInRHMax, stackOutPRmse, ...
     cathodeDpRmse, egrReturnTRmse, egrReturnRHRmse, egrReturnPRmse, ...
     corrVErrStackOutT, corrVErrEgrReturnRH, ...
-    'VariableNames', {'dataset','rows','rmse_V','max_abs_err_V','mean_err_V', ...
+    'VariableNames', {'dataset','rows','egr_delta_weight','rmse_V','max_abs_err_V','mean_err_V', ...
     'corr_err_vs_egr_fraction','corr_err_vs_xO2In','stack_out_T_rmse_C', ...
     'stack_out_T_max_abs_C','stack_in_RH_rmse','stack_in_RH_max_abs', ...
     'stack_out_p_rmse_kPa','cathode_dp_rmse_kPa','egr_return_T_rmse_C', ...
@@ -616,45 +644,39 @@ calibrationRole = strings(height(T), 1);
 sourceNote = strings(height(T), 1);
 for k = 1:height(T)
     switch string(T.parameter(k))
-        case "ASR0_ohm_cm2"
-            unit(k) = "ohm*cm2";
+        case "theta1_act"
+            unit(k) = "V";
             modelLocation(k) = "StackModelParam_simplified(12)";
-            meaning(k) = "膜外接触/装配等效面积比内阻，参与 etaOhm 计算";
+            meaning(k) = "活化极化经验式常数项，参与 etaAct 计算";
             calibrationRole(k) = "noEGR voltage fit";
-            sourceNote(k) = "欧姆极化可拟合参数；膜电导率 sigma_PEM 由电堆膜水含量 lambda 计算";
-        case "j0_c_A_cm2"
-            unit(k) = "A/cm2";
+            sourceNote(k) = "书籍活化极化 theta1；ASR0 当前不启用，避免与活化常数项耦合";
+        case "theta2_act"
+            unit(k) = "V/K";
             modelLocation(k) = "StackModelParam_simplified(13)";
-            meaning(k) = "阴极交换电流密度，参与 etaAct 计算";
+            meaning(k) = "活化极化经验式温度项系数，参与 etaAct 计算";
             calibrationRole(k) = "noEGR voltage fit";
-            sourceNote(k) = "以书中 I0,c=3e-6 A/cm2 为初值，用无 EGR 极化数据拟合";
-        case "conc_loss_c"
-            unit(k) = "-";
+            sourceNote(k) = "书籍活化极化 theta2；温度和电流相关性较强，需检查边界";
+        case "theta3_act"
+            unit(k) = "V/K";
             modelLocation(k) = "StackModelParam_simplified(14)";
-            meaning(k) = "浓差损失经验系数 c，当前 etaCon=0 时仅为接口占位";
-            calibrationRole(k) = "disabled in current voltage fit";
-            sourceNote(k) = "当前实验电流范围未呈现明显浓差拐点，暂不拟合";
-        case "iL_A_cm2"
-            unit(k) = "A/cm2";
+            meaning(k) = "活化极化经验式氧浓度项系数，参与 etaAct 计算";
+            calibrationRole(k) = "noEGR voltage fit";
+            sourceNote(k) = "书籍活化极化 theta3；约束为负值以保留低氧浓度增大活化损失的方向";
+        case "theta4_act"
+            unit(k) = "V/K";
             modelLocation(k) = "StackModelParam_simplified(15)";
-            meaning(k) = "极限电流密度，当前 etaCon=0 时仅为接口占位";
-            calibrationRole(k) = "disabled in current voltage fit";
-            sourceNote(k) = "当前实验电流范围未呈现明显浓差拐点，暂不拟合";
+            meaning(k) = "活化极化经验式电流项系数，参与 etaAct 计算";
+            calibrationRole(k) = "noEGR voltage fit";
+            sourceNote(k) = "书籍活化极化 theta4；电流输入使用 j+I_leak，单位 A/cm2";
         case "sigma_pem_correction"
             unit(k) = "-";
             modelLocation(k) = "StackModelParam_simplified(16)";
             meaning(k) = "膜电导率 sigma_PEM 修正系数，参与 etaOhm 计算";
             calibrationRole(k) = "noEGR voltage fit";
             sourceNote(k) = "欧姆极化可拟合参数；sigma_PEM 的 lambda 来自电堆内部膜水含量";
-        case "alpha_O2"
-            unit(k) = "-";
-            modelLocation(k) = "StackModelParam_simplified(17)";
-            meaning(k) = "阴极电荷转移系数，参与 etaActCa 计算";
-            calibrationRole(k) = "noEGR voltage fit";
-            sourceNote(k) = "书中参考值 0.3；当前开放范围 0.15..1.00，需和 j0_c 联合检查可辨识性";
         case "tau_mem_s"
             unit(k) = "s";
-            modelLocation(k) = "StackModelParam_simplified(19)";
+            modelLocation(k) = "StackModelParam_simplified(18)";
             meaning(k) = "膜水通量一阶松弛时间常数";
             calibrationRole(k) = "model dynamic setting";
             sourceNote(k) = "膜水动态设置，不作为本轮电压拟合参数";
@@ -673,29 +695,110 @@ x = x(isfinite(x));
 y = sqrt(mean(x.^2));
 end
 
-function plotCalibration(noEgrFit, egrFit)
-% 生成交互式标定图：无 EGR 极化曲线、残差、EGR 电压散点和入口氧诊断。
+function plotCalibration(noEgrFit, egrFit, rootDir)
+% 生成交互式标定图：电压、温度和压力的实验/仿真对比。
 % 这里只打开 MATLAB figure，不保存图片文件。
 figure('Name', 'Simplified bench calibration', 'NumberTitle', 'off');
-tiledlayout(2, 2);
+tiledlayout(2, 3, 'TileSpacing', 'compact');
 
 nexttile;
-plot(noEgrFit.current_A, noEgrFit.V_exp, 'ko', noEgrFit.current_A, noEgrFit.V_sim, 'b.-');
+drawPairSpans(noEgrFit.current_A, noEgrFit.V_exp, noEgrFit.V_sim);
+scatter(noEgrFit.current_A, noEgrFit.V_exp, 42, 'o', ...
+    'MarkerEdgeColor', [0 0 0], 'MarkerFaceColor', [0.92 0.92 0.92], ...
+    'LineWidth', 1.1); hold on;
+scatter(noEgrFit.current_A, noEgrFit.V_sim, 48, 's', ...
+    'MarkerEdgeColor', [0.00 0.27 0.75], 'MarkerFaceColor', 'none', ...
+    'LineWidth', 1.2);
 grid on; xlabel('Current A'); ylabel('Cell voltage V'); title('No-EGR polarization');
 legend('Experiment', 'Simulation', 'Location', 'best');
 
 nexttile;
-plot(noEgrFit.current_A, noEgrFit.err_V, 'r.-');
-grid on; xlabel('Current A'); ylabel('Sim - Exp V'); title('No-EGR residual');
-
-nexttile;
-scatter(egrFit.egr_fraction_used, egrFit.V_exp, 36, egrFit.current_A, 'filled'); hold on;
-scatter(egrFit.egr_fraction_used, egrFit.V_sim, 36, egrFit.current_A, 'x');
+drawPairSpans(egrFit.egr_fraction_used, egrFit.V_exp, egrFit.V_sim);
+scatter(egrFit.egr_fraction_used, egrFit.V_exp, 58, 'o', ...
+    'MarkerEdgeColor', [0.10 0.10 0.10], 'MarkerFaceColor', [1.00 0.82 0.00], ...
+    'LineWidth', 1.1); hold on;
+scatter(egrFit.egr_fraction_used, egrFit.V_sim, 64, '^', ...
+    'MarkerEdgeColor', [0.35 0.00 0.70], 'MarkerFaceColor', 'none', ...
+    'LineWidth', 1.4);
 grid on; xlabel('EGR fraction'); ylabel('Cell voltage V'); title('EGR voltage');
+legend('Experiment', 'Simulation', 'Location', 'best');
 
 nexttile;
-plot(egrFit.egr_fraction_used, egrFit.xO2In, 'b.-'); hold on;
-plot(egrFit.egr_fraction_used, egrFit.lambdaO2, 'm.-');
-grid on; xlabel('EGR fraction'); title('Inlet oxygen diagnostics');
-legend('xO2 inlet', 'lambda O2 actual', 'Location', 'best');
+temperatureFit = readTemperatureFit(rootDir);
+drawPairSpans(temperatureFit.current_A, temperatureFit.stack_T_target_C, temperatureFit.stack_T_sim_C);
+scatter(temperatureFit.current_A, temperatureFit.stack_T_target_C, 48, 'o', ...
+    'MarkerEdgeColor', [0.10 0.10 0.10], 'MarkerFaceColor', [0.55 0.80 0.55], ...
+    'LineWidth', 1.1); hold on;
+scatter(temperatureFit.current_A, temperatureFit.stack_T_sim_C, 52, '^', ...
+    'MarkerEdgeColor', [0.00 0.37 0.45], 'MarkerFaceColor', 'none', ...
+    'LineWidth', 1.3);
+grid on; xlabel('Current A'); ylabel('Stack temperature C'); title('Stack mean temperature');
+legend('Experiment target', 'Simulation', 'Location', 'best');
+
+nexttile;
+drawPairSpans(temperatureFit.current_A, temperatureFit.stack_out_T_exp_C, temperatureFit.stack_out_T_sim_C);
+scatter(temperatureFit.current_A, temperatureFit.stack_out_T_exp_C, 48, 'o', ...
+    'MarkerEdgeColor', [0.10 0.10 0.10], 'MarkerFaceColor', [0.90 0.72 0.42], ...
+    'LineWidth', 1.1); hold on;
+scatter(temperatureFit.current_A, temperatureFit.stack_out_T_sim_C, 52, '^', ...
+    'MarkerEdgeColor', [0.58 0.25 0.00], 'MarkerFaceColor', 'none', ...
+    'LineWidth', 1.3);
+grid on; xlabel('Current A'); ylabel('Outlet temperature C'); title('Stack outlet temperature');
+legend('Experiment', 'Simulation', 'Location', 'best');
+
+pressureFit = readPressureFit(rootDir);
+nexttile;
+drawPairSpans(pressureFit.current_A, pressureFit.pCa_target_abs_kPa, pressureFit.pCa_model_abs_kPa);
+scatter(pressureFit.current_A, pressureFit.pCa_target_abs_kPa, 44, 'o', ...
+    'MarkerEdgeColor', [0.10 0.10 0.10], 'MarkerFaceColor', [0.82 0.90 1.00], ...
+    'LineWidth', 1.1); hold on;
+scatter(pressureFit.current_A, pressureFit.pCa_model_abs_kPa, 50, 's', ...
+    'MarkerEdgeColor', [0.00 0.27 0.75], 'MarkerFaceColor', 'none', ...
+    'LineWidth', 1.2);
+grid on; xlabel('Current A'); ylabel('Pressure kPa abs'); title('Cathode channel pressure');
+legend('Experiment avg', 'Simulation', 'Location', 'best');
+
+nexttile;
+drawPairSpans(pressureFit.current_A, pressureFit.pAn_target_abs_kPa, pressureFit.pAn_model_abs_kPa);
+scatter(pressureFit.current_A, pressureFit.pAn_target_abs_kPa, 44, 'o', ...
+    'MarkerEdgeColor', [0.10 0.10 0.10], 'MarkerFaceColor', [0.94 0.82 0.94], ...
+    'LineWidth', 1.1); hold on;
+scatter(pressureFit.current_A, pressureFit.pAn_model_abs_kPa, 50, 's', ...
+    'MarkerEdgeColor', [0.48 0.00 0.55], 'MarkerFaceColor', 'none', ...
+    'LineWidth', 1.2);
+grid on; xlabel('Current A'); ylabel('Pressure kPa abs'); title('Anode channel pressure');
+legend('Experiment avg', 'Simulation', 'Location', 'best');
+end
+
+function drawPairSpans(x, yExp, ySim)
+% 用细红虚线连接同一工况的实验值和仿真值，突出误差大小。
+hold on;
+for k = 1:numel(x)
+    if isfinite(x(k)) && isfinite(yExp(k)) && isfinite(ySim(k))
+        plot([x(k), x(k)], [yExp(k), ySim(k)], 'r--', ...
+            'LineWidth', 0.65, 'HandleVisibility', 'off');
+    end
+end
+end
+
+function temperatureFit = readTemperatureFit(rootDir)
+% 读取已完成的温度标定结果，用于主标定图展示。
+temperatureFile = fullfile(rootDir, '04_验证结果', 'temperature_fit_v01', ...
+    'temperature_fit_fitted.csv');
+if ~isfile(temperatureFile)
+    error('CEGR:SimplifiedCalibration:MissingTemperatureFit', ...
+        'Temperature fit file not found: %s', temperatureFile);
+end
+temperatureFit = readtable(temperatureFile);
+end
+
+function pressureFit = readPressureFit(rootDir)
+% 读取已完成的压力标定结果，用于主标定图展示。
+pressureFile = fullfile(rootDir, '04_验证结果', 'pressure_fit_v01', ...
+    'pressure_fit_final.csv');
+if ~isfile(pressureFile)
+    error('CEGR:SimplifiedCalibration:MissingPressureFit', ...
+        'Pressure fit file not found: %s', pressureFile);
+end
+pressureFit = readtable(pressureFile);
 end

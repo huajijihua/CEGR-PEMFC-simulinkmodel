@@ -1,4 +1,4 @@
-function P = init_testbench_10kw_simplified_egr(caseIndex, dataMode, verbose)
+function P = init_testbench_10kw_simplified_egr(caseIndex, dataMode, verbose, override)
 %INIT_TESTBENCH_10KW_SIMPLIFIED_EGR Init data and parameters for simplified bench EGR model.
 %
 % The Simulink model is the main artifact. This script only prepares
@@ -18,6 +18,7 @@ function P = init_testbench_10kw_simplified_egr(caseIndex, dataMode, verbose)
 
 % 入口参数处理：
 % caseIndex 选择第几个工况；dataMode 选择工况集合；verbose 控制是否打印初始化信息。
+% override 是可选边界覆盖结构体，用于自定义进气研究而不改活动工况 CSV。
 % 没传参数时默认取 EGR 数据集的第 1 个点，并打印初始化结果。
 if nargin < 1 || isempty(caseIndex)
     caseIndex = 1;
@@ -29,6 +30,11 @@ else
 end
 if nargin < 3 || isempty(verbose)
     verbose = true;
+end
+if nargin < 4 || isempty(override)
+    override = struct();
+else
+    override = validateOverrideStruct(override);
 end
 
 % 定位当前简化台架目录和模型文件。rootDir 是“03_台架测试_10kW_简化版”，
@@ -92,6 +98,7 @@ P = configureFromUnifiedRow(P, row, noEgr);
 P = readLocalCalibration(P);
 P = readLocalPressureCalibration(P);
 P = readLocalThermalCalibration(P);
+P = applyBoundaryOverride(P, override);
 P = buildSimplifiedBenchParams(P);
 P = buildSimplifiedInitialStates(P);
 assignSimplifiedWorkspace(P);
@@ -225,6 +232,87 @@ P.coolant_flow_L_min = requireFinite(row, "coolant_flow_L_min");
 % Bench replay uses measured stack inlet mass flow as the inlet boundary.
 end
 
+function override = validateOverrideStruct(override)
+% 自定义工况研究只允许覆盖少量边界字段，避免把 override 用成隐式模型改写入口。
+if ~isstruct(override) || numel(override) ~= 1
+    error('CEGR:SimplifiedBench:BadOverride', ...
+        'override must be a scalar struct.');
+end
+allowed = ["bench_supply_gas_p_kPa", "bench_supply_gas_T_C", "bench_supply_gas_RH", ...
+    "stack_in_flow_kg_s", "stack_in_flow_SLPM", "egr_fraction_cmd", ...
+    "separator_T_C", "separator_p_kPa"];
+names = string(fieldnames(override));
+bad = setdiff(names, allowed);
+if ~isempty(bad)
+    error('CEGR:SimplifiedBench:BadOverride', ...
+        'Unsupported override fields: %s', strjoin(bad, ', '));
+end
+end
+
+function P = applyBoundaryOverride(P, override)
+% override 只改边界，不碰结构参数、标定参数和工况表。
+if isempty(fieldnames(override))
+    return;
+end
+
+if isfield(override, 'bench_supply_gas_p_kPa')
+    P.bench_supply_gas_p_kPa = requireFiniteScalar(override.bench_supply_gas_p_kPa, ...
+        'bench_supply_gas_p_kPa');
+    validateGaugePressure(P.bench_supply_gas_p_kPa, 'bench_supply_gas_p_kPa', P.case_id, P);
+end
+if isfield(override, 'bench_supply_gas_T_C')
+    P.bench_supply_gas_T_C = requireFiniteScalar(override.bench_supply_gas_T_C, ...
+        'bench_supply_gas_T_C');
+end
+if isfield(override, 'bench_supply_gas_RH')
+    P.bench_supply_gas_RH = percentToFraction(requireFiniteScalar(override.bench_supply_gas_RH, ...
+        'bench_supply_gas_RH'));
+    validateUnitFraction(P.bench_supply_gas_RH, 'bench_supply_gas_RH', P.case_id);
+end
+if any(isfield(override, {'bench_supply_gas_p_kPa', 'bench_supply_gas_T_C', 'bench_supply_gas_RH'}))
+    [P.cathode_supply_wO2, P.cathode_supply_wN2, P.cathode_supply_wH2O] = ...
+        humidAirMassFractions(P, P.bench_supply_gas_p_kPa + P.p_amb_kPa, ...
+        P.bench_supply_gas_T_C, P.bench_supply_gas_RH);
+    validateMassFractions([P.cathode_supply_wO2, P.cathode_supply_wN2, P.cathode_supply_wH2O], ...
+        'override cathode_supply_wO2/wN2/wH2O', P.case_id);
+end
+
+if isfield(override, 'stack_in_flow_kg_s') && isfield(override, 'stack_in_flow_SLPM')
+    flowKg = requireFiniteScalar(override.stack_in_flow_kg_s, 'stack_in_flow_kg_s');
+    flowSlpm = requireFiniteScalar(override.stack_in_flow_SLPM, 'stack_in_flow_SLPM');
+    validatePositive(flowKg, 'stack_in_flow_kg_s', P.case_id);
+    validatePositive(flowSlpm, 'stack_in_flow_SLPM', P.case_id);
+    derivedKg = slpmAirToKgS(flowSlpm);
+    if abs(flowKg - derivedKg) > max(1e-10, 1e-6 * abs(flowKg))
+        error('CEGR:SimplifiedBench:BadOverride', ...
+            'stack_in_flow_kg_s and stack_in_flow_SLPM are inconsistent for case %s.', ...
+            string(P.case_id));
+    end
+    P.stack_in_flow_kg_s = flowKg;
+    P.stack_in_flow_SLPM = flowSlpm;
+elseif isfield(override, 'stack_in_flow_kg_s')
+    P.stack_in_flow_kg_s = requireFiniteScalar(override.stack_in_flow_kg_s, 'stack_in_flow_kg_s');
+    validatePositive(P.stack_in_flow_kg_s, 'stack_in_flow_kg_s', P.case_id);
+    P.stack_in_flow_SLPM = kgSToSlpmAir(P.stack_in_flow_kg_s);
+elseif isfield(override, 'stack_in_flow_SLPM')
+    P.stack_in_flow_SLPM = requireFiniteScalar(override.stack_in_flow_SLPM, 'stack_in_flow_SLPM');
+    validatePositive(P.stack_in_flow_SLPM, 'stack_in_flow_SLPM', P.case_id);
+    P.stack_in_flow_kg_s = slpmAirToKgS(P.stack_in_flow_SLPM);
+end
+
+if isfield(override, 'egr_fraction_cmd')
+    P.egr_fraction_cmd = requireFiniteScalar(override.egr_fraction_cmd, 'egr_fraction_cmd');
+    validateEgrFraction(P.egr_fraction_cmd, 'egr_fraction_cmd', P.case_id);
+end
+if isfield(override, 'separator_T_C')
+    P.separator_T_C = requireFiniteScalar(override.separator_T_C, 'separator_T_C');
+end
+if isfield(override, 'separator_p_kPa')
+    P.separator_p_kPa = requireFiniteScalar(override.separator_p_kPa, 'separator_p_kPa');
+    validateGaugePressure(P.separator_p_kPa, 'separator_p_kPa', P.case_id, P);
+end
+end
+
 function P = buildSimplifiedBenchParams(P)
 % 把 P 结构体拆成 Simulink 模型常量块需要的几个向量。
 % 模型端不直接读取 P，而是读取 PhysicalParam/StackModelParam/CaseBoundaryParam 等固定顺序向量。
@@ -269,12 +357,11 @@ param = [
     P.h_amb_W_K
     P.E_nernst_ref_V
     P.E_nernst_temp_coeff_V_K
-    P.ASR0_ohm_cm2
-    P.j0_c_A_cm2
-    P.conc_loss_c
-    P.iL_A_cm2
+    P.theta1_act
+    P.theta2_act
+    P.theta3_act
+    P.theta4_act
     P.sigma_pem_correction
-    P.alpha_O2
     P.thermoneutralVoltage_V
     P.tau_mem_s
     ];
@@ -403,20 +490,18 @@ function P = applyLocalStackModelIndex(P, idx, value)
 % 这里只开放当前简化模型允许标定的参数，避免任意索引误改模型结构参数。
 switch idx
     case 12
-        P.ASR0_ohm_cm2 = value;
+        P.theta1_act = value;
     case 13
-        P.j0_c_A_cm2 = value;
+        P.theta2_act = value;
     case 14
-        P.conc_loss_c = value;
+        P.theta3_act = value;
     case 15
-        P.iL_A_cm2 = value;
+        P.theta4_act = value;
     case 16
         P.sigma_pem_correction = value;
     case 17
-        P.alpha_O2 = value;
-    case 18
         P.thermoneutralVoltage_V = value;
-    case 19
+    case 18
         P.tau_mem_s = value;
 end
 end
@@ -519,6 +604,15 @@ if ~isfinite(v) || v <= 0
 end
 end
 
+function validateGaugePressure(v, name, caseId, P)
+% 边界脚本里维护的压力是表压；最低不能小于真空。
+if ~isfinite(v) || v <= -P.p_amb_kPa
+    error('CEGR:SimplifiedBench:InvalidGaugePressure', ...
+        'Invalid gauge pressure "%s" for case %s: %.12g kPa.', ...
+        name, string(caseId), v);
+end
+end
+
 function validateMassFractions(w, name, caseId)
 % 质量分数是边界条件。负值或全零会隐藏输入映射错误，必须在初始化阶段报错。
 if any(~isfinite(w)) || any(w < 0) || sum(w) <= 0
@@ -572,9 +666,23 @@ if ~isfinite(v)
 end
 end
 
+function v = requireFiniteScalar(x, name)
+% override 字段是标量数值，不接受向量或非数值容器。
+if ~isscalar(x) || ~isnumeric(x) || ~isfinite(x)
+    error('CEGR:SimplifiedBench:BadOverride', ...
+        'Override field "%s" must be a finite numeric scalar.', name);
+end
+v = double(x);
+end
+
 function m = slpmAirToKgS(slpm)
 % 把标准升/分钟换算成 kg/s。1.293 kg/m3 是当前采用的标准空气密度近似。
 m = slpm * 1.293 / 60000;
+end
+
+function slpm = kgSToSlpmAir(m)
+% slpmAirToKgS 的逆换算，用于自定义工况边界回写。
+slpm = m * 60000 / 1.293;
 end
 
 function p = satKPa(T)
