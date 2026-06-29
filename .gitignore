@@ -24,5 +24,8 @@ work/
 *.mexa64
 *.mexmaci64
 
+# Claude Code local settings
+.claude/
+
 # Generated presentation/app dependencies
 **/node_modules/
