@@ -29,3 +29,7 @@ work/
 
 # Generated presentation/app dependencies
 **/node_modules/
+
+# Local archival buckets for generated caches and client settings
+99_历史归档/**/04_本地缓存与自动生成物/
+99_历史归档/**/05_本地客户端设置/

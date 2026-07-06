@@ -10,6 +10,9 @@
 - Simulink Agentic Toolkit：`C:\Users\ADMIN\.matlab\agentic-toolkits\simulink`
 - SATK 工具清单：`C:\Users\ADMIN\.matlab\agentic-toolkits\simulink\tools\tools.json`
 - MATLAB MCP Server Toolbox：由 MATLAB Add-On Manager 管理，位于 `C:\Users\ADMIN\AppData\Roaming\MathWorks\MATLAB Add-Ons\Toolboxes\MATLAB MCP Server Toolbox`
+- 桌面启动面板：`C:\Users\ADMIN\Desktop\MATLAB_Agent_Launcher.hta`
+- Codex GUI 启动脚本：`02_多物理场机理模型演示/02_脚本/start_codex_matlab_gui.ps1`
+- Claude GUI 启动脚本：`02_多物理场机理模型演示/02_脚本/start_claude_matlab_gui.ps1`
 
 当前验证版本：
 
@@ -18,6 +21,17 @@
 - MATLAB Agentic Toolkit：2026.06.18
 - Simulink Agentic Toolkit：2026.06.24
 - SATK 工具入口：7 个，包含 `model_check`
+
+## MATLAB MCP 启动策略
+
+1. 普通 MATLAB 是普通编程软件，不自动注册 MCP。
+2. Codex 需要 MATLAB 时，先用桌面面板的 `Codex MCP MATLAB` 或 `start_codex_matlab_gui.ps1` 启动专用 GUI。
+3. Claude 需要 MATLAB 时，先用 `Claude MCP MATLAB` 或 `start_claude_matlab_gui.ps1` 启动另一套专用 GUI。
+4. 两个 agent 同时工作时开两个 GUI；各自只 attach 自己角色的 MCP session。
+5. Codex 和 Claude 使用不同 MCP session 根目录，因为 `shareMATLABSession()` 会在根目录下写单个 `sessionDetails.json`。Codex 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Codex`，Claude 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Claude`；`startup.m` 通过 `register_agent_matlab_mcp_session.m` 写入对应根目录，不修改 MATLAB 的 `APPDATA`。
+6. MATLAB 命令窗口必须显示 `MATLAB MCP session for CODEX/CLAUDE` 和 `ready` 后，再发起客户端正式暴露的 MCP 工具调用。客户端配置更新后需要重启或刷新 agent 客户端/session。
+7. attach 失败或工具未暴露时，先排查启动器、`startup.m`、MCP 配置和角色分离，不用 `matlab.exe -batch` 或临时 MCP 探针冒充正式 MCP 交互链路。
+8. `matlab.exe -batch` 适用于可脱离 agent 交互的长时间脚本任务，例如批量扫描、长时优化或夜间计算；任务启动前应明确输入、输出、日志和结果路径，跑完后由 agent 读取结果、审计误差并决定下一轮优化。
 
 ## 建模指导思想
 
@@ -45,7 +59,7 @@
 2. 优先用 Simulink 做系统级快速扫描和控制策略筛选，只把强耦合、强敏感、强约束或需要空间分布证据的局部问题交给 COMSOL。
 3. COMSOL 结果回灌到系统模型时，必须保留单位、适用范围、误差指标、插值/拟合边界和物理解释。
 4. 协同验证从小到大推进：接口读回、单工况 smoke test、关键 KPI 对照、小样本扫描、必要时再做批量工况。
-5. 大批量扫描或长时间求解可由 MATLAB、COMSOL batch 或集群流程编排；GUI 主要用于模型检查、关键节点确认和最终保存。
+5. 大批量扫描或长时间求解先通过 MCP GUI 完成小样本闭环；确认脚本可脱离 agent 后，可交给 batch 或集群流程长时间运行。agent 不需要陪跑 batch，重点是读取结果、审计误差、定位失败点并优化下一轮。
 
 ## Token 控制规则
 
@@ -74,6 +88,8 @@ which model_check
 
 ## 排错入口
 
-- 如果 MATLAB 启动时报 `shareMATLABSession failed`，检查 `C:\Users\ADMIN\Documents\MATLAB\startup.m` 是否添加了 MATLAB MCP Server Toolbox 路径。
-- 如果 Codex 看不到 SATK 新工具，检查 `C:\Users\ADMIN\.codex\config.toml` 的 `--extension-file` 是否指向新版 `simulink\tools\tools.json`。
+- 如果 MATLAB 启动时报 `shareMATLABSession failed`，先确认是通过 Codex/Claude 专用启动器启动，而不是普通 MATLAB。
+- 如果 Codex 看不到 SATK 新工具，检查 `C:\Users\ADMIN\.codex\config.toml` 的 `command` 是否指向 `matlab-mcp-server.exe`，`--extension-file` 是否指向 `C:\Users\ADMIN\.matlab\agentic-toolkits\simulink\tools\tools.json`。
+- 如果 Claude 看不到 SATK 新工具，检查 `C:\Users\ADMIN\.claude.json` 的 `mcpServers.matlab` 是否使用同一套 existing-session 配置。
+- 如果提示 `Server is in use`，不要抢另一个 agent 的 MATLAB GUI；分别打开 `Codex MCP MATLAB` 和 `Claude MCP MATLAB` 两个 GUI。
 - 如果技能说明仍指向旧路径，检查 `C:\Users\ADMIN\.agents\skills` 中的链接目标是否指向 `agentic-toolkits\matlab` 和 `agentic-toolkits\simulink`。

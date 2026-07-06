@@ -1,72 +1,151 @@
-# 项目 Codex-COMSOL 自动建模工作流
+# Agent 工作流矩阵
 
-本说明面向普适的 Codex-COMSOL 自动建模，不是某个标定脚本的说明。当前 PEMFC-cEGR 多物理场模型只是默认应用场景：Codex 负责规格化、脚本化、证据链和验证闭环；COMSOL 负责几何、多物理场、边界条件、网格、求解和局部机理响应。
+本文件定义本项目可用的 Agent 工作流类型、适用场景和选择规则。Claude Code 与 Codex 作为对等 Agent，共享同一套核心工作流边界。
 
-## 固定工具入口
+## 核心理念
 
-- COMSOL 根目录：`D:\COMSOL63\Multiphysics`
-- GUI：`D:\COMSOL63\Multiphysics\bin\win64\comsol.exe`
-- Server：`D:\COMSOL63\Multiphysics\bin\win64\comsolmphserver.exe`
-- Batch：`D:\COMSOL63\Multiphysics\bin\win64\comsolbatch.exe`
-- MATLAB LiveLink：`D:\COMSOL63\Multiphysics\mli`
-- 默认 Server 地址：`localhost:2036`
-- 当前项目模型目录：`E:\agentwork_pemfc_cEGR_0519\02_多物理场机理模型演示`
+1. 因地制宜：根据任务的真实目标选择最直接、最高效、最轻量的工作流，不引入不需要的工具层。
+2. 先选路线再动手：先判断是纯系统级、纯 COMSOL、纯 AMEsim，还是需要协同外循环，再开始建模或标定。
+3. 正式模型保持洁净：不要为了一次拟合或一次调试，把临时外部文件依赖挂进正式模型。
 
-## 通用任务分型
+## 工作流矩阵
 
-1. 新建模型：先写清 `model_spec`、`build_plan` 和 `verification_plan`，再通过 API 创建 geometry、selection、materials、physics、mesh、study、solver 和 probes。
-2. 增量修改：先只读盘点当前 `.mph`，定位真实 tag、selection、feature 和 solver，再做小步修改。
-3. 模型审查：只读检查模型结构、方程证据、边界条件、求解器链和结果变量，默认不修改。
-4. 仿真验证：优先运行最小必要工况、已有 study 或已有验证脚本，不默认全模型长时间求解。
-
-## 自动建模主流程
-
-1. 定义问题：研究目标、模型维度、几何抽象、物理场、耦合关系、输入输出、工况、约束和验收指标。
-2. 定义接口：参数名、单位、边界变量、材料来源、selection 命名、probe/derived value 输出和结果读取方式。
-3. 只读盘点：连接同一 COMSOL Server，读取当前模型 tag、组件、几何、材料、physics、feature、selection、study、solver 和 solution 摘要。
-4. 构建或修改：按 `geometry -> selection -> material -> physics feature -> mesh -> study/solver -> probe/result` 的顺序小步实施。
-5. 回读验证：每一步修改后读取真实 API 路径和值，确认节点存在、表达式正确、selection 指向正确。
-6. 求解验证：先做局部检查、粗网格或单工况 smoke test，再扩大到目标 study。
-7. 结果审计：只输出 KPI、关键变量、证据路径、错误栈摘要和剩余风险。
-
-## 共享会话规则
-
-1. 用户启动 COMSOL Server，默认端口 `2036`。
-2. 用户用 COMSOL GUI 连接该 Server，并打开目标 `.mph`。
-3. Codex 通过 MATLAB LiveLink、Java API、Python/mph 或等价 API 连接同一个 Server 会话。
-4. 默认由 GUI 检查并保存模型；后台脚本不得擅自保存 `.mph`。
-5. 同一模型默认只允许一条 Codex 控制链路，避免 GUI、MATLAB LiveLink、Python/mph 或后台脚本并发修改。
-
-## 证据链要求
-
-- 不直接按二进制、XML 或文本方式修改 `.mph`。
-- 不假设 `comp1`、`geom1`、`solid`、`ht`、`spf` 等默认标签可靠；必须从当前模型读取真实 tag。
-- 涉及边界条件、入口出口、反应、源项、材料和初始值时，必须追到具体 feature 节点。
-- 父 physics 节点设置不能替代完整方程或边界证据。
-- 典型证据路径应类似 `component/comp1/physics/br/feature/inl1`、`component/comp1/material/mat1`、`study/std1`、`solver/sol1`。
-
-## Token 与产物控制
-
-- 不默认回传完整模型树、完整 Java dump、完整变量表、完整求解日志、完整网格信息或批量图片。
-- 不默认生成模型副本、CSV、报告或截图。
-- 必须生成中间产物时，放入任务专用目录，并在任务结束时说明保留文件及用途。
-- Codex 输出应压缩为模型规格、操作摘要、证据路径、KPI、失败原因和下一步建议。
-
-## 只读盘点入口
-
-推荐脚本：
-
-```matlab
-addpath('E:\agentwork_pemfc_cEGR_0519\02_多物理场机理模型演示\02_脚本')
-summary = comsol_readonly_inventory();
+```text
+                         ┌─ agent-matlab/simulink ───── 纯 Simulink 建模、控制策略、系统级审计
+                         │
+                         ├─ agent-comsol ────────────── 纯 COMSOL 多物理场建模、核查、重建
+Claude Code / Codex ─────┤
+                         ├─ agent-amesim ────────────── 纯 AMEsim 一维系统
+                         │
+                         ├─ agent-comsol-matlab/simulink ─ COMSOL + MATLAB 协同标定与外循环优化
+                         │
+                         └─ agent-amesim-matlab/simulink ─ AMEsim + MATLAB 协同
 ```
 
-该脚本只是通用流程中的“只读盘点工具”：连接 `localhost:2036`，读取当前 Server 中的模型摘要，不运行求解、不修改参数、不保存模型、不导出结果文件。
+## 各工作流详解
 
-## 常见排查
+### 1. agent-matlab/simulink
 
-- `mphstart` 找不到：确认 MATLAB 已添加 `D:\COMSOL63\Multiphysics\mli`。
-- 无法连接 Server：确认 `comsolmphserver.exe` 已启动，端口为 `2036`，且防火墙没有拦截本机连接。
-- Server 中没有模型：用 GUI 连接同一 Server 并打开目标 `.mph`，或确认脚本没有连接到另一个端口。
-- GUI 未显示脚本修改：在 GUI 中选中相关节点，必要时刷新、重建几何或重新计算相关 study。
-- 求解器旧报错干扰判断：区分当前有效 study/solver/solution 与历史残留求解节点，不用旧失败日志直接否定当前求解链。
+| 项目 | 内容 |
+|------|------|
+| 链路 | Agent -> 对应专用 MATLAB MCP GUI -> MATLAB/Simulink |
+| 适用 | Simulink 系统建模、控制策略、参数扫描、数据后处理、台架数据审计 |
+| 本项目入口 | `01_自吸方案/03_台架测试_10kW_简化版/` |
+
+### 2. agent-comsol
+
+| 项目 | 内容 |
+|------|------|
+| 链路 | Agent -> Python/mph -> COMSOL Server（共享 GUI 会话） |
+| 适用 | 纯多物理场建模、结构核查、组件重建、几何修改、物理场接口、边界条件、网格、Study、Solver、只读盘点、单步 smoke test |
+| 本项目入口 | `02_多物理场机理模型演示/` |
+| 当前最稳路线 | 从源模型插入函数和组件结构，优先 `func.insert()` + `component.insert()` |
+| 默认边界 | 不经过 MATLAB 中转；默认不保存 `.mph`；最终保存由用户 GUI 执行 |
+
+### 3. agent-amesim
+
+| 项目 | 内容 |
+|------|------|
+| 链路 | Agent -> Bash 或 Python -> AMEPython |
+| 适用 | 一维系统建模、BoP 部件匹配、热流体、气动、液压网络 |
+| 本项目入口 | `03_AMEsim系统模型/`（当前仅放引用说明） |
+
+### 4. agent-comsol-matlab/simulink
+
+| 项目 | 内容 |
+|------|------|
+| 链路 | Agent -> 对应专用 MATLAB MCP GUI -> MATLAB LiveLink (`mphstart`) -> COMSOL Server |
+| 适用 | COMSOL 参数辨识、外循环优化、多参数非线性拟合、实验数据驱动标定、Simulink-COMSOL 协同 |
+| 本项目入口 | `02_多物理场机理模型演示/02_脚本/fit_comsol_echem_polarization_stage1.m` |
+| 默认边界 | 参数标定走这条路线，不用临时 CSV 或乱搭外部文件依赖去驱动正式 COMSOL 模型 |
+
+#### 固定启动纪律
+
+1. `start_codex_matlab_gui.ps1` 与 `start_claude_matlab_gui.ps1` 不再只是启动 plain MATLAB；它们会显式设置 COMSOL LiveLink bootstrap 环境变量。
+2. MATLAB 启动后，`startup.m` 会在 agent 会话内调用 `bootstrap_agent_comsol_livelink`，把 `D:\COMSOL63\Multiphysics\mli` 加入路径，并默认尝试连接 `127.0.0.1:2036`。
+3. 本项目协同标定仍以“共享 GUI Server + MATLAB LiveLink attach” 为准，不把开始菜单里的 `COMSOL Multiphysics 6.3 with MATLAB` 快捷方式直接当作本项目默认链路；该快捷方式可作为 LiveLink 基线参考，但本项目正式入口仍是 agent 专用 launcher。
+4. 若命令窗口未显示 MCP session 标题、COMSOL bootstrap 信息或 `mphstart` 路径，先修复启动链路，不进入参数辨识。
+
+#### 当前稳态极化默认辨识入口
+
+- 拟合点：`case_idx = [1, 5, 9, 13, 19]`
+- 验证点：`case_idx = [3, 11, 16]`
+- 先动参数：`i0_ref_c`, `alpha_a_c`, `R_contact_c_area`
+- `Av_c` 不纳入这条极化拟合脚本，保持模型内固定值
+- 后备参数：`sigma_pem_correction`
+- 默认行为：先回放初值，再进入优化；`evaluateOnly=true` 时只回放不优化
+
+### 5. agent-amesim-matlab/simulink
+
+| 项目 | 内容 |
+|------|------|
+| 链路 | Agent -> 对应专用 MATLAB MCP GUI -> AMEsim（通过 `interface_contract`） |
+| 适用 | AMEsim 系统模型需要 MATLAB 参数标定或后处理 |
+| 本项目现状 | 暂无正式实例 |
+
+## MATLAB MCP 会话边界
+
+1. 普通 MATLAB 不注册 MCP，不作为 agent 会话。
+2. Codex 使用 `C:\Users\ADMIN\Desktop\MATLAB_Agent_Launcher.hta` 中的 `Codex MCP MATLAB` 或 `start_codex_matlab_gui.ps1`。
+3. Claude 使用同一面板的 `Claude MCP MATLAB` 或 `start_claude_matlab_gui.ps1`。
+4. 两个 agent 同时使用 MATLAB 时打开两个 GUI；各自只 attach 命令窗口显示自己角色的 session。
+5. Codex 和 Claude 使用不同 MCP session 根目录，因为 `shareMATLABSession()` 会在根目录下写单个 `sessionDetails.json`。Codex 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Codex`，Claude 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Claude`；`startup.m` 通过 `register_agent_matlab_mcp_session.m` 写入对应根目录，不修改 MATLAB 的 `APPDATA`。
+6. 客户端配置更新后需要重启或刷新 agent 客户端/session，让正式 MCP 工具重新加载。不要把临时 MCP 探针脚本当作常规工作流。
+7. MCP attach 失败或工具未暴露时先修复会话，不用 `matlab.exe -batch` 冒充 MCP 交互链路。batch 只用于可脱离 agent 的长时间脚本任务，结束后再由 agent 读取结果并审计。
+
+## COMSOL 已验证路线与当前边界
+
+### 已验证可靠
+
+1. 共享 GUI 会话下连接 COMSOL Server。
+2. 只读盘点模型结构与真实标签。
+3. `func.insert(source_file, tag_list, [])` 导入函数体系。
+4. `component.insert(source_file, ['comp1'], [])` 导入组件结构及其几何、物理场、材料、变量、网格、探针等。
+5. `exp_*` 等函数作为模型内部函数链的一部分可保留。
+
+### 当前边界
+
+1. 纯 Python/mph 从零稳定创建一个可直接挂复杂多物理场并可靠求解的完整 2D component，当前不视为已闭环验证能力。
+2. 因此，若任务是空模型重建，优先采用“源模型插入路线”而不是把“从零纯 API 搭完整 2D 多物理场组件”当作默认能力。
+3. 若任务进入参数辨识、外循环优化、多参数拟合，应切换到 `agent-comsol-matlab/simulink`。
+
+## COMSOL 模型纪律
+
+1. `exp_*`、piecewise、interpolation 等若已存在于 `.mph` 内部函数体系，默认视为模型内资产，不因名称像表格函数就误判为外部依赖。
+2. 禁止把 `.codex_temp`、`case_*.csv`、临时导出表格、调试 CSV、临时 table 文件接入正式 COMSOL 模型。
+3. COMSOL 正式模型默认不由脚本保存；最终保存由用户通过 GUI 执行。
+4. 审计时必须显式核查 `filename`、`sourcefile` 等属性，区分模型内资产与外部依赖污染。
+5. FC 模块中 `icph1`、`h2gasph1`、`o2gasph1` 在 UI 中显示“所有域”，不直接等于错误；必须结合实际适用域自动过滤结果、具体子特征和求解 KPI 判断。
+
+## COMSOL 推荐核查顺序
+
+1. 结构层：组件、几何、材料、物理场、多物理场、变量、选择集、Study、Solver。
+2. 外部依赖层：`.codex_temp`、`case_*.csv`、失效 `sourcefile`、异常 `filename`。
+3. 物理语义与 KPI 层：边界条件、源项、耦合、材料、关键派生量与求解结果。
+4. 洁净度层：无意义残留节点、污染性中间对象、冗余求解链、误导性函数源。
+
+## 工作流选择规则
+
+```text
+需要 COMSOL 高保真物理场？
+  ├─ 否 -> 需要 AMEsim 专业部件？
+  │         ├─ 否 -> agent-matlab/simulink
+  │         └─ 是 -> agent-amesim
+  └─ 是 -> 需要 MATLAB 做参数辨识、外循环优化或协同后处理？
+            ├─ 否 -> agent-comsol
+            └─ 是 -> agent-comsol-matlab/simulink
+```
+
+## 禁止规则
+
+1. 禁止为用而用：不需要 COMSOL 时不要引入 COMSOL，不需要 MATLAB 优化时不要引入 MATLAB。
+2. 禁止链路混用：选择了 `agent-comsol` 就不要走 MATLAB LiveLink；选择了 `agent-comsol-matlab/simulink` 就按协同路线执行。
+3. 禁止 Python 替代 MATLAB 交付：如果任务明确要求 MATLAB 或 Simulink 交付，不能用 Python 重写。
+4. 禁止未经确认切换工作流：当前任务已有既定路线时，不要擅自改线。
+5. 禁止把临时外部 CSV 依赖接进正式 COMSOL 模型。
+
+## 配套文档关系
+
+1. `00_支撑材料/项目协作建模归档与重要经验_v01.md` 与 `COMSOL建模核查归档与重要经验_v01.md` 负责沉淀案例化经验、背景、失败模式和已验证路线。
+2. 本文件负责沉淀路线矩阵、适用场景、已验证路线和当前边界，不承载完整案例细节。
+3. 若本文件与归档文档有冲突，以当前规则文件和项目级规则文件中明确写出的执行边界为准，再回头修订归档叙述。

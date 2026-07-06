@@ -1,497 +1,373 @@
-function result = fit_comsol_pressure_permeability_stage1(userCfg)
-%FIT_COMSOL_PRESSURE_PERMEABILITY_STAGE1 Fit channel permeabilities by pressure drop.
+function result = fit_comsol_pressure_permeability_stage1(opts)
+%FIT_COMSOL_PRESSURE_PERMEABILITY_STAGE1
+% Stage-1 COMSOL/LiveLink calibration for channel permeability and cooling UA.
 %
-% Stage 1 calibration scope:
-%   - MATLAB owns the optimizer.
-%   - COMSOL solves the current 2D PEMFC/cEGR model.
-%   - Heat equation is disabled in the pressure-only study path.
-%   - Cell temperature is fixed to the experimental proxy T_cell_exp.
-%   - Only K_CH_c and K_CH_a are estimated from cathode/anode pressure drops.
-%
-% The script updates the model in the connected COMSOL Server session only.
-% It does not save the .mph file unless cfg.saveModel is explicitly true.
+% This script reads experiment metadata in MATLAB only. It does not attach
+% CSV, tables, or temporary files to the COMSOL model.
 
 if nargin < 1
-    userCfg = struct();
+    opts = struct();
 end
-cfg = localDefaultConfig();
-cfg = localMergeStruct(cfg, userCfg);
 
-[model, modelTag] = localConnectOrLoadModel(cfg);
-fprintf('COMSOL_MODEL_TAG=%s\n', modelTag);
+opts = apply_defaults(opts);
 
-allData = localLoadPressureData(cfg);
-[fitData, validationData] = localSplitFitValidationData(allData, cfg);
-fprintf('PRESSURE_FIT_CASES=%d\n', height(fitData));
-fprintf('PRESSURE_VALIDATION_CASES=%d\n', height(validationData));
+addpath(opts.comsolMliPath);
+ensure_mph_connection(opts.serverHost, opts.serverPort);
 
-localConfigurePressureOnlyModel(model, cfg);
-localDeactivateComsolOptimizationArtifacts(model, cfg);
+import com.comsol.model.util.*
+model = get_live_model(opts.modelTag);
+if opts.configureStage1Study
+    configure_stage1_study(model, opts);
+end
+if ~isempty(opts.initialParams)
+    set_stage1_params(model, opts.initialParams);
+end
 
-if cfg.validateOnly
-    best = localGetPermeability(model);
-    residualBest = [];
-    resnorm = NaN;
-    exitflag = NaN;
-    output = struct('message', 'Validation only; optimizer was not run.');
+data = readtable(opts.dataCsv, 'VariableNamingRule', 'preserve');
+validate_case_indices(opts.caseIdx, height(data));
+print_case_set(data, opts.caseIdx);
+
+baseParams = read_stage1_params(model);
+fprintf('\nInitial stage-1 parameters:\n');
+print_params(baseParams);
+
+baseEval = evaluate_case_set(model, opts.caseIdx, opts);
+fprintf('\nInitial objective = %.6g\n', baseEval.objective);
+print_case_eval(baseEval);
+
+if opts.evaluateOnly
+    result = struct();
+    result.mode = "evaluateOnly";
+    result.caseIdx = opts.caseIdx;
+    result.initialParams = baseParams;
+    result.initialEval = baseEval;
+    return
+end
+
+x0 = log([baseParams.K_CH_a_m2, baseParams.K_CH_c_m2, baseParams.UA_cool_stack_W_K]);
+lb = log([opts.bounds.K_CH_a_m2(1), opts.bounds.K_CH_c_m2(1), opts.bounds.UA_cool_stack_W_K(1)]);
+ub = log([opts.bounds.K_CH_a_m2(2), opts.bounds.K_CH_c_m2(2), opts.bounds.UA_cool_stack_W_K(2)]);
+
+evalCounter = 0;
+objective = @(x) bounded_objective(x);
+
+optimOpts = optimset( ...
+    'Display', 'iter', ...
+    'MaxIter', opts.maxIter, ...
+    'MaxFunEvals', opts.maxFunEvals, ...
+    'TolX', opts.tolX, ...
+    'TolFun', opts.tolFun);
+
+[xBest, fBest, exitflag, output] = fminsearch(objective, x0, optimOpts);
+xBest = min(max(xBest, lb), ub);
+bestParams = params_from_log(xBest);
+set_stage1_params(model, bestParams);
+bestEval = evaluate_case_set(model, opts.caseIdx, opts);
+if ~opts.applyBestToModel
+    set_stage1_params(model, baseParams);
+end
+
+fprintf('\nBest stage-1 parameters:\n');
+print_params(bestParams);
+fprintf('Best objective = %.6g, exitflag = %d\n', fBest, exitflag);
+print_case_eval(bestEval);
+if opts.applyBestToModel
+    fprintf('\nBest parameters were applied to the live COMSOL session.\n');
 else
-    x0 = log10([cfg.initial.K_CH_c_m2; cfg.initial.K_CH_a_m2]);
-    lb = log10([cfg.bounds.K_CH_c_m2(1); cfg.bounds.K_CH_a_m2(1)]);
-    ub = log10([cfg.bounds.K_CH_c_m2(2); cfg.bounds.K_CH_a_m2(2)]);
-
-    objective = @(x) localPressureResidual(model, fitData, cfg, x);
-
-    if exist('lsqnonlin', 'file') == 2
-        opts = optimoptions('lsqnonlin', ...
-            'Display', cfg.optimizerDisplay, ...
-            'MaxIterations', cfg.maxIterations, ...
-            'MaxFunctionEvaluations', cfg.maxFunctionEvaluations, ...
-            'FiniteDifferenceType', 'central', ...
-            'FunctionTolerance', cfg.functionTolerance, ...
-            'StepTolerance', cfg.stepTolerance);
-        [xBest, residualBest, resnorm, exitflag, output] = lsqnonlin(objective, x0, lb, ub, opts);
-    else
-        warning('Optimization Toolbox not found. Falling back to fminsearch with bounded transform.');
-        z0 = localXToZ(x0, lb, ub);
-        scalarObjective = @(z) sum(objective(localZToX(z, lb, ub)).^2);
-        opts = optimset('Display', cfg.optimizerDisplay, ...
-            'MaxIter', cfg.maxIterations, ...
-            'MaxFunEvals', cfg.maxFunctionEvaluations, ...
-            'TolFun', cfg.functionTolerance, ...
-            'TolX', cfg.stepTolerance);
-        [zBest, resnorm, exitflag, output] = fminsearch(scalarObjective, z0, opts);
-        xBest = localZToX(zBest, lb, ub);
-        residualBest = objective(xBest);
-    end
-
-    best.K_CH_c_m2 = 10.^xBest(1);
-    best.K_CH_a_m2 = 10.^xBest(2);
-    localSetPermeability(model, best.K_CH_c_m2, best.K_CH_a_m2);
+    fprintf('\nLive COMSOL session was restored to initial stage-1 parameters.\n');
 end
-
-prediction = localEvaluateCases(model, fitData, cfg);
-metrics = localBuildMetrics(prediction);
-if cfg.validateOnly
-    validationPrediction = prediction;
-    validationMetrics = metrics;
-else
-    validationPrediction = localEvaluateCases(model, validationData, cfg);
-    validationMetrics = localBuildMetrics(validationPrediction);
-end
-
-fprintf('K_CH_c_BEST=%.9g m^2\n', best.K_CH_c_m2);
-fprintf('K_CH_a_BEST=%.9g m^2\n', best.K_CH_a_m2);
-fprintf('CATHODE_DP_RMSE=%.6g Pa\n', metrics.dp_c_rmse_Pa);
-fprintf('ANODE_DP_RMSE=%.6g Pa\n', metrics.dp_a_rmse_Pa);
-fprintf('VALIDATION_CATHODE_DP_RMSE=%.6g Pa\n', validationMetrics.dp_c_rmse_Pa);
-fprintf('VALIDATION_ANODE_DP_RMSE=%.6g Pa\n', validationMetrics.dp_a_rmse_Pa);
-fprintf('VALIDATION_CATHODE_DP_MAXABS=%.6g Pa\n', validationMetrics.dp_c_max_abs_Pa);
-fprintf('VALIDATION_ANODE_DP_MAXABS=%.6g Pa\n', validationMetrics.dp_a_max_abs_Pa);
-
-if cfg.writeOutputs
-    resultFile = localWriteOutputs(cfg, prediction, metrics, best);
-else
-    resultFile = "";
-end
-
-if cfg.saveModel
-    mphsave(model, cfg.modelFile);
-end
+fprintf('Model was not saved. Inspect the live COMSOL session before saving in GUI.\n');
 
 result = struct();
-result.modelTag = modelTag;
-result.best = best;
-result.residual = residualBest;
-result.resnorm = resnorm;
+result.mode = "fit";
+result.caseIdx = opts.caseIdx;
+result.initialParams = baseParams;
+result.initialEval = baseEval;
+result.bestParams = bestParams;
+result.bestEval = bestEval;
 result.exitflag = exitflag;
 result.output = output;
-result.prediction = prediction;
-result.metrics = metrics;
-result.validationPrediction = validationPrediction;
-result.validationMetrics = validationMetrics;
-result.resultFile = resultFile;
+
+    function f = bounded_objective(x)
+        evalCounter = evalCounter + 1;
+        if any(x < lb) || any(x > ub)
+            f = opts.boundPenalty + sum((max(lb - x, 0) + max(x - ub, 0)).^2);
+            fprintf('Eval %03d: out of bounds penalty %.6g\n', evalCounter, f);
+            return
+        end
+
+        trialParams = params_from_log(x);
+        set_stage1_params(model, trialParams);
+        ev = evaluate_case_set(model, opts.caseIdx, opts);
+        f = ev.objective;
+        fprintf('Eval %03d: obj %.6g, K_a %.4g, K_c %.4g, UA %.4g\n', ...
+            evalCounter, f, trialParams.K_CH_a_m2, trialParams.K_CH_c_m2, ...
+            trialParams.UA_cool_stack_W_K);
+    end
 end
 
-function cfg = localDefaultConfig()
-scriptDir = fileparts(mfilename('fullpath'));
-modelDir = fileparts(scriptDir);
-projectRoot = fileparts(modelDir);
+function opts = apply_defaults(opts)
+root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
 
-cfg = struct();
-cfg.projectRoot = projectRoot;
-cfg.comsolHost = '127.0.0.1';
-cfg.comsolPort = 2036;
-cfg.comsolMliPath = 'D:\COMSOL63\Multiphysics\mli';
-cfg.modelFile = fullfile(modelDir, '20260624-结构简化燃料电池-阴极尾气循环.mph');
-cfg.modelNameContains = '20260624-结构简化燃料电池-阴极尾气循环';
-cfg.modelLoadTag = 'pemfc_cegr_2d';
-
-cfg.componentTag = 'comp1';
-cfg.studyTag = 'std1';
-cfg.pressureStepTag = 'stat2';
-cfg.heatPhysicsTag = 'ge_heat';
-cfg.fcPhysicsTag = 'fc';
-cfg.cathodeFlowPhysicsTag = 'br';
-cfg.anodeFlowPhysicsTag = 'br2';
-cfg.globalVariableTag = 'var75';
-
-cfg.dataFile = fullfile(projectRoot, '01_自吸方案', '03_台架测试_10kW_简化版', ...
+defaults = struct();
+defaults.serverHost = '127.0.0.1';
+defaults.serverPort = 2036;
+defaults.modelTag = '';
+defaults.comsolMliPath = 'D:\COMSOL63\Multiphysics\mli';
+defaults.dataCsv = fullfile(root, '01_自吸方案', '03_台架测试_10kW_简化版', ...
     '00_输入参数', '实验数据', 'combined_noegr_cegr_fit_points.csv');
-cfg.caseRows = [];       % Backward-compatible alias for fitCaseRows.
-cfg.fitCaseRows = [];    % [] means all rows with valid cathode/anode pressure data.
-cfg.validationCaseRows = []; % [] means all valid rows not used for fitting.
-cfg.maxCases = [];       % Set a small integer for a smoke test.
+defaults.caseIdx = [1, 5, 9, 12, 18];
+defaults.evaluateOnly = true;
+defaults.initialParams = [];
+defaults.maxIter = 10;
+defaults.maxFunEvals = 20;
+defaults.tolX = 0.05;
+defaults.tolFun = 0.05;
+defaults.boundPenalty = 1e12;
+defaults.failurePenalty = 1e9;
+defaults.stopOnFailure = false;
+defaults.maxConsecutiveFailures = 3;
+defaults.includeCathodePressure = true;
+defaults.includeAnodePressure = true;
+defaults.includeTemperature = true;
+defaults.configureStage1Study = true;
+defaults.applyBestToModel = true;
+defaults.studyTag = 'std1';
+defaults.stage1InitStepTags = {'cdi', 'cdi2'};
+defaults.stage1GasHeatStepTag = 'stat';
+defaults.stage1FinalStepTag = 'stat2';
+defaults.stage1StudyStepTag = 'stat2';
+defaults.fcPhysicsTag = 'fc';
+defaults.heatPhysicsTag = 'ge_heat';
+defaults.cathodeFlowPhysicsTag = 'br';
+defaults.anodeFlowPhysicsTag = 'br2';
 
-cfg.modelExpressions = {'dp_c_model', 'dp_a_model'};
-cfg.pressureScale = [1000; 1000]; % Pa. Residuals are roughly in kPa units.
-cfg.failedResidual = 1e6;
+defaults.bounds = struct();
+defaults.bounds.K_CH_a_m2 = [1e-11, 1e-7];
+defaults.bounds.K_CH_c_m2 = [1e-11, 1e-7];
+defaults.bounds.UA_cool_stack_W_K = [20, 5000];
 
-cfg.initial.K_CH_c_m2 = 1e-9;
-cfg.initial.K_CH_a_m2 = 1e-9;
-cfg.bounds.K_CH_c_m2 = [1e-10, 1e-8];
-cfg.bounds.K_CH_a_m2 = [1e-10, 1e-8];
-
-cfg.maxIterations = 20;
-cfg.maxFunctionEvaluations = 120;
-cfg.functionTolerance = 1e-3;
-cfg.stepTolerance = 1e-3;
-cfg.optimizerDisplay = 'iter';
-
-cfg.applyBestToModel = true;
-cfg.writeOutputs = false;
-cfg.outputDir = fullfile(modelDir, '04_标定结果');
-cfg.saveModel = false;
-cfg.deactivateComsolOptimization = true;
-cfg.validateOnly = false;
-cfg.progressEnabled = true;
-end
-
-function cfg = localMergeStruct(cfg, userCfg)
-names = fieldnames(userCfg);
+names = fieldnames(defaults);
 for i = 1:numel(names)
     name = names{i};
-    if isstruct(userCfg.(name)) && isfield(cfg, name) && isstruct(cfg.(name))
-        cfg.(name) = localMergeStruct(cfg.(name), userCfg.(name));
-    else
-        cfg.(name) = userCfg.(name);
+    if ~isfield(opts, name) || isempty(opts.(name))
+        opts.(name) = defaults.(name);
+    end
+end
+
+if ~isfield(opts, 'bounds') || isempty(opts.bounds)
+    opts.bounds = defaults.bounds;
+else
+    bnames = fieldnames(defaults.bounds);
+    for i = 1:numel(bnames)
+        name = bnames{i};
+        if ~isfield(opts.bounds, name) || isempty(opts.bounds.(name))
+            opts.bounds.(name) = defaults.bounds.(name);
+        end
     end
 end
 end
 
-function [model, modelTag] = localConnectOrLoadModel(cfg)
-if exist('mphstart', 'file') == 0 && isfolder(cfg.comsolMliPath)
-    addpath(cfg.comsolMliPath);
-end
-assert(exist('mphstart', 'file') ~= 0, ...
-    'COMSOL LiveLink mphstart was not found. Check cfg.comsolMliPath.');
-
-import com.comsol.model.*
+function model = get_live_model(modelTag)
 import com.comsol.model.util.*
 
+if ~isempty(modelTag)
+    model = ModelUtil.model(modelTag);
+    return
+end
+
+tags = cell(ModelUtil.tags);
+if isempty(tags)
+    error('No model is loaded in the connected COMSOL Server session.');
+end
+if numel(tags) > 1
+    error(['Multiple models are loaded in the connected COMSOL Server session (%s). ' ...
+        'Set opts.modelTag explicitly before running the fitting script.'], ...
+        strjoin(string(tags), ', '));
+end
+model = ModelUtil.model(tags{1});
+fprintf('Using COMSOL model tag: %s\n', tags{1});
+end
+
+function ensure_mph_connection(serverHost, serverPort)
 try
-    tags = localJavaStringArrayToCell(ModelUtil.tags());
-catch
-    mphstart(cfg.comsolHost, cfg.comsolPort);
-    tags = localJavaStringArrayToCell(ModelUtil.tags());
-end
-
-model = [];
-modelTag = '';
-for i = 1:numel(tags)
-    candidate = ModelUtil.model(tags{i});
-    label = char(candidate.label());
-    if contains(label, cfg.modelNameContains) || contains(tags{i}, cfg.modelNameContains)
-        model = candidate;
-        modelTag = tags{i};
-        break;
-    end
-end
-
-if isempty(model)
-    assert(isfile(cfg.modelFile), 'COMSOL model file not found: %s', cfg.modelFile);
-    model = mphload(cfg.modelFile, cfg.modelLoadTag);
-    modelTag = cfg.modelLoadTag;
-end
-end
-
-function cells = localJavaStringArrayToCell(values)
-cells = cell(1, numel(values));
-for i = 1:numel(values)
-    cells{i} = char(values(i));
-end
-end
-
-function data = localLoadPressureData(cfg)
-opts = detectImportOptions(cfg.dataFile, 'TextType', 'string');
-raw = readtable(cfg.dataFile, opts);
-raw.case_idx = (1:height(raw)).';
-raw.dp_c_exp_Pa = raw.cathode_dp_kPa * 1000;
-raw.dp_a_exp_Pa = (raw.anode_in_p_kPa - raw.anode_out_p_kPa) * 1000;
-raw.T_cell_ref_K = localBuildTemperatureProxy(raw);
-
-mask = isfinite(raw.dp_c_exp_Pa) & isfinite(raw.dp_a_exp_Pa) & ...
-    raw.dp_c_exp_Pa > 0 & raw.dp_a_exp_Pa > 0;
-data = raw(mask, :);
-
-if ~isempty(cfg.maxCases)
-    data = data(1:min(height(data), cfg.maxCases), :);
-end
-
-assert(~isempty(data), 'No valid pressure calibration cases were found.');
-end
-
-function [fitData, validationData] = localSplitFitValidationData(allData, cfg)
-fitRows = cfg.fitCaseRows;
-if isempty(fitRows) && ~isempty(cfg.caseRows)
-    fitRows = cfg.caseRows;
-end
-
-if isempty(fitRows)
-    fitData = allData;
-else
-    fitData = allData(ismember(allData.case_idx, fitRows), :);
-end
-assert(~isempty(fitData), 'No pressure calibration cases matched fitCaseRows.');
-
-if isempty(cfg.validationCaseRows)
-    validationData = allData(~ismember(allData.case_idx, fitData.case_idx), :);
-else
-    validationData = allData(ismember(allData.case_idx, cfg.validationCaseRows), :);
-end
-
-if isempty(validationData)
-    validationData = fitData;
-end
-end
-
-function T = localBuildTemperatureProxy(raw)
-T = nan(height(raw), 1);
-hasCoolant = ismember('coolant_in_T_C', raw.Properties.VariableNames) && ...
-    ismember('coolant_out_T_C', raw.Properties.VariableNames);
-if hasCoolant
-    valid = isfinite(raw.coolant_in_T_C) & isfinite(raw.coolant_out_T_C);
-    T(valid) = 0.5 * (raw.coolant_in_T_C(valid) + raw.coolant_out_T_C(valid)) + 273.15;
-end
-
-hasStackGas = ismember('stack_in_T_C', raw.Properties.VariableNames) && ...
-    ismember('stack_out_T_C', raw.Properties.VariableNames);
-missing = ~isfinite(T);
-if hasStackGas
-    valid = missing & isfinite(raw.stack_in_T_C) & isfinite(raw.stack_out_T_C);
-    T(valid) = 0.5 * (raw.stack_in_T_C(valid) + raw.stack_out_T_C(valid)) + 273.15;
-    missing = ~isfinite(T);
-    valid = missing & isfinite(raw.stack_in_T_C);
-    T(valid) = raw.stack_in_T_C(valid) + 273.15;
-end
-
-missing = ~isfinite(T);
-if ismember('anode_in_T_C', raw.Properties.VariableNames)
-    valid = missing & isfinite(raw.anode_in_T_C);
-    T(valid) = raw.anode_in_T_C(valid) + 273.15;
-end
-
-T(~isfinite(T)) = 333.15;
-end
-
-function localConfigurePressureOnlyModel(model, cfg)
-comp = model.component(cfg.componentTag);
-
-assert(localHasPhysics(comp, cfg.heatPhysicsTag), 'Missing physics: %s', cfg.heatPhysicsTag);
-assert(localHasPhysics(comp, cfg.cathodeFlowPhysicsTag), 'Missing physics: %s', cfg.cathodeFlowPhysicsTag);
-assert(localHasPhysics(comp, cfg.anodeFlowPhysicsTag), 'Missing physics: %s', cfg.anodeFlowPhysicsTag);
-
-vars = comp.variable(cfg.globalVariableTag);
-    vars.set('T_fc', 'T_cell_fit');
-    vars.set('T_stack_0d', 'T_cell_fit');
-
-comp.probe('mid_c_in_p').set('expr', 'br.pA');
-comp.probe('mid_c_out_p').set('expr', 'br.pA');
-comp.probe('mid_a_in_p').set('expr', 'br2.pA');
-comp.probe('mid_a_out_p').set('expr', 'br2.pA');
-
-study = model.study(cfg.studyTag);
-featureTags = localJavaStringArrayToCell(study.feature().tags());
-for i = 1:numel(featureTags)
-    feature = study.feature(featureTags{i});
-    if strcmp(featureTags{i}, cfg.pressureStepTag)
-        feature.active(true);
-        localSetActivation(feature, cfg, true);
-    else
-        feature.active(false);
-    end
-end
-end
-
-function localDeactivateComsolOptimizationArtifacts(model, cfg)
-if ~cfg.deactivateComsolOptimization
-    return;
-end
-
-try
-    opt = model.opt();
-    try
-        opt.active(false);
-    catch
-    end
-
-    try
-        objectiveTags = localJavaStringArrayToCell(opt.objective().tags());
-        for i = 1:numel(objectiveTags)
-            objective = opt.objective(objectiveTags{i});
-            try
-                objective.active(false);
-            catch
-            end
-        end
-    catch
-    end
-catch
-end
-end
-
-function tf = localHasPhysics(comp, tag)
-tags = localJavaStringArrayToCell(comp.physics().tags());
-tf = any(strcmp(tags, tag));
-end
-
-function localSetActivation(feature, cfg, pressureOnly)
-if pressureOnly
-    activation = { ...
-        cfg.fcPhysicsTag, 'off', ...
-        cfg.heatPhysicsTag, 'off', ...
-        cfg.cathodeFlowPhysicsTag, 'on', ...
-        cfg.anodeFlowPhysicsTag, 'on', ...
-        'frame:spatial1', 'on', ...
-        'frame:material1', 'on'};
-else
-    activation = { ...
-        cfg.fcPhysicsTag, 'on', ...
-        cfg.heatPhysicsTag, 'off', ...
-        cfg.cathodeFlowPhysicsTag, 'on', ...
-        cfg.anodeFlowPhysicsTag, 'on', ...
-        'frame:spatial1', 'on', ...
-        'frame:material1', 'on'};
-end
-feature.set('activate', activation);
-end
-
-function residual = localPressureResidual(model, data, cfg, x)
-K = 10.^x(:);
-try
-    localSetPermeability(model, K(1), K(2));
-    prediction = localEvaluateCases(model, data, cfg);
-    residual = [ ...
-        (prediction.dp_c_model_Pa - prediction.dp_c_exp_Pa) ./ cfg.pressureScale(1); ...
-        (prediction.dp_a_model_Pa - prediction.dp_a_exp_Pa) ./ cfg.pressureScale(2)];
-    bad = ~isfinite(residual);
-    residual(bad) = cfg.failedResidual;
+    mphstart(serverHost, serverPort);
 catch ME
-    fprintf('COMSOL_SOLVE_FAILED: K_CH_c=%.4g, K_CH_a=%.4g, %s\n', K(1), K(2), ME.message);
-    residual = cfg.failedResidual * ones(2 * height(data), 1);
-end
-end
-
-function localSetPermeability(model, K_CH_c_m2, K_CH_a_m2)
-model.param.set('K_CH_c', sprintf('%.15g[m^2]', K_CH_c_m2));
-model.param.set('K_CH_a', sprintf('%.15g[m^2]', K_CH_a_m2));
-end
-
-function best = localGetPermeability(model)
-best = struct();
-Kc = double(mphglobal(model, 'K_CH_c'));
-Ka = double(mphglobal(model, 'K_CH_a'));
-best.K_CH_c_m2 = Kc(1);
-best.K_CH_a_m2 = Ka(1);
-end
-
-function prediction = localEvaluateCases(model, data, cfg)
-n = height(data);
-prediction = table('Size', [n 7], ...
-    'VariableTypes', {'double', 'string', 'double', 'double', 'double', 'double', 'double'}, ...
-    'VariableNames', {'case_idx', 'case_id', 'dp_c_exp_Pa', 'dp_a_exp_Pa', ...
-    'dp_c_model_Pa', 'dp_a_model_Pa', 'T_cell_ref_K'});
-
-for i = 1:n
-    if cfg.progressEnabled
-        fprintf('COMSOL_PRESSURE_CASE %d/%d case_idx=%d case_id=%s start\n', ...
-            i, n, data.case_idx(i), data.case_id(i));
-    end
-    localApplyCaseInputs(model, data(i, :));
-    model.study(cfg.studyTag).run();
-    dpC = double(mphglobal(model, cfg.modelExpressions{1}));
-    dpA = double(mphglobal(model, cfg.modelExpressions{2}));
-
-    prediction.case_idx(i) = data.case_idx(i);
-    prediction.case_id(i) = string(data.case_id(i));
-    prediction.dp_c_exp_Pa(i) = data.dp_c_exp_Pa(i);
-    prediction.dp_a_exp_Pa(i) = data.dp_a_exp_Pa(i);
-    prediction.dp_c_model_Pa(i) = dpC(1);
-    prediction.dp_a_model_Pa(i) = dpA(1);
-    prediction.T_cell_ref_K(i) = data.T_cell_ref_K(i);
-    if cfg.progressEnabled
-        fprintf('COMSOL_PRESSURE_CASE %d/%d case_idx=%d done dpc_err=%.4g kPa dpa_err=%.4g kPa\n', ...
-            i, n, data.case_idx(i), ...
-            (prediction.dp_c_model_Pa(i) - prediction.dp_c_exp_Pa(i)) / 1000, ...
-            (prediction.dp_a_model_Pa(i) - prediction.dp_a_exp_Pa(i)) / 1000);
+    if contains(string(ME.message), "Already connected to a server")
+        fprintf('MATLAB LiveLink is already connected to a COMSOL server. Reusing current session.\n');
+    else
+        rethrow(ME);
     end
 end
+end
 
-function localApplyCaseInputs(model, row)
-atmPa = 101325;
-model.param.set('case_idx', sprintf('%d', row.case_idx));
-
-pCInPa = atmPa + 1000 * row.stack_in_p_kPa;
-pCOutPa = atmPa + 1000 * row.stack_out_p_kPa;
-pAInPa = atmPa + 1000 * row.anode_in_p_kPa;
-pAOutPa = atmPa + 1000 * row.anode_out_p_kPa;
-
-model.param.set('p_c_in', sprintf('%.15g[Pa]', pCInPa));
-model.param.set('p_c_out', sprintf('%.15g[Pa]', pCOutPa));
-model.param.set('p_a_in', sprintf('%.15g[Pa]', pAInPa));
-model.param.set('p_a_out', sprintf('%.15g[Pa]', pAOutPa));
-
-model.param.set('I_fc', sprintf('%.15g[A/m^2]', row.current_density_A_cm2 * 1e4));
-model.param.set('W_c_stack_in', sprintf('rho_air_std*%.15g[L/min]', row.stack_in_flow_meter_SLPM));
-model.param.set('W_c_in', 'W_c_stack_in/N_cell');
-model.param.set('alpha_cyc', sprintf('%.15g', row.egr_fraction_model));
-model.param.set('lam_a', sprintf('%.15g', row.anode_stoich));
-
-model.param.set('RH_c_in', sprintf('%.15g', row.stack_in_RH_pct / 100));
-model.param.set('RH_a_in', sprintf('%.15g', row.anode_in_RH_pct / 100));
-model.param.set('T_c_in', sprintf('%.15g[degC]', row.stack_in_T_C));
-model.param.set('T_a_in', sprintf('%.15g[degC]', row.anode_in_T_C));
-model.param.set('T_cell_fit', sprintf('%.15g[K]', row.T_cell_ref_K));
+function validate_case_indices(caseIdx, nRows)
+if any(caseIdx < 1) || any(caseIdx > nRows)
+    error('caseIdx contains index outside experiment table range 1..%d.', nRows);
 end
 end
 
-function metrics = localBuildMetrics(prediction)
-metrics = struct();
-metrics.dp_c_rmse_Pa = localRmse(prediction.dp_c_model_Pa - prediction.dp_c_exp_Pa);
-metrics.dp_a_rmse_Pa = localRmse(prediction.dp_a_model_Pa - prediction.dp_a_exp_Pa);
-metrics.dp_c_max_abs_Pa = max(abs(prediction.dp_c_model_Pa - prediction.dp_c_exp_Pa), [], 'omitnan');
-metrics.dp_a_max_abs_Pa = max(abs(prediction.dp_a_model_Pa - prediction.dp_a_exp_Pa), [], 'omitnan');
+function print_case_set(data, caseIdx)
+fprintf('\nStage-1 representative cases:\n');
+fprintf('%6s  %-18s %8s %8s %8s %8s %8s %8s\n', ...
+    'idx', 'case_id', 'I_A', 'egr', 'dp_c', 'dp_a', 'Tin', 'Tout');
+for i = 1:numel(caseIdx)
+    r = data(caseIdx(i), :);
+    dpA = r.anode_in_p_kPa - r.anode_out_p_kPa;
+    fprintf('%6d  %-18s %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n', ...
+        caseIdx(i), string(r.case_id), r.current_A, r.egr_fraction_model, ...
+        r.cathode_dp_kPa, dpA, r.stack_in_T_C, r.stack_out_T_C);
+end
 end
 
-function value = localRmse(x)
-value = sqrt(mean(x.^2, 'omitnan'));
+function configure_stage1_study(model, opts)
+study = model.study(opts.studyTag);
+featureTags = cell(study.feature().tags());
+expectedTags = [opts.stage1InitStepTags(:); {opts.stage1GasHeatStepTag; opts.stage1FinalStepTag}];
+missingTags = setdiff(expectedTags, featureTags);
+if ~isempty(missingTags)
+    error('Stage-1 study step(s) not found in %s: %s', opts.studyTag, strjoin(missingTags, ', '));
 end
 
-function resultFile = localWriteOutputs(cfg, prediction, metrics, best)
-if ~isfolder(cfg.outputDir)
-    mkdir(cfg.outputDir);
-end
-stamp = char(datetime("now", "Format", "yyyyMMdd_HHmmss"));
-resultFile = fullfile(cfg.outputDir, "comsol_pressure_stage1_" + stamp + ".mat");
-save(resultFile, 'prediction', 'metrics', 'best', 'cfg');
+for i = 1:numel(featureTags)
+    tag = featureTags{i};
+    feature = study.feature(featureTags{i});
+    isInitStep = any(strcmp(tag, opts.stage1InitStepTags));
+    isGasHeatStep = strcmp(tag, opts.stage1GasHeatStepTag);
+    isFinalStep = strcmp(tag, opts.stage1FinalStepTag);
+    isStage1Step = isInitStep || isGasHeatStep || isFinalStep;
+    feature.active(isStage1Step);
+    if isInitStep
+        feature.set('activate', { ...
+            opts.fcPhysicsTag, 'on', ...
+            opts.heatPhysicsTag, 'off', ...
+            opts.cathodeFlowPhysicsTag, 'off', ...
+            opts.anodeFlowPhysicsTag, 'off', ...
+            'frame:spatial1', 'on', ...
+            'frame:material1', 'on'});
+    elseif isGasHeatStep
+        feature.set('activate', { ...
+            opts.fcPhysicsTag, 'off', ...
+            opts.heatPhysicsTag, 'on', ...
+            opts.cathodeFlowPhysicsTag, 'on', ...
+            opts.anodeFlowPhysicsTag, 'on', ...
+            'frame:spatial1', 'on', ...
+            'frame:material1', 'on'});
+    elseif isFinalStep
+        feature.set('activate', { ...
+            opts.fcPhysicsTag, 'on', ...
+            opts.heatPhysicsTag, 'on', ...
+            opts.cathodeFlowPhysicsTag, 'on', ...
+            opts.anodeFlowPhysicsTag, 'on', ...
+            'frame:spatial1', 'on', ...
+            'frame:material1', 'on'});
+    end
 end
 
-function z = localXToZ(x, lb, ub)
-y = (x - lb) ./ (ub - lb);
-y = min(max(y, 1e-6), 1 - 1e-6);
-z = log(y ./ (1 - y));
+fprintf('Configured stage-1 study: %s: init=%s fc-only, gas+heat=%s, final=%s all-on\n', ...
+    opts.studyTag, strjoin(opts.stage1InitStepTags, ','), ...
+    opts.stage1GasHeatStepTag, opts.stage1FinalStepTag);
 end
 
-function x = localZToX(z, lb, ub)
-y = 1 ./ (1 + exp(-z));
-x = lb + y .* (ub - lb);
+function params = read_stage1_params(model)
+params = struct();
+params.K_CH_a_m2 = model.param.evaluate('K_CH_a');
+params.K_CH_c_m2 = model.param.evaluate('K_CH_c');
+params.UA_cool_stack_W_K = model.param.evaluate('UA_cool_stack');
+end
+
+function params = params_from_log(x)
+params = struct();
+params.K_CH_a_m2 = exp(x(1));
+params.K_CH_c_m2 = exp(x(2));
+params.UA_cool_stack_W_K = exp(x(3));
+end
+
+function set_stage1_params(model, params)
+model.param.set('K_CH_a', sprintf('%.16g[m^2]', params.K_CH_a_m2));
+model.param.set('K_CH_c', sprintf('%.16g[m^2]', params.K_CH_c_m2));
+model.param.set('UA_cool_stack', sprintf('%.16g[W/K]', params.UA_cool_stack_W_K));
+end
+
+function print_params(params)
+fprintf('  K_CH_a        = %.6g m^2\n', params.K_CH_a_m2);
+fprintf('  K_CH_c        = %.6g m^2\n', params.K_CH_c_m2);
+fprintf('  UA_cool_stack = %.6g W/K\n', params.UA_cool_stack_W_K);
+end
+
+function ev = evaluate_case_set(model, caseIdx, opts)
+rows = repmat(empty_eval_row(), numel(caseIdx), 1);
+objective = 0;
+consecutiveFailures = 0;
+
+for i = 1:numel(caseIdx)
+        rows(i).caseIdx = caseIdx(i);
+    try
+        model.param.set('case_idx', num2str(caseIdx(i)));
+        model.study(opts.studyTag).run;
+
+        rows(i).dp_c_residual = mphglobal(model, 'dp_c_residual', 'unit', 'Pa');
+        rows(i).dp_a_residual = mphglobal(model, 'dp_a_residual', 'unit', 'Pa');
+        rows(i).T_residual = mphglobal(model, 'T_cool_out_residual', 'unit', 'K');
+        rows(i).V_residual = mphglobal(model, 'V_cell_residual', 'unit', 'V');
+        rows(i).dp_c_model = mphglobal(model, 'dp_c_model', 'unit', 'Pa');
+        rows(i).dp_a_model = mphglobal(model, 'dp_a_model', 'unit', 'Pa');
+        rows(i).T_cool_out_model = mphglobal(model, 'T_cool_out_model', 'unit', 'K');
+        rows(i).ok = true;
+        consecutiveFailures = 0;
+
+        residuals = [];
+        if opts.includeCathodePressure
+            residuals(end + 1) = rows(i).dp_c_residual / 1000; %#ok<AGROW>
+        end
+        if opts.includeAnodePressure
+            residuals(end + 1) = rows(i).dp_a_residual / 1000; %#ok<AGROW>
+        end
+        if opts.includeTemperature
+            residuals(end + 1) = rows(i).T_residual; %#ok<AGROW>
+        end
+        rows(i).objective = sum(residuals .^ 2);
+        objective = objective + rows(i).objective;
+    catch ME
+        rows(i).ok = false;
+        rows(i).message = string(ME.message);
+        rows(i).objective = opts.failurePenalty;
+        objective = objective + opts.failurePenalty;
+        fprintf('case_idx %d failed: %s\n', caseIdx(i), ME.message);
+        consecutiveFailures = consecutiveFailures + 1;
+        if opts.stopOnFailure || consecutiveFailures >= opts.maxConsecutiveFailures
+            rethrow(ME);
+        end
+    end
+end
+
+ev = struct();
+ev.objective = objective;
+ev.rows = rows;
+end
+
+function row = empty_eval_row()
+row = struct();
+row.caseIdx = NaN;
+row.ok = false;
+row.message = "";
+row.dp_c_residual = NaN;
+row.dp_a_residual = NaN;
+row.T_residual = NaN;
+row.V_residual = NaN;
+row.dp_c_model = NaN;
+row.dp_a_model = NaN;
+row.T_cool_out_model = NaN;
+row.objective = NaN;
+end
+
+function print_case_eval(ev)
+fprintf('%6s %4s %12s %12s %12s %12s\n', ...
+    'idx', 'ok', 'dpc_res_Pa', 'dpa_res_Pa', 'T_res_K', 'obj');
+for i = 1:numel(ev.rows)
+    r = ev.rows(i);
+    fprintf('%6d %4d %12.4g %12.4g %12.4g %12.4g\n', ...
+        r.caseIdx, r.ok, r.dp_c_residual, r.dp_a_residual, ...
+        r.T_residual, r.objective);
+end
 end
