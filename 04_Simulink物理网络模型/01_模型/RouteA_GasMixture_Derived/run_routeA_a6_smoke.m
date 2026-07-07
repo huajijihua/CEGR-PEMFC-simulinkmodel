@@ -1,62 +1,70 @@
-%% Route A A6 smoke run for compressor-inlet cathode cEGR
-% Runs two short cases:
-%   1. no_egr  : EGR valve near closed
-%   2. low_egr : fixed low EGR valve area
+%% Route A A6 staged smoke run for compressor-inlet cathode cEGR
+% A6 is gated deliberately:
+%   1. no_egr_isolated     : temporarily restore official no-EGR inlet/outlet
+%                            topology in memory; do not save the model.
+%   2. no_egr_closed_valve : use the Route A cEGR topology with the valve
+%                            near closed.
+%   3. low_egr             : use the Route A cEGR topology with low valve area.
 %
-% The script prints only compact KPI evidence. It does not export figures,
-% CSV files, or model copies.
+% The script stops at the first failing gate. It prints compact evidence and
+% does not export figures, CSV files, or model copies.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
 modelFile = [model '.slx'];
 scriptDir = fileparts(mfilename('fullpath'));
 oldDir = pwd;
-cleanup = onCleanup(@() cd(oldDir));
+routeA_a6_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
 cd(scriptDir);
 
-if ~bdIsLoaded(model)
-    load_system(modelFile);
+if bdIsLoaded(model) && strcmp(get_param(model, 'Dirty'), 'on')
+    error('RouteA:A6:DirtyModel', ...
+        ['Model %s has unsaved changes. Save or discard them in MATLAB ', ...
+        'before running this staged smoke script.'], model);
 end
 
-% Refresh the model workspace from the parameter script so recently added
-% cegr_* variables are available during block parameter evaluation.
-modelWorkspace = get_param(model, 'ModelWorkspace');
-if strcmp(modelWorkspace.DataSource, 'MATLAB File')
-    modelWorkspace.reload;
-end
-
-egrValvePath = Simulink.ID.getFullName([model ':1294']);
-stopTime = '30';
-
-caseDefs = struct( ...
-    'name', {'no_egr', 'low_egr'}, ...
-    'restrictionArea', {'cegr_valve_area_closed', 'cegr_valve_area_low'});
-
+caseDefs = defineCases();
 results = repmat(emptyResult(), numel(caseDefs), 1);
 
 for k = 1:numel(caseDefs)
-    in = Simulink.SimulationInput(model);
-    in = in.setModelParameter( ...
-        'StopTime', stopTime, ...
-        'SignalLogging', 'on', ...
-        'SignalLoggingName', 'logsout', ...
-        'SimscapeLogType', 'all', ...
-        'SimscapeLogName', ['simlog_' model]);
-    in = in.setBlockParameter(egrValvePath, ...
-        'restriction_area', caseDefs(k).restrictionArea);
-
-    out = sim(in);
-    results(k) = collectResult(out, caseDefs(k).name, ...
-        caseDefs(k).restrictionArea);
+    results(k) = runCase(model, modelFile, caseDefs(k));
+    if ~results(k).passed
+        break;
+    end
 end
 
 assignin('base', 'routeA_smoke_results', results);
 dispResults(results);
 
+function caseDefs = defineCases()
+caseDefs(1).name = "no_egr_isolated";
+caseDefs(1).mode = "official_no_egr_bypass";
+caseDefs(1).restrictionArea = "";
+caseDefs(1).stopTimes = ["0.1", "5", "30"];
+
+caseDefs(2).name = "no_egr_closed_valve";
+caseDefs(2).mode = "routeA_valve_area";
+caseDefs(2).restrictionArea = "cegr_valve_area_closed";
+caseDefs(2).stopTimes = ["0.1", "5", "30"];
+
+caseDefs(3).name = "low_egr";
+caseDefs(3).mode = "routeA_valve_area";
+caseDefs(3).restrictionArea = "cegr_valve_area_low";
+caseDefs(3).stopTimes = ["0.1", "5", "30"];
+end
+
 function result = emptyResult()
 result = struct( ...
     'caseName', "", ...
+    'mode', "", ...
     'restrictionArea', "", ...
+    'passed', false, ...
+    'stopTimePassed', "", ...
+    'failedStopTime', "", ...
+    'errorId', "", ...
+    'errorMessage', "", ...
     'cegrMdot', NaN, ...
+    'compInletMdot', NaN, ...
+    'egrRatioCompIn', NaN, ...
     'pOutlet', NaN, ...
     'pEgrValveUp', NaN, ...
     'pEgrValveDown', NaN, ...
@@ -65,55 +73,235 @@ result = struct( ...
     'yO2CompInlet', NaN);
 end
 
-function result = collectResult(out, caseName, restrictionArea)
-logsout = out.logsout;
-assertHasSignals(logsout, [ ...
-    "routeA_cegr_mdot", ...
-    "routeA_p_outlet", ...
-    "routeA_p_egr_valve_up", ...
-    "routeA_p_egr_valve_down", ...
-    "routeA_p_comp_inlet", ...
-    "routeA_yi_outlet", ...
-    "routeA_yi_comp_inlet"]);
-
-outletYi = lastLoggedValue(logsout, "routeA_yi_outlet");
-inletYi = lastLoggedValue(logsout, "routeA_yi_comp_inlet");
-
+function result = runCase(model, modelFile, caseDef)
 result = emptyResult();
-result.caseName = string(caseName);
-result.restrictionArea = string(restrictionArea);
-result.cegrMdot = scalarLast(logsout, "routeA_cegr_mdot");
-result.pOutlet = scalarLast(logsout, "routeA_p_outlet");
-result.pEgrValveUp = scalarLast(logsout, "routeA_p_egr_valve_up");
-result.pEgrValveDown = scalarLast(logsout, "routeA_p_egr_valve_down");
-result.pCompInlet = scalarLast(logsout, "routeA_p_comp_inlet");
+result.caseName = caseDef.name;
+result.mode = caseDef.mode;
+result.restrictionArea = caseDef.restrictionArea;
+
+fprintf('\nRoute A A6 gate: %s\n', caseDef.name);
+
+for n = 1:numel(caseDef.stopTimes)
+    stopTime = caseDef.stopTimes(n);
+    try
+        resetModelFromDisk(model, modelFile);
+        refreshModelWorkspace(model);
+        if caseDef.mode == "official_no_egr_bypass"
+            applyOfficialNoEGRBypass(model);
+        end
+        markSmokeSignals(model);
+
+        simIn = Simulink.SimulationInput(model);
+        simIn = simIn.setModelParameter( ...
+            'StopTime', char(stopTime), ...
+            'SignalLogging', 'on', ...
+            'SignalLoggingName', 'logsout', ...
+            'SimscapeLogType', 'none');
+
+        if caseDef.mode == "routeA_valve_area"
+            egrValvePath = Simulink.ID.getFullName([model ':1294']);
+            simIn = simIn.setBlockParameter(egrValvePath, ...
+                'restriction_area', caseDef.restrictionArea);
+        end
+
+        simOut = sim(simIn);
+        result.passed = true;
+        result.stopTimePassed = stopTime;
+        result = collectResult(simOut, result);
+        fprintf('  PASS StopTime=%s\n', stopTime);
+    catch ME
+        result.passed = false;
+        result.failedStopTime = stopTime;
+        result.errorId = string(ME.identifier);
+        result.errorMessage = string(ME.message);
+        fprintf('  FAIL StopTime=%s\n', stopTime);
+        fprintf('    %s\n', ME.identifier);
+        fprintf('    %s\n', ME.message);
+        resetModelFromDisk(model, modelFile);
+        return;
+    end
+end
+
+resetModelFromDisk(model, modelFile);
+end
+
+function refreshModelWorkspace(model)
+modelWorkspace = get_param(model, 'ModelWorkspace');
+if strcmp(modelWorkspace.DataSource, 'MATLAB File')
+    modelWorkspace.reload;
+end
+end
+
+function applyOfficialNoEGRBypass(model)
+oxygen = [model '/Oxygen Source'];
+commentBlocks = { ...
+    [oxygen '/CompressorInletMixer'], ...
+    [oxygen '/CompressorInletMixerInsulator'], ...
+    [oxygen '/CompInletP_Converter'], ...
+    [oxygen '/CompInletT_Converter'], ...
+    [oxygen '/CompInletYi_Converter'], ...
+    [oxygen '/CompInletDiagnostics'], ...
+    [model '/CathodeOutletChamber'], ...
+    [model '/CathodeOutletResistance'], ...
+    [model '/CathodeOutletChamberInsulator'], ...
+    [model '/OutletP_Converter'], ...
+    [model '/OutletT_Converter'], ...
+    [model '/OutletYi_Converter'], ...
+    [model '/OutletPTDiagnostics'], ...
+    [model '/OutletCompositionDiagnostics'], ...
+    [model '/EGRMassFlowSensor'], ...
+    [model '/EGR_mdot_Converter'], ...
+    [model '/EGR Diagnostics'], ...
+    [model '/EGRValveRestriction'], ...
+    [model '/EGRValveUpPTSensor'], ...
+    [model '/EGRValveUpPTRef'], ...
+    [model '/EGRValveUpP_Converter'], ...
+    [model '/EGRValveDownPTSensor'], ...
+    [model '/EGRValveDownPTRef'], ...
+    [model '/EGRValveDownP_Converter'], ...
+    [model '/PressureChainDiagnostics'], ...
+    [model '/EGRPipe'], ...
+    [model '/EGRPipeInsulator']};
+
+for k = 1:numel(commentBlocks)
+    if getSimulinkBlockHandle(commentBlocks{k}) ~= -1
+        set_param(commentBlocks{k}, 'Commented', 'on');
+    end
+end
+
+restoreOfficialOxygenSourceInlet(model);
+restoreOfficialCathodeOutlet(model);
+end
+
+function restoreOfficialOxygenSourceInlet(model)
+oxygen = [model '/Oxygen Source'];
+airIntake = [oxygen '/Air Intake'];
+mixer = [oxygen '/CompressorInletMixer'];
+compressor = [oxygen '/Compressor'];
+compressorMap = [oxygen '/Compressor Map'];
+
+phMixer = get_param(mixer, 'PortHandles');
+phCompressor = get_param(compressor, 'PortHandles');
+phMap = get_param(compressorMap, 'PortHandles');
+lineHandles = [];
+
+for portIdx = [3 4 5]
+    lineHandle = get_param(phMixer.LConn(portIdx), 'Line');
+    if lineHandle ~= -1
+        lineHandles(end + 1) = lineHandle; %#ok<AGROW>
+    end
+end
+
+for portHandle = [phCompressor.LConn(2), phMap.RConn(1)]
+    lineHandle = get_param(portHandle, 'Line');
+    if lineHandle ~= -1
+        lineHandles(end + 1) = lineHandle; %#ok<AGROW>
+    end
+end
+
+deleteLines(lineHandles);
+
+phAir = get_param(airIntake, 'PortHandles');
+phCompressor = get_param(compressor, 'PortHandles');
+phMap = get_param(compressorMap, 'PortHandles');
+add_line(oxygen, phAir.LConn(1), phCompressor.LConn(2), 'autorouting', 'on');
+add_line(oxygen, phAir.LConn(1), phMap.RConn(1), 'autorouting', 'on');
+end
+
+function restoreOfficialCathodeOutlet(model)
+cathodeGas = [model '/Cathode Gas Channels'];
+cathodeExhaust = [model '/Cathode Exhaust'];
+outletChamber = [model '/CathodeOutletChamber'];
+
+phGas = get_param(cathodeGas, 'PortHandles');
+phExhaust = get_param(cathodeExhaust, 'PortHandles');
+phOutlet = get_param(outletChamber, 'PortHandles');
+lineHandles = [];
+
+for portHandle = [phGas.LConn(2), phExhaust.LConn(1), ...
+        phOutlet.LConn(3), phOutlet.LConn(4), phOutlet.LConn(5)]
+    lineHandle = get_param(portHandle, 'Line');
+    if lineHandle ~= -1
+        lineHandles(end + 1) = lineHandle; %#ok<AGROW>
+    end
+end
+
+deleteLines(lineHandles);
+
+phGas = get_param(cathodeGas, 'PortHandles');
+phExhaust = get_param(cathodeExhaust, 'PortHandles');
+add_line(model, phGas.LConn(2), phExhaust.LConn(1), 'autorouting', 'on');
+end
+
+function deleteLines(lineHandles)
+lineHandles = unique(lineHandles);
+for k = 1:numel(lineHandles)
+    try
+        delete_line(lineHandles(k));
+    catch
+    end
+end
+end
+
+function markSmokeSignals(model)
+compressorFlowConverter = [model '/Oxygen Source/PS-Simulink Converter'];
+if getSimulinkBlockHandle(compressorFlowConverter) ~= -1
+    portHandles = get_param(compressorFlowConverter, 'PortHandles');
+    lineHandle = get_param(portHandles.Outport(1), 'Line');
+    if lineHandle ~= -1
+        set_param(lineHandle, 'Name', 'routeA_mdot_comp_inlet');
+    end
+end
+end
+
+function result = collectResult(simOut, result)
+try
+    logsout = simOut.logsout;
+catch
+    return;
+end
+
+result.cegrMdot = scalarLastOrNaN(logsout, "routeA_cegr_mdot");
+result.compInletMdot = scalarLastOrNaN(logsout, "routeA_mdot_comp_inlet");
+if isfinite(result.cegrMdot) && isfinite(result.compInletMdot) && ...
+        abs(result.compInletMdot) > eps
+    result.egrRatioCompIn = result.cegrMdot / result.compInletMdot;
+end
+
+result.pOutlet = scalarLastOrNaN(logsout, "routeA_p_outlet");
+result.pEgrValveUp = scalarLastOrNaN(logsout, "routeA_p_egr_valve_up");
+result.pEgrValveDown = scalarLastOrNaN(logsout, "routeA_p_egr_valve_down");
+result.pCompInlet = scalarLastOrNaN(logsout, "routeA_p_comp_inlet");
+
+outletYi = lastLoggedValueOrNaN(logsout, "routeA_yi_outlet");
+inletYi = lastLoggedValueOrNaN(logsout, "routeA_yi_comp_inlet");
 result.yO2Outlet = pickSpecies(outletYi, 2);
 result.yO2CompInlet = pickSpecies(inletYi, 2);
 end
 
-function assertHasSignals(logsout, expectedNames)
-availableNames = string(logsout.getElementNames);
-missing = expectedNames(~ismember(expectedNames, availableNames));
-assert(isempty(missing), ...
-    "Missing logged signal(s): %s", strjoin(missing, ", "));
+function value = scalarLastOrNaN(logsout, signalName)
+value = lastLoggedValueOrNaN(logsout, signalName);
+if isempty(value)
+    value = NaN;
+else
+    value = value(1);
+end
 end
 
-function value = scalarLast(logsout, signalName)
-value = lastLoggedValue(logsout, signalName);
-value = value(1);
+function value = lastLoggedValueOrNaN(logsout, signalName)
+value = NaN;
+signalElement = findLoggedElement(logsout, signalName);
+if isempty(signalElement)
+    return;
 end
+signal = signalElement.Values;
 
-function value = lastLoggedValue(logsout, signalName)
-signal = logsout.get(char(signalName)).Values;
 data = signal.Data;
 nTime = numel(signal.Time);
 
 if isvector(data)
     value = data(end);
-    return;
-end
-
-if size(data, 1) == nTime
+elseif size(data, 1) == nTime
     value = squeeze(data(end, :));
 elseif size(data, ndims(data)) == nTime
     reshaped = reshape(data, [], nTime);
@@ -125,6 +313,17 @@ end
 value = value(:).';
 end
 
+function signalElement = findLoggedElement(logsout, signalName)
+signalElement = [];
+for idx = 1:logsout.numElements
+    candidate = logsout.get(idx);
+    if string(candidate.Name) == signalName
+        signalElement = candidate;
+        return;
+    end
+end
+end
+
 function value = pickSpecies(vectorValue, speciesIndex)
 if numel(vectorValue) >= speciesIndex
     value = vectorValue(speciesIndex);
@@ -134,18 +333,44 @@ end
 end
 
 function dispResults(results)
-fprintf('\nRoute A A6 smoke summary\n');
-fprintf('Signals are PS-Simulink converter outputs in block-native units.\n');
-fprintf('%-8s %-24s %12s %12s %12s %12s %12s %10s %10s\n', ...
-    'case', 'valve_area_expr', 'mdot_egr', 'p_out', 'p_valve_up', ...
-    'p_valve_dn', 'p_comp_in', 'yO2_out', 'yO2_in');
+fprintf('\nRoute A A6 staged smoke summary\n');
+fprintf(['%-20s %-24s %-6s %-8s %-8s %11s %11s %11s ', ...
+    '%11s %11s %10s %10s %s\n'], ...
+    'case', 'mode_or_area', 'pass', 'ok_to', 'fail_at', ...
+    'mdot_egr', 'mdot_comp', 'egr_ratio', 'p_out', ...
+    'p_comp_in', 'yO2_out', 'yO2_in', 'error');
 
 for k = 1:numel(results)
     r = results(k);
-    fprintf(['%-8s %-24s %12.5g %12.5g %12.5g %12.5g %12.5g ', ...
-        '%10.5g %10.5g\n'], ...
-        r.caseName, r.restrictionArea, r.cegrMdot, r.pOutlet, ...
-        r.pEgrValveUp, r.pEgrValveDown, r.pCompInlet, ...
-        r.yO2Outlet, r.yO2CompInlet);
+    if r.caseName == ""
+        continue;
+    end
+    modeOrArea = r.mode;
+    if r.restrictionArea ~= ""
+        modeOrArea = r.restrictionArea;
+    end
+    fprintf(['%-20s %-24s %-6s %-8s %-8s %11.4g %11.4g %11.4g ', ...
+        '%11.4g %11.4g %10.4g %10.4g %s\n'], ...
+        r.caseName, modeOrArea, string(r.passed), r.stopTimePassed, ...
+        r.failedStopTime, r.cegrMdot, r.compInletMdot, ...
+        r.egrRatioCompIn, r.pOutlet, r.pCompInlet, r.yO2Outlet, ...
+        r.yO2CompInlet, r.errorId);
+end
+end
+
+function resetModelFromDisk(model, modelFile)
+if bdIsLoaded(model)
+    close_system(model, 0);
+end
+load_system(modelFile);
+end
+
+function restoreFolderAndModel(oldDir, model, modelFile)
+cd(oldDir);
+if bdIsLoaded(model)
+    close_system(model, 0);
+end
+if exist(modelFile, 'file')
+    load_system(modelFile);
 end
 end
