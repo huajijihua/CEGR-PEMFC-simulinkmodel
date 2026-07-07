@@ -1,0 +1,230 @@
+{
+  "libraryName": "FuelCell_lib",
+  "slxPath": "D:\\matlab2025b\\toolbox\\physmod\\fluids\\supporting_files\\example_libraries\\FuelCell_lib.slx",
+  "slxTimestamp": 739853.09348379634,
+  "extractedAt": "2026-07-06T15:49:49",
+  "description": "MathWorks FuelCell four-species Simscape example library for PEMFC-cEGR physical network construction",
+  "rtwTimestamp": 6.77873672E+8,
+  "blocks": [
+    {
+      "name": "Absolute Reference\n(FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/elements/Absolute Reference\n(FC)",
+      "maskType": "Absolute Reference\n(FC)",
+      "maskDescription": "This block represents a reference node in a fuel cell network where pressure and temperature are equal to absolute zero, and all mass fractions are equal to zero.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "elements",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/elements/Absolute Reference\n(FC)"
+    },
+    {
+      "name": "Cap (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/elements/Cap (FC)",
+      "maskType": "Cap (FC)",
+      "maskDescription": "This block represents a terminus in a fuel cell network. There is no mass or energy flow through the cap. This block can optionally be used to specify the initial pressure, species fractions, and temperature.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "elements",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/elements/Cap (FC)"
+    },
+    {
+      "name": "Constant Volume\nChamber (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/elements/Constant Volume\nChamber (FC)",
+      "maskType": "Constant Volume\nChamber (FC)",
+      "maskDescription": "This block models mass and energy capacitance in a fuel cell network. The chamber represents a control volume of a gas mixture which exchanges material and energy with the rest of the network via one or more ports. The volume contains states for the varying pressure, temperature and species composition of its contents. Species can phase change to liquid if they reach their saturation. Condensed species are removed from the chamber. The chamber can exchange heat with the environment through its thermal port.\n\nA, B, C, D - Fuel cell conserving ports associated with the chamber inlets.\n\nH -- Thermal conserving port associated with the thermal mass of the gas in the volume.\n\nMIn [kg/s] -- [4x1] Time varying vector representing mass flows of the species being added to or removed from the volume. This port is intended to allow for chemical and separation reactions to be represented in an external block.\n\nTIn [K] -- Time varying temperature of the species being added via the *MIn* port.\n\np [Pa] -- Pressure of the gas in the chamber.\n\nT [K] -- Temperature of the gas in the chamber.\n\nx_i [1] -- [4x1] Species mass fractions in the chamber.\n\ny_i [1] -- [4x1] Species mole fractions in the chamber.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "elements",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/elements/Constant Volume\nChamber (FC)"
+    },
+    {
+      "name": "Flow Resistance (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/elements/Flow Resistance (FC)",
+      "maskType": "Flow Resistance (FC)",
+      "maskDescription": "This block represents a generic pressure loss in a fuel cell network. The drop in pressure is proportional to the square of the mass flow rate. The proportionality constant is determined from the specified nominal condition.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "elements",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/elements/Flow Resistance (FC)"
+    },
+    {
+      "name": "Infinite Flow\nResistance (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/elements/Infinite Flow\nResistance (FC)",
+      "maskType": "Infinite Flow\nResistance (FC)",
+      "maskDescription": "This block represents a break in a fuel cell network. There is no mass or energy flow through the break. However, gas mixture property data is still shared between the connected fuel cell networks.\n\nThis block can optionally be used to assign a beginning value and priority to the differences in pressure, temperature, and species mass fractions of port A relative to port B.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "elements",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/elements/Infinite Flow\nResistance (FC)"
+    },
+    {
+      "name": "Local Restriction\n(FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/elements/Local Restriction\n(FC)",
+      "maskType": "Local Restriction\n(FC)",
+      "maskDescription": "This block models the pressure loss due to a flow area restriction such as a valve or an orifice in a fuel cell network. There is no heat exchange with the environment. Choked flow occurs when the restriction reaches sonic condition. The restriction area can be optionally set by the physical signal port AR [m^2]. The input is limited by the minimum and maximum restriction area.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "elements",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/elements/Local Restriction\n(FC)"
+    },
+    {
+      "name": "Membrane Electrode\nAssembly",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/elements/Membrane Electrode\nAssembly",
+      "maskType": "Membrane Electrode\nAssembly",
+      "maskDescription": "This block models a stack of membrane electrode assemblies (MEA) for a proton exchange membrane (PEM) fuel cell. Hydrogen and oxygen are consumed from the connected anode and cathode flow channels, respectively. Water vapor is produced at the cathode flow channel. The block also models water transport between the anode and cathode. Waste heat is dissipated to the connected thermal mass.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "elements",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/elements/Membrane Electrode\nAssembly"
+    },
+    {
+      "name": "Pipe (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/elements/Pipe (FC)",
+      "maskType": "Pipe (FC)",
+      "maskDescription": "This block models pipe flow dynamics for a fuel cell network due to viscous friction losses and convective heat transfer with the pipe wall. Choked flow occurs when the outlet reaches sonic condition. The pipe contains a constant volume of fuel cell gas. The pressure and temperature evolve based on the compressibility and thermal capacity of the fuel cell gas volume. Condensation can occur for species that are beneath their critical point.\n\nA, B - Fuel cell conserving ports associated with the pipe inlet and outlet.\n\nH - Thermal conserving port associated with the pipe wall.\n\nMIn [kg/s] -- [4x1] Time varying vector representing mass flows of the species being added to or removed from the volume. This port is intended to allow for chemical and separation reactions to be represented in an external block.\n\nTIn [K] -- Time varying temperature of the species being added or removed via the *MIn* port.\n\np [Pa] -- Pressure of the gas in the chamber.\n\nT [K] -- Temperature of the gas in the chamber.\n\nF - Physical signal port reporting fuel cell volume measurements. Connect to a Measurement Selector (FC) block.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "elements",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/elements/Pipe (FC)"
+    },
+    {
+      "name": "Reservoir (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/elements/Reservoir (FC)",
+      "maskType": "Reservoir (FC)",
+      "maskDescription": "This block sets constant boundary conditions in a fuel cell network. The volume inside the reservoir is assumed to be infinite. Therefore, the flow is assumed quasi-steady. The gas mixture leaves the reservoir at the designated pressure, temperature and species fractions (mass or molar). Gas enters the reservoir at the reservoir pressure, but the temperature and composition are determined by the fuel cell network upstream.\n\nSpecies: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "elements",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/elements/Reservoir (FC)"
+    },
+    {
+      "name": "Composition and\nHumidity Sensor (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/sensors/Composition and\nHumidity Sensor (FC)",
+      "maskType": "Composition and\nHumidity Sensor (FC)",
+      "maskDescription": "This block measures the species composition (mass and mole fraction) as well as the relative humidity for species that can condense in a fuel cell multi-species gas network. There is no mass or energy flow through the sensor.\n\nThe output ports report the mass fractions (x_i), mole fractions (y_i) and relative humidty (W), measured at port A.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "sensors",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/sensors/Composition and\nHumidity Sensor (FC)"
+    },
+    {
+      "name": "Mass Flow Rate\nSensor (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/sensors/Mass Flow Rate\nSensor (FC)",
+      "maskType": "Mass Flow Rate\nSensor (FC)",
+      "maskDescription": "This block measures mass and energy flow rates in a fuel cell network. The sensor is ideal and does not affect the pressure, temperature, or species fractions across the sensor.\n\nThe physical signal ports M [kg/s], Phi [W], and M_i [kg/s] report the mixture mass flow rate, mixture energy flow rate, and species mass flow rates, respectively, through the sensor. The positive flow direction is from port A to port B.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "sensors",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/sensors/Mass Flow Rate\nSensor (FC)"
+    },
+    {
+      "name": "Pressure and\nTemperature Sensor\n(FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/sensors/Pressure and\nTemperature Sensor\n(FC)",
+      "maskType": "Pressure and\nTemperature Sensor\n(FC)",
+      "maskDescription": "This block measures pressure and temperature in a fuel cell multi-species mixed gas network. There is no mass or energy flow through the sensor.\n\nThe physical signal ports P [Pa] and T [K] report the pressure and temperature differences, respectively, across the sensor. The measurements are positive when the values at port A are greater than port B.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "sensors",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/sensors/Pressure and\nTemperature Sensor\n(FC)"
+    },
+    {
+      "name": "Thermodynamic\nProperties Sensor\n(FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/sensors/Thermodynamic\nProperties Sensor\n(FC)",
+      "maskType": "Thermodynamic\nProperties Sensor\n(FC)",
+      "maskDescription": "This block measures thermodynamic fluid states in a fuel cell multi-species mixed gas network. There is no mass or energy flow through the sensor.\n\nThe physical signal ports h [J/kg], rho [kg/m^3], cp [J/(kg*K)] and s [J/(kg*K)] report the mixture specific enthalpy, mixture density, mixture specific heat at constant pressure, and mixture specific entropy, respectively, measured at port A.\n\nSpecies: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "sensors",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/sensors/Thermodynamic\nProperties Sensor\n(FC)"
+    },
+    {
+      "name": "Velocity Sensor (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/sensors/Velocity Sensor (FC)",
+      "maskType": "Velocity Sensor (FC)",
+      "maskDescription": "This block measures the velocity in a fuel cell multi-species mixed gas network. The sensor is ideal so there are no losses or changes in pressure, temperature or species composition across the sensor.\n\nThe physical signal port v [m/s] reports the mixture velocity through the sensor at a given area. The positive flow direction is from port A to port B.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "sensors",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/sensors/Velocity Sensor (FC)"
+    },
+    {
+      "name": "Volumetric Flow Rate\nSensor (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/sensors/Volumetric Flow Rate\nSensor (FC)",
+      "maskType": "Volumetric Flow Rate\nSensor (FC)",
+      "maskDescription": "This block measures volumetric flow rate in a fuel cell multi-species mixed gas network. There is no change in pressure, temperature, or species composition across the sensor.\n\nThe physical signal port V [m^3/s] reports the mixture volumetric flow rate through the sensor. The positive flow direction is from port A to port B.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "sensors",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/sensors/Volumetric Flow Rate\nSensor (FC)"
+    },
+    {
+      "name": "Mass Flow Rate\nSource (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/sources/Mass Flow Rate\nSource (FC)",
+      "maskType": "Mass Flow Rate\nSource (FC)",
+      "maskDescription": "The block represents an ideal mechanical energy source in a fuel cell multi-species mixed gas network that can maintain a constant or controlled mass flow rate regardless of the pressure differential. There is no flow resistance and no heat exchange with the environment. A positive mixture mass flow rate causes gas to flow from port A to port B.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "sources",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/sources/Mass Flow Rate\nSource (FC)"
+    },
+    {
+      "name": "Pressure Source (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/sources/Pressure Source (FC)",
+      "maskType": "Pressure Source (FC)",
+      "maskDescription": "This block represents an ideal mechanical energy source in a fuel cell multi-species mixed gas network that can maintain a constant or controlled pressure differential regardless of the mixture mass flow rate. There is no flow resistance and no heat exchange with the environment. The pressure differential can be optionally set by the physical signal port P [Pa]. A positive value causes the pressure at port B to be greater than port A.\n\nSpecies: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "sources",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/sources/Pressure Source (FC)"
+    },
+    {
+      "name": "Volumetric Flow Rate\nSource (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/sources/Volumetric Flow Rate\nSource (FC)",
+      "maskType": "Volumetric Flow Rate\nSource (FC)",
+      "maskDescription": "The block represents an ideal mechanical energy source in a fuel cell multi-species mixed gas network that can maintain a constant or controlled volumetric flow rate regardless of the pressure differential. There is no flow resistance and no heat exchange with the environment. A positive mixture mass flow rate causes gas to flow from port A to port B.\n\nFuel cell species: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "sources",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/sources/Volumetric Flow Rate\nSource (FC)"
+    },
+    {
+      "name": "Gas Mixture\nProperties (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/utilities/Gas Mixture\nProperties (FC)",
+      "maskType": "Gas Mixture\nProperties (FC)",
+      "maskDescription": "This block provides ideal gas properties to the connected fuel cell multi-species mixed gas network. The fuel cell network includes the following species: nitrogen, oxygen, hydrogen, water\n\nAll properties are considered to be temperature dependendent and tables of dimension [4 x Num(Temperatures)] must be provided.",
+      "description": "",
+      "pathCategory": "utilities",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/utilities/Gas Mixture\nProperties (FC)"
+    },
+    {
+      "name": "Interface (FC-G)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "FuelCell_lib/utilities/Interface (FC-G)",
+      "maskType": "Interface (FC-G)",
+      "maskDescription": "This block represents a flow connection between a Fuel cell network and gas network. Pressure, temperature, and mass flow rate are equal at the interface. Fluid properties of each fluid network are not shared across the interface. The Fuel Cell gas mixture leaves port FC at the specified interface species fractions (mass or molar). Fuel Cell gas mixture enters port FC at a temperature and species composition determined by the Fuel Cell network upstream.\n\nThe Fuel Cell composition can optionally be set by physical signal inputs xIn or yIn, for mass or mole fractions, respectively.\n\nSpecies: nitrogen, oxygen, hydrogen, water",
+      "description": "",
+      "pathCategory": "utilities",
+      "metadataQuality": "high",
+      "containerPath": "FuelCell_lib/utilities/Interface (FC-G)"
+    }
+  ]
+}

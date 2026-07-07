@@ -1,0 +1,9 @@
+{
+  "libraries": [
+    {
+      "name": "FuelCell_lib",
+      "path": "D:\\matlab2025b\\toolbox\\physmod\\fluids\\supporting_files\\example_libraries\\FuelCell_lib.slx",
+      "description": "MathWorks FuelCell four-species Simscape example library for PEMFC-cEGR physical network construction"
+    }
+  ]
+}

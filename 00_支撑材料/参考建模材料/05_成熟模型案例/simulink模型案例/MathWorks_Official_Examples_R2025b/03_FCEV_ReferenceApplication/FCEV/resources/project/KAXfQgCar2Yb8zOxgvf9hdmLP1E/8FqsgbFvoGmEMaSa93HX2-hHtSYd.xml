@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Info File="System/FCEvReferenceApplication.slx" GroupUUID="488c246d-5ebc-49a3-a886-8b64b4eba751" Icon="" Name="FCEvReferenceApplication" Type="StartUp" Visible="1">
+    <Extension Name="StartUpPrev" Value="8e5c3905-2f87-47c3-b450-dbe4fe98b0de"/>
+</Info>

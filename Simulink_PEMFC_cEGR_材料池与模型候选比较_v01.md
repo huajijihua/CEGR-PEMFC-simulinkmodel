@@ -1,20 +1,21 @@
 # Simulink/Simscape PEMFC-cEGR 材料池与模型候选比较 v01
 
-日期：2026-07-06  
-阶段：材料池盘点、功能比较、可复用性判断。  
-范围：MATLAB/Simulink/Simscape 优先；不生成或修改 `.slx`；不引入 COMSOL；AMESim 仅作为后续不足时的备选。
+日期：2026-07-07  
+阶段：材料池盘点、路线 A 基准模型决策、路线 B 留存审查。  
+范围：MATLAB/Simulink/Simscape 优先；不引入 COMSOL；AMESim 仅作为后续不足时的备选。2026-07-07 已决定全面转向路线 A：以官方 Gas Mixture PEMFC 示例派生 cathode-cEGR 模型；`PEMFC_cEGR_Core_Physical_v01.slx` 留作路线 B 拓扑探索成果。
 
 本文件只回答“有哪些成熟材料、候选模型和可复用组件”。通用模型规格、接口契约、台架/车载/功率扩展路线已拆分到 [Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md](E:/agentwork_pemfc_cEGR_0519/Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md)。
 
 ## 1. 结论先行
 
-新一代 PEMFC-cEGR 模型不应继续以旧简化 MATLAB Function 经验模型为主骨架。当前材料池已经足以支撑一条 Simscape 物理网络路线：
+新一代 PEMFC-cEGR 模型不应继续以旧简化 MATLAB Function 经验模型或路线 B 自建骨架为主母版。当前材料池已经足以支撑路线 A：以官方 Gas Mixture PEMFC 示例为基准工作副本，在阴极出口到入口之间新增 cathode-cEGR 支路。
 
-1. 主骨架优先采用 MathWorks 官方 `PEM Fuel Cell System with the Gas Mixture Domain` / 本机 `FuelCell` 自定义四物种气体域路线。
+1. 主骨架采用 MathWorks 官方 `PEM Fuel Cell System with the Gas Mixture Domain` 的派生工作副本；官方归档只读保留，不覆盖。
 2. 电堆/MEA 优先采用本机官方示例库中的 `+FuelCell/+elements/MEA.ssc` 思路：电化学电压、H2/O2 消耗、水生成、膜水传输和反应热在 Simscape 组件内闭合。
 3. 阴极管路、阀、容腔、传感器、源边界优先使用同一四物种气体域的官方 `FuelCell` 示例组件；若官方组件粒度不足，再参考本地 MathWorks File Exchange/GitHub 模型 `Fuel-Cell-Vehicle-Model-Simscape-25.2.1.5` 的 `GasN` 组件。
 4. Powertrain Blockset / FCEV Reference Application 更适合整车能量管理、控制接口、HIL 和 mapped fuel cell 对照，不建议作为 cathode-cEGR 物理网络主骨架。
-5. 旧简化台架模型只保留为边界条件、参数、工况和结果审计来源，不作为新模型的物理核心。
+5. 路线 B `PEMFC_cEGR_Core_Physical_v01.slx` 只保留为 cathode-cEGR 拓扑、接口命名、主动/被动回流语义和水分离缺口的参考，不继续作为主开发对象。
+6. 旧简化台架模型只保留为边界条件、参数、工况和结果审计来源，不作为新模型的物理核心。
 
 暂不建议进入 AMESim。理由是：本机 Simscape 已有四物种气体域、MEA、电堆热端口、管路/容腔/节流/源/传感器、自定义 compressor 参考件，足以先完成 PEMFC-cEGR 的设备级骨架。只有当四物种压缩机、冷凝分离器或 cEGR 支路在 Simscape 中无法稳定闭合，且自定义 Simscape 组件投入超过收益时，再启动 AMESim 备选评估。
 
@@ -92,7 +93,7 @@ cEGR 模型的硬要求不是“有空气管路”，而是能显式描述阴极
 - `Cathode Exhaust`：由 `Pipe (FC)`、`Reservoir (FC)`、环境热交换和 `Pressure Relief Valve` 组成。
 - `Recirculation`：由 `Constant Volume Chamber (FC)`、`Mass Flow Rate Source (FC)` 和前馈控制组成，但当前用于阳极氢气回流。
 
-对 cEGR 的判断：MEA、FuelCell 四物种域、阴极容腔、阴极管路、排气边界、传感器、热端口结构可直接复用；阴极尾气回流、水分离器、台架入口边界和背压阀组合需要基于 `FuelCell_lib` 的 Pipe/Chamber/LocalRestriction/Source 自建。
+对 cEGR 的判断：MEA、FuelCell 四物种域、阴极容腔、阴极管路、排气边界、传感器、热端口结构可直接复用；阴极尾气回流、水分离器、台架入口边界和背压阀组合需要基于 `FuelCell_lib` 的 Pipe/Chamber/LocalRestriction/Source 在派生工作副本中新增或封装。
 
 ### 6.2 Moist Air / FCEV 示例定位
 
@@ -115,17 +116,82 @@ Moist Air PEMFC 和 FCEV `SSCFuelCell` 的电堆方程成熟，适合对照 MEA 
 
 后续若要继续使用这套模型，应在单独工作副本中执行 Simscape library build，再做完整结构读回，不直接污染原始归档。
 
-## 7. 路线摘要
+## 7. 路线 A 决策摘要
 
-深入盘点后，不应直接复制任何一个现成模型作为最终模型。更稳妥的路线是：
+深入盘点和路线 B 初版审查后，当前决策是全面转向路线 A。这里的“采用官方模型”不是覆盖官方归档，也不是把官方示例原封不动当最终模型；而是建立工作副本，继承官方 no-EGR PEMFC 系统主骨架，再局部插入 cathode-cEGR 支路。
 
-1. 以 Gas Mixture PEMFC 示例为主参考，抽取四物种域、MEA、阴极容腔、管路、排气、传感器和热端口组织方式。
-2. 去掉或旁路与台架不符的车载加湿器、阳极复杂回流和完整整车动力系统。
-3. 新建通用 cathode-cEGR 物理网络：入口边界、入口混合容腔、阴极通道、出口容腔、冷凝/水分离模块、EGR 阀、背压/排气边界。
-4. 参数初值优先来自官方示例、成熟组件默认值、文献范围和工程默认；10 kW 台架只作为后续配置场景和 sanity check。
+1. 以 Gas Mixture PEMFC 示例为路线 A 母版，继承四物种域、MEA、阳极/阴极气路、排气、传感器、热端、电负载和模型工作区初始化。
+2. 只在阴极出口到压缩机入口之间新增 cathode-cEGR 支路：出口容腔/分离、EGR 阀/管路、压缩机入口混合点、保留排气支路。
+3. 官方 `Recirculation` 是阳极氢气回流，不能直接当作 cathode-cEGR；但其主动回流源、容腔和控制结构可作为主动回流设备参考。
+4. Moist Air PEMFC 和 FCEV 示例只用于 BOP、加湿、冷却、背压阀、整车接口和控制参考，不参与主骨架竞争。
 5. File Exchange/GitHub 的 `GasN` 只作为 compressor、管路、冷凝和膜水方程参考；除非后续证明官方 `FuelCell` 域组件不足，否则不切换主气体域。
+6. 10 kW 台架只作为后续配置场景和 sanity check，不反向定义路线 A 母版架构。
 
 当前判断：Simulink/Simscape 支撑仍然足够，不需要进入 AMESim。具体模型规格、接口契约和实施路线见 [Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md](E:/agentwork_pemfc_cEGR_0519/Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md)。
+
+## 7.1 路线 A 基准模型盘点结论
+
+盘点对象：`MathWorks_Official_Examples_R2025b/01_GasMixture_PEMFuelCellSystemWithCustomLibrary/PEMFuelCellSystemWithACustomLibrary.slx`
+
+| 盘点项 | 证据摘要 | 路线 A 判断 |
+|---|---|---|
+| 顶层结构 | 顶层包含 `Anode Humidifier`、`Anode Exhaust`、`Anode Gas Channels`、`Cathode Humidifier`、`Cathode Exhaust`、`Cathode Gas Channels`、`Heat Dissipation`、`Hydrogen Source`、`Measurements`、`Oxygen Source`、`Recirculation` | PEMFC 主系统完整，适合作为母版 |
+| 阴极主链路 | `Oxygen Source` 内已有 `Air Intake -> Compressor -> Compressor Volume` 结构；外部链路为 `Cathode Humidifier.A <-> Oxygen Source.O2`，`Cathode Humidifier.B <-> Cathode Gas Channels.B`，`Cathode Gas Channels.C <-> Cathode Exhaust.C` | 阴极入口、压缩机入口、出口、排气路径可定位，具备在压缩机入口前插入 cEGR 混合腔的结构基础 |
+| 阴极通道 | `Cathode Gas Channels` 内部为 `Constant Volume Chamber (FC)`，端口含 `A/Min/Tin/H/B/C/xi` | 有库存、压力、温度和组分状态，不是纯信号模型 |
+| 阴极排气 | `Cathode Exhaust` 由 `Pipe (FC)`、`Pressure Relief Valve`、`Environment` reservoir 组成 | 排气/背压支路可保留并改造 |
+| 压力释放阀 | 内部包含 `Local Restriction (FC)`、压力温度传感器和压力设定逻辑 | 可作为背压阀/泄压阀封装参考 |
+| 阳极回流 | `Recirculation` 由 chamber、`Mass Flow Rate Source (FC)` 和前馈控制组成，连接阳极侧 | 只能作主动回流结构参考，不是 cathode-cEGR |
+| MEA | `Membrane Electrode Assembly` 引用 `FuelCell_lib/elements/Membrane Electrode Assembly`，输出阳极/阴极 `mdot/T/x_i` | 物种消耗、水生成、电压和热端已由官方组件支撑 |
+| 参数和初始化 | model workspace 使用 `PEMFuelCellSystemWithACustomLibraryParameters.m`，关键参数包括 `stack_num_cells=400`、`stack_area=280`、`env_p=0.10132` MPa、`env_yO2=0.21` | 初始化集中、可追溯；后续派生要继承并新增 `cegr_*` 参数 |
+| Solver | 官方配置为 variable-step、`VariableStepAuto`、`StopTime=2500`、`RelTol=1e-3` | 第一版路线 A 应继承，结构稳定后再考虑 solver 调整 |
+
+结论：路线 A 为“有条件推荐并已决定采用”。条件是新增 cEGR 支路必须小步派生、读回验证，并保护官方初始化和控制语义；不能简单画一根回流线后宣称完成。
+
+## 7.2 路线 A 组件复用清单
+
+| 复用等级 | 组件/结构 | 用途 |
+|---|---|---|
+| 可直接复用 | `FuelCell_lib/elements/Membrane Electrode Assembly` | PEMFC 电化学、物种消耗、水生成、热端和电压 |
+| 可直接复用 | `Constant Volume Chamber (FC)` | 压缩机入口混合腔、出口容腔、EGR 回流库存 |
+| 可直接复用 | `Pipe (FC)` | 阴极出口、排气、EGR 管路、可选冷凝能力 |
+| 可直接复用 | `Local Restriction (FC)` | EGR 阀、背压阀、节流件 |
+| 可直接复用 | `Reservoir (FC)`、`Mass Flow Rate Source (FC)` | 环境边界、官方压缩机/供气边界；`Mass Flow Rate Source` 不作为第一版独立 EGR 泵 |
+| 可直接复用 | `Composition and Humidity Sensor (FC)`、`Pressure and Temperature Sensor (FC)`、`Mass Flow Rate Sensor (FC)` | O2/H2O/RH/p/T/mdot 测量 |
+| 需封装复用 | `Cathode Exhaust/Pressure Relief Valve` | 背压/泄压结构参考，可能需要暴露命令接口 |
+| 需封装复用 | `Oxygen Source` 内 `Air Intake -> Compressor` 入口段 | 拆出 `CompressorInletMixer`，让新鲜空气和 EGR 回流在压缩机前物理混合 |
+| 只作参考 | 官方阳极 `Recirculation` 的主动回流结构 | 仅作控制/传感器组织参考，不作为 cathode-cEGR 第一版驱动方式 |
+| 需封装复用 | `Cathode Humidifier` | 路线 A 先保留；台架无加湿器配置再旁路或降级 |
+| 缺口组件 | 水分离器/排水器 | 需用冷凝等效、`Pipe/Chamber` 冷凝能力或自定义 Simscape separator 补齐 |
+| 缺口组件 | 压缩机入口混合腔和 EGR 支路压降标定 | 第一版用 chamber + pipe + local restriction；后续用台架阀前后压力/流量修正 |
+| 只作参考 | Moist Air PEMFC、FCEV、File Exchange `GasN` | BOP、冷却、加湿、compressor、膜水和冷凝方程参考 |
+
+## 7.3 路线 B 初版模型留存审查
+
+审查日期：2026-07-07  
+审查对象：`04_Simulink物理网络模型/01_模型/PEMFC_cEGR_Core_Physical_v01.slx`
+
+当前初版模型已实际复用本文件推荐的主材料池，但复用深度仍不均衡。路线 A 决策后，它的定位调整为“结构探索成果 / 风险清单 / 接口参考”，不再作为主开发母版。
+
+| 模块 | 当前复用证据 | 规范度判断 | 后续要求 |
+|---|---|---|---|
+| PEMFC/MEA | 读回引用 `FuelCell_lib/elements/Membrane Electrode Assembly` | 合格。电化学核心未用 MATLAB Function 重写 | 下一步核查 MEA 参数来源、单位和 10 kW/通用尺度分离 |
+| 阴极入口/混合容腔 | 读回引用 `Constant Volume Chamber (FC)`、`Gas Mixture Properties (FC)`、P/T/组分传感器 | 基本合格。已有物理库存和物种状态 | 需要把新鲜空气与 EGR 回流的接入点、端口命名和测量口径清理成显式 mixer，而不是只靠物理节点隐式汇合 |
+| 阴极出口与三通 | 读回引用 FC 传感器和 connection ports；当前出口同时分到 EGR 和排气 | 骨架合格，但缺少出口容腔/真实 separator 物理 | 增加或明确出口库存、压降、水分离和冷凝逻辑 |
+| EGR 支路 | 读回引用 `Mass Flow Rate Source (FC)`、`Mass Flow Rate Sensor (FC)`、`Local Restriction (FC)` | 只能算主动回流等效骨架。当前 `egr_mdot` 主要由命令映射给定，不是纯阀/压差自然结果 | 必须选择并命名 `PassiveValveEGR` 或 `ActivePumpEquivalentEGR`，不能把两种语义混在一个子系统里 |
+| 背压/排气 | 读回引用 `Local Restriction (FC)` 与 `Reservoir (FC)` | 初步合格 | 需要让 `bp_valve_cmd` 和 `p_exhaust` 成为真实接口或删除未用信号 |
+| 阳极最小边界 | 读回引用 H2 reservoir、Mass Flow Source、Constant Volume Chamber | 作为阴极 cEGR 初版支撑可以接受 | 后续补齐 H2 供应参数、排气边界和状态输出，避免阳极未连接信号污染结构检查 |
+| 热端/冷却 | 读回引用 Simscape thermal mass、thermal reference、temperature sensor | 仅为占位 | 需要用 MEA 热端或能量平衡输出替换 `Q_stack=0` |
+| 水管理 | 当前 `m_condensed=0` | 不合格，只是接口占位 | 先实现等效水分离/冷凝，再考虑自定义 Simscape separator |
+| 控制和测量接口 | 当前用 Mux 输出 `y_main`、`z_debug` | 可用于 smoke run，不适合长期规范模型 | 后续改为命名 bus 或清晰日志接口，避免脚本硬编码索引 |
+
+MATLAB 读回摘要：模型约 286 blocks，其中 25 个 Simscape blocks、17 个 `FuelCell_lib` 引用，未发现 MATLAB Function 主方程块。说明方向符合“优先复用成熟资产、不用经验函数粗制滥造”的原则；但 EGR、热、水、接口语义仍需要规范化加固。
+
+材料池层面的新增判断：
+
+1. `FuelCell_lib` 仍是主路线，当前没有证据表明需要切换到 AMESim。
+2. `FuelCell_lib` 对 MEA、容腔、阀、源、传感器支撑足够；当前短板不是“没有官方模块”，而是模型内模块语义和接口还没有严格闭合。
+3. 冷凝/水分离仍是最大组件缺口。若 `FuelCell` 域已有组件不能满足，可参考 `GasN/Pipe.ssc` 冷凝逻辑或自定义轻量 Simscape separator。
+4. EGR 若代表台架主动回流设备，应引入“泵/源 + 阀/阻力”的清晰结构；若代表被动 cathode-cEGR，则必须取消强制质量流源，让压差和阀开度决定回流。
 
 ## 8. 主要证据链接
 
