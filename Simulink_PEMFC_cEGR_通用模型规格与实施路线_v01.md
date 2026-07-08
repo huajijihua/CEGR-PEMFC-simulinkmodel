@@ -6,9 +6,21 @@
 
 本文件回答“我们要建成什么模型、有哪些边界、接口如何定义、先后如何实施”。材料来源、候选模型和组件取舍见 [Simulink_PEMFC_cEGR_材料池与模型候选比较_v01.md](E:/agentwork_pemfc_cEGR_0519/Simulink_PEMFC_cEGR_材料池与模型候选比较_v01.md)。
 
+## 0. 剥离原则与参数来源分层
+
+当前 Route A 的核心任务不是把已有产品资料参数化，而是建立不受劣质、不稳定、不可信产品数据污染的通用系统仿真平台。后续所有建模动作先执行“剥离”：公司/历史/台架资料只作为背景、外部案例或后续 sanity check，不进入默认平台参数、默认模型架构或默认验收标准。
+
+参数来源分为三层：
+
+| 层级 | 角色 | 允许来源 | 禁止事项 |
+|---|---|---|---|
+| `platform_default` | 默认运行真源 | MathWorks 官方案例、公开文献量级、工程经验自洽匹配 | 不读取 10 kW 台架、DQ60、公司临时资料或旧标定结果 |
+| `scaling_rule` | 功率等级迁移规则 | 电堆面积/片数、流量、容积、阀面积、冷却能力等物理量级缩放 | 不把单一产品数据外推成通用规律 |
+| `external_case` | 外部案例/历史资料 | 10 kW 台架、DQ60、旧简化台架模型、公司资料、旧审计结果 | 默认禁用；不得参与 Route A 默认初始化链 |
+
 ## 1. 建模目标与边界
 
-状态：方向已从“自建 Core Model 深化”调整为“官方 Gas Mixture PEMFC 基准模型派生”。10 kW 台架数据仍只作为实例化、smoke test 和物质流 sanity check 资料，不反向定义通用架构。
+状态：方向已从“自建 Core Model 深化”调整为“官方 Gas Mixture PEMFC 基准模型派生”。10 kW 台架数据、DQ60、公司临时资料和旧标定结果只作为 `external_case`，不反向定义通用架构、默认参数或验收标准。
 
 | 项目 | 已确认内容 | 建模含义 |
 |---|---|---|
@@ -17,11 +29,11 @@
 | 建模优先级 | 优先建立系统级设备模型和方法论；性能评估与策略开发在模型成立后推进 | 第一阶段不以数据拟合或误差表为目标 |
 | 物理网络状态 | 容腔压力、温度、物种库存等状态正是本模型区别于简化经验模型的核心 | 不为简化稳态而删除容腔和物种库存；稳态只是运行工况与验收方式 |
 | 控制策略 | 暂不优化控制器，但保留控制接口 | EGR 阀、背压阀、入口边界、电流负载等应有命令输入或可替换接口 |
-| 新鲜空气入口 | 优先继承官方 `Oxygen Source`、`Compressor Volume`、`Cathode Humidifier` 的边界结构 | Bench Configuration 可先固定/旁路部分 BOP；不先拆掉官方入口链路 |
+| 新鲜空气入口 | 优先继承官方 `Oxygen Source`、`Compressor Volume`、`Cathode Humidifier` 的边界结构 | 外部案例配置可固定/旁路部分 BOP；不先拆掉官方入口链路 |
 | 加湿器 | 官方模型已含 `Cathode Humidifier`，路线 A 先保留并明确 cEGR 回注位置 | 若台架无加湿器，可在派生配置中旁路或降级，但不能在母版层面删除证据链 |
 | 氢气侧 | 继承官方 `Hydrogen Source`、`Anode Humidifier`、`Anode Gas Channels`、阳极 `Recirculation` | 阳极回流只作结构参考，不误判为 cathode-cEGR |
 | 冷却侧 | 继承官方 `Heat Dissipation` 和 MEA 热端结构 | 第一版只改阴极尾气路径，热端不作为首轮重构对象 |
-| 数据定位 | 10 kW 台架数据只用于 smoke test、物质流 sanity check 和演示工况 | 模型体系必须可扩展到大功率电堆和车载结构，不被 10 kW 尺寸绑定 |
+| 数据定位 | 10 kW 台架数据只用于显式 `external_case` smoke test、物质流 sanity check 和演示工况 | 模型体系必须可扩展到大功率电堆和车载结构，不被 10 kW 尺寸绑定 |
 
 ## 2. 模型路线分层
 
@@ -29,7 +41,7 @@
 |---|---|---|---|
 | `Route A Baseline Derivative` | 官方 Gas Mixture PEMFC 派生母版 | 继承官方 `FuelCell` 四物种域、MEA、阳极/阴极通道、入口/排气、热端、电负载、测量；只新增 cathode-cEGR 支路和必要接口 | 以官方示例参数与模型工作区为初值；先不依赖 10 kW 数据 |
 | `Route B Archive/Reference` | 自建 Core Model 留存 | `PEMFC_cEGR_Core_Physical_v01.slx` 中的入口 mixer、出口/分离、EGR loop、背压边界、接口命名 | 只作为拓扑探索和缺口清单，不继续作为主线深化 |
-| `Bench Configuration` | 10 kW 台架实例 | 入口边界源、DQ60 等效增压设备可选、无加湿器、最小供氢边界、简化冷却边界 | 只用于 smoke test、边界示例和物质流检查 |
+| `Bench External Case` | 10 kW 台架外部案例 | 入口边界源、DQ60 等效增压设备可选、无加湿器、最小供氢边界、简化冷却边界 | 默认禁用；只用于显式 smoke test、边界示例和物质流检查 |
 | `Vehicle Configuration` | 车载系统扩展 | 空压机、中冷器、加湿器、完整冷却回路、控制器、大功率电堆、整车功率接口 | 需要后续供应商/文献/实验数据支撑 |
 | `Scaling Rules` | 功率等级迁移 | `N_cell`、`area_cell`、流道体积、阀面积、气源能力、冷却容量、热容量、传感器量程参数化 | 不用 10 kW 数据外推为通用规律 |
 
@@ -78,12 +90,12 @@ Official MEA
 | 接口类型 | 名称 | 单位 | 来源/说明 | 第一版处理 |
 |---|---|---:|---|---|
 | 输入 | `i_cmd` | A | 电堆负载命令 | 受控电流负载；后续可扩展功率请求 |
-| 输入 | `air_mdot_in` | kg/s | 阴极供气流量边界 | Bench Configuration 使用边界源；Vehicle Configuration 可由空压机输出 |
+| 输入 | `air_mdot_in` | kg/s | 阴极供气流量边界 | `external_case` 可使用边界源；Vehicle Configuration 可由空压机输出 |
 | 输入 | `air_T_in` | K | 阴极供气温度 | 入口源/入口容腔温度 |
 | 输入 | `air_p_in` | Pa | 阴极供气压力 | 入口压力边界或增压设备出口 |
 | 输入 | `air_humidity_in` | kg/kg 或质量分数 | 阴极供气水分 | 模型内部优先使用质量变量，展示时输出 RH |
 | 输入 | `egr_valve_cmd` | 1 或 % | EGR 阀开度/控制量 | 可变局部阻力或受控阀面积 |
-| 输入 | `egr_valve_input` | 1 或 % | Bench Configuration 中实验记录的阀输入值 | 台架实例可映射到等效开口面积/流量系数 |
+| 输入 | `egr_valve_input` | 1 或 % | `external_case` 中实验记录的阀输入值 | 外部案例可映射到等效开口面积/流量系数 |
 | 输入 | `bp_valve_cmd` | 1 或 % | 背压阀开度，如有 | 可变局部阻力 |
 | 输入 | `p_exhaust` | Pa 或 kPa | 出口压力边界 | 背压/环境边界核心参数 |
 | 输入 | `coolant_T` | K 或 degC | 冷却边界 | 简化热边界 |
@@ -108,8 +120,8 @@ Official MEA
 | MEA/电堆 | `FuelCell_lib/elements/Membrane Electrode Assembly` | 电池片数、活性面积、膜厚、交换电流、极限电流、膜电导模型、热容量 | 先用官方示例/文献/工程默认跑通，再按目标功率等级实例化 |
 | 阴极入口混合容腔 | `Constant Volume Chamber (FC)` | 容积、初始 p/T/物种、热边界 | 入口歧管/混合容积是否有几何或估算值 |
 | 阴极通道 | MEA 阴极端口 + `Cathode Gas Channels` 结构 | 通道体积、流阻、初始状态 | 是否沿用官方示例集总通道，还是加入入口/出口独立容腔 |
-| EGR 阀 | 优先 `Local Restriction (FC)`，必要时封装为命令到有效面积的参数化子系统 | 最大开口面积、流量系数、开度-面积关系、临界流参数 | Bench Configuration 可用目标开度/输入值/EGR 率做 sanity check，不决定通用阀模型 |
-| 背压阀 | `Local Restriction (FC)` + `Reservoir (FC)` | 出口压力、阀开度、流量系数 | Bench Configuration 可先给定出口压力；后续再引入阀门细节 |
+| EGR 阀 | 优先 `Local Restriction (FC)`，必要时封装为命令到有效面积的参数化子系统 | 最大开口面积、流量系数、开度-面积关系、临界流参数 | `external_case` 可用目标开度/输入值/EGR 率做 sanity check，不决定通用阀模型 |
+| 背压阀 | `Local Restriction (FC)` + `Reservoir (FC)` | 出口压力、阀开度、流量系数 | `external_case` 可先给定出口压力；后续再引入阀门细节 |
 | 水分离/冷凝 | 先用 Pipe/Chamber 冷凝能力或等效冷凝排水模块 | 冷凝效率、压降、温度边界、排水逻辑 | 是否能找到四物种域可复用 separator；若无则自定义简化块 |
 | 阴极供气源 | 官方 `Oxygen Source`、`Mass Flow Rate Source (FC)`、`Pressure Source (FC)` 或压缩/增压设备 | 流量、p/T/含湿量、O2/N2/H2O 组分 | 路线 A 先继承官方入口链路；Bench 配置可再简化为边界源 |
 | 氢气源 | 简化 H2 source + anode exhaust | H2 压力/流量/温度、阳极出口边界 | 不研究阳极循环，避免引入氢泵/喷射器复杂性 |
@@ -130,34 +142,35 @@ Official MEA
 阀门建模建议：
 
 1. `egr_valve_cmd` 不直接等于面积，先通过参数化映射得到 `A_eff` 或 `CdA_eff`。
-2. 目前实验记录中可用的“目标开度 6%、输入值 61%、EGR 率 14.7%”这类点，只用于 Bench Configuration 的 sanity check，不能当成全域阀门 map。
+2. 目前实验记录中可用的“目标开度 6%、输入值 61%、EGR 率 14.7%”这类点，只用于 `external_case` 的 sanity check，不能当成全域阀门 map。
 3. 若没有阀前后压力，则 EGR 阀标定会和背压边界、管路阻力耦合；第一版应把该不确定性显式保留。
 4. 后续策略模型可以把 `egr_valve_cmd -> A_eff -> mdot_egr -> egr_ratio_comp_in / egr_split_ratio_out` 作为控制链，不直接把 EGR 率当输入。
 
-## 7. Bench Configuration 资料定位
+## 7. External Case 资料隔离
 
-10 kW 台架资料保留为第一个配置场景的资料池，不作为路线 A 母版的架构依据。本轮只读确认的数据目录为：
+10 kW 台架资料保留为外部案例资料池，不作为 Route A 母版的架构依据、默认参数来源或默认验收标准。本轮只读确认的数据目录为：
 
 `E:\agentwork_pemfc_cEGR_0519\00_支撑材料\实验数据-设备说明书`
 
 可用材料类型和用途：
 
-- 稳态测试数据：仅用于 Bench Configuration 的 smoke test、物质流 sanity check 和演示工况。
-- 电堆与推荐工况：仅用于 10 kW 实例化，不作为通用模型参数上限。
+- 稳态测试数据：仅用于显式启用的 `external_case` smoke test、物质流 sanity check 和演示工况。
+- 电堆与推荐工况：仅用于 10 kW 外部案例，不作为通用模型参数上限或默认真源。
 - 设备/图片/PDF：用于解释台架特殊设备和边界条件。
 - 加湿器资料：位于 `加湿器数据/`，台架 v01 暂不使用，仅作为车载扩展资料。
 
-需要注意：`DQ60氢气循环泵MAP图` 是实验中受设备限制被用作空压机替代的设备资料，其功能层面仍对应做功、升温、增压。建模时可以作为“压缩/增压设备”等效参考，但需要标明它并非标准阴极空压机 map，参数外推到车载空压机时不应直接使用。
+需要注意：`DQ60氢气循环泵MAP图` 是实验中受设备限制被用作空压机替代的设备资料，其功能层面仍对应做功、升温、增压。它只能作为 `external_case` 的背景说明或显式回放依据，不得进入 Route A 默认 compressor/BOP 参数，也不得外推成车载空压机 map。
 
-## 8. 台架实例化注意事项
+## 8. 平台默认参数治理
 
-| 优先级 | 注意事项 | 处理原则 |
+| 优先级 | 治理项 | 处理原则 |
 |---:|---|---|
-| 高 | EGR 阀目标开度、输入值、EGR 率样本只能说明台架实例 | 可用于 sanity check 或临时 `CdA` 映射，不反向定义通用阀门模型 |
-| 高 | 背压阀没有开度记录 | Bench Configuration 可先采用出口压力边界，后续再升级背压阀参数化 |
-| 中 | 水分离/冷凝缺少实测排水、温度或压降 | 路线 A 仍保留水管理模块，参数先用组件默认或文献范围 |
+| 高 | `platform_default` 与 `external_case` 严格分离 | 默认初始化链只加载官方案例、文献量级和工程经验匹配参数 |
+| 高 | EGR 阀目标开度、输入值、EGR 率样本只能说明台架实例 | 可用于外部案例 sanity check，不反向定义通用阀门模型 |
+| 高 | 背压阀没有开度记录 | 默认平台采用官方泄压/背压结构和工程量级；外部案例可另设出口压力边界 |
+| 中 | 水分离/冷凝缺少实测排水、温度或压降 | Route A 仍保留水管理模块，参数先用组件默认或文献范围 |
 | 中 | 入口湿度字段 | 模型守恒优先使用含湿量/水质量分数，展示输出 RH |
-| 中 | DQ60 作为空压机替代设备 | 可用于台架等效增压设备，不可直接代表车载空压机 |
+| 中 | DQ60 作为空压机替代设备 | 仅可用于外部案例说明，不可代表默认 BOP 或车载空压机 |
 
 ## 9. 功率扩展原则
 
@@ -166,8 +179,8 @@ Official MEA
 第一版模型采用如下原则：
 
 - `N_cell`、`area_cell`、通道/歧管体积、阀面积、冷却容量、气源能力等参数必须参数化，不写死为 10 kW。
-- 10 kW 数据用于验证物质流、接口、边界语义和模型能否跑通，不作为模型物理上限。
-- 若台架数据不足，可以先采用官方示例参数、文献范围或工程默认值形成可运行模型，再向实验人员索取关键设备数据。
+- 10 kW 数据只用于显式 `external_case` 验证物质流、接口、边界语义和模型能否跑通，不作为模型物理上限。
+- 若产品/台架数据不足，默认平台仍采用官方示例参数、文献范围或工程默认值形成可运行模型，不向劣质数据妥协。
 - 后续车载扩展时，再加入空压机、加湿器、中冷器、完整冷却回路、控制器和大功率电堆参数。
 
 ## 10. 暂定建模验收
@@ -177,7 +190,7 @@ Official MEA
 1. `.slx` 中存在完整的 FuelCell 四物种物理网络、MEA、电端口、热端口、阴极 cEGR 支路、背压/排气边界和必要传感器。
 2. 能运行一个代表性稳态工况，不出现结构错误、物理端口断连或明显非物理状态。
 3. 输出 `V_stack`、阴极入口/出口 O2、RH、压力、温度、EGR 流量/比例、热流等关键量。
-4. 后续可用 10 kW 数据做 smoke test 或子集对照；误差表不是建模第一步的完成条件。
+4. 后续可用 10 kW 数据做显式 `external_case` smoke test 或子集对照；误差表不是建模第一步的完成条件。
 
 ## 11. 路线 A 基准模型派生计划 v0.3
 
@@ -277,7 +290,7 @@ PEMFuelCellSystemWithACustomLibrary
 | Phase A4 | 加入 `CompressorInletCoupledEGR` 并回到 `CompressorInletMixer` | `egr_mdot` 非占位输出；排气支路仍存在；压缩机入口组分受回流影响 |
 | Phase A5 | 加入水分离/冷凝等效与测量接口 | 第一版先完成 p/T/y_i 与 EGR 压力链诊断；RH 与 `m_condensed` 进入后续水管理细化 |
 | Phase A6 | no-EGR 与低 EGR smoke 验证 | no-EGR 近似回到官方基线；低 EGR 下压缩机入口 O2 降低或湿度回灌方向可解释；若初始化阻塞，需记录失败栈并先修初值策略 |
-| Phase A7 | 台架配置最小实例化 | 不拟合电压，只用 10 kW 代表点做物质流、压力和边界语义 sanity check |
+| Phase A7 | 平台参数层剥离与默认匹配检查 | 默认参数来源分层清楚；stack/BOP/cEGR 粗量级自洽；旧台架案例保持默认禁用 |
 
 ### 11.6 路线 A 验收标准
 
@@ -289,6 +302,7 @@ PEMFuelCellSystemWithACustomLibrary
 6. 不把阳极 `Recirculation` 当作 cathode-cEGR；报告中必须明确两者区别。
 7. EGR 支路压力链需符合 `p_cathode_out > p_separator/egr_up > p_egr_down >= p_compressor_inlet` 的主方向；允许小幅动态波动，但不允许稳态长期反向。
 8. 第一版不要求 10 kW 电压误差最小，不以误差表作为路线 A 建模完成条件。
+9. A7 不验收产品拟合或台架误差，只验收默认平台参数治理、源头隔离、粗量级匹配和 KPI 语义完整性。
 
 ### 11.7 当前执行记录
 
@@ -304,10 +318,12 @@ PEMFuelCellSystemWithACustomLibrary
 | Phase A4 | 已完成第一版物理闭环 | 已形成 `CathodeOutletChamber.C -> EGRMassFlowSensor -> EGRValveRestriction -> EGRPipe -> Oxygen Source.cEGR -> CompressorInletMixer.C`；`egr_mdot` 已接入 `EGR Diagnostics`；`update diagram` 通过 |
 | Phase A5 | 已完成第一版诊断与等效冷凝参数化 | `PEMFuelCellSystemWithACustomLibraryParameters.m` 已新增 `cegr_*` 参数；`CathodeOutletChamber`、`EGRPipe`、`CompressorInletMixer` 已启用水为可冷凝组分；出口/入口 p/T/y_i 改用 Chamber 自带输出，EGR 阀前后压力用 PT sensor |
 | Phase A6 | 已通过第一轮分层 smoke | `run_routeA_a6_smoke.m` gated smoke 已通过：`no_egr_isolated`、`no_egr_closed_valve`、`low_egr` 均通过 0.1/5/30 s。关键结构修复是在 `Cathode Gas Channels.C` 与 `CathodeOutletChamber.A` 之间加入 `CathodeOutletResistance`，避免两个 `Constant Volume Chamber (FC)` 零阻抗直连。低 EGR 面积已降为 `cegr_valve_area_frac_low = 5e-4`，30 s 时 `egr_ratio_comp_in ≈ 0.0168` |
+| Phase A6.5 | 已完成 A6 收口审计 | 已新增 `ExhaustMassFlowSensor` 与 `Exhaust_mdot_ToWorkspace`，用于真实计算 `egr_split_ratio_out = egr_mdot / (egr_mdot + exhaust_mdot)`。`run_routeA_a6_5_audit.m` 已完成 5 点阀面积扫描：`[1e-6, 5e-4, 1e-3, 2e-3, 5e-3]` 均通过 30 s；`egr_mdot` 单调增加、压缩机入口 O2 单调下降、压力链通过。RH 与冷凝排水仍标记为 `not_available_direct_signal`，不作为 A6 硬门槛 |
+| Phase A7 | 待执行，已重定义 | A7 主任务是平台参数层剥离与默认匹配检查；旧 10 kW 台架回放保持 `external_case` 默认禁用，不作为 A7 验收入口 |
 
 当前 A6 的核心结论不是单纯数值容差问题，而是物理网络拓扑问题。官方 `Cathode Gas Channels` 本身是 `Constant Volume Chamber (FC)`；新增 `CathodeOutletChamber` 也是库存容腔。分层诊断显示：`no_egr_isolated` 与保留 `CompressorInletMixer` 的 no-EGR 可计算；只要把 `CathodeOutletChamber` 直接插入 `Cathode Gas Channels.C -> Cathode Exhaust` 主路径，即使不接 EGR 传感器、阀、管和入口回流，也会 IC failure。加入 `Flow Resistance (FC)` 后，完整 closed-valve 回路可计算，说明该流阻承担的是系统级 ODE/DAE 网络中必要的流量-压差关系，而不是为了“调参”硬凑收敛。
 
-A6 当前仍只代表“结构与低 EGR smoke 成立”，不代表 EGR 阀、出口分离器、冷凝排水、台架背压或控制策略已经完成标定。下一步进入 A7 前，应继续审计压力链、EGR 分流比、RH/冷凝口径和低/中 EGR 面积扫描。
+A6 当前已收口为“官方 Route A 默认模型上的 cEGR 物理拓扑与低/中 EGR 扫描成立”。它不代表 EGR 阀、出口分离器、冷凝排水、台架背压或控制策略已经完成标定。A7 不执行 10 kW 外部案例回放；下一步先完成平台默认参数来源剥离、stack/BOP/cEGR 粗匹配检查和外部案例默认禁用。
 
 ### 11.8 配套脚本资产
 
@@ -315,10 +331,12 @@ A6 当前仍只代表“结构与低 EGR smoke 成立”，不代表 EGR 阀、�
 
 | 文件 | 当前角色 | 是否当前必需 | 处理策略 |
 |---|---|---:|---|
-| `PEMFuelCellSystemWithACustomLibraryParameters.m` | 模型工作区初始化脚本；定义环境、stack、冷却、compressor map、电负载等参数，并加载 drive cycle | 是 | 已把 `Gas Mixture Properties` 路径改为路线 A 模型名；后续新增 `cegr_*`、`comp_inlet_*`、`separator_*` 参数应优先进入此脚本或其 Route A 派生版 |
-| `PEMFuelCellSystemWithACustomLibraryDriveCycle.mat` | 官方 drive cycle 数据源，被参数脚本加载 | 是，若继续使用官方 drive-cycle 工况 | 保留；A6 smoke 可先用官方工况，台架配置阶段再引入 10 kW 代表点 |
+| `PEMFuelCellSystemWithACustomLibraryParameters.m` | 模型工作区初始化脚本；定义环境、stack、冷却、compressor map、电负载等 `platform_default` 参数，并加载官方 drive cycle | 是 | 已把 `Gas Mixture Properties` 路径改为路线 A 模型名；后续新增 `cegr_*`、`comp_inlet_*`、`separator_*` 参数应保持官方/文献/工程经验来源，不读取外部案例数据 |
+| `PEMFuelCellSystemWithACustomLibraryDriveCycle.mat` | 官方 drive cycle 数据源，被参数脚本加载 | 是，若继续使用官方 drive-cycle 工况 | 保留为 `platform_default` smoke 工况；10 kW 代表点不得接入默认初始化链 |
 | `run_routeA_a6_smoke.m` | Route A 专用 gated smoke 脚本；按 `no_egr_isolated -> no_egr_closed_valve -> low_egr` 顺序运行，使用 `SimulationInput` 切换 EGR 阀面积，失败即停止 | 是，A6 入口 | 已通过 MATLAB Code Analyzer；在加入 `CathodeOutletResistance` 后，三组 gate 均通过 0.1/5/30 s；输出 `routeA_cegr_mdot`、`routeA_mdot_comp_inlet`、`egr_ratio_comp_in`、压力链和入口/出口组分 |
 | `run_routeA_a6_coupling_diagnostics.m` | Route A A6 分层耦合诊断脚本；支持单探针运行，逐层测试入口 mixer、出口容腔、质量流量传感器、阀、管和完整回路 | 是，排障入口 | 关键证据：P0/P1 通过；P2/P2a/P2b/P2c 均 IC failure；P2d/P6r 在加入 `Flow Resistance (FC)` 后通过 0.1 s，定位根因是两个库存容腔零阻抗直连 |
+| `run_routeA_a6_5_audit.m` | Route A A6 收口审计脚本；读回关键拓扑并扫描阀面积 | 是，A6 收口入口 | 已通过 5 点 30 s 扫描；输出 `egr_mdot`、`exhaust_mdot`、`egr_ratio_comp_in`、`egr_split_ratio_out`、压力链和 O2/H2O 方向性；RH/冷凝排水当前显式标记为不可直接读取 |
+| `run_routeA_a7_bench_sanity.m` | 旧 10 kW 外部案例 sanity 草稿入口 | 否，默认禁用 | 不是 A7 主入口；只允许作为显式 `external_case` 回放工具。脚本默认报错，只有显式设置 `routeA_enable_external_case_bench_10kw = true` 后才运行 |
 | `PEMFuelCellSystemWithACustomLibraryExample.m` | 官方 live example 展示脚本；会打开子系统、运行 `sim()`、调用绘图脚本 | 否 | 当前仍硬编码原模型名，不能直接作为 Route A 运行入口；后续应复制/改名为 Route A example 或替换为专用 smoke 脚本 |
 | `PEMFuelCellSystemWithACustomLibraryPlot1IV.m` | i-v 与功率曲线绘图 | 否 | 当前引用原 `simlog_PEMFuelCellSystemWithACustomLibrary`；后续若复用，需迁移到 Route A simlog 名称和新增 cEGR 指标 |
 | `PEMFuelCellSystemWithACustomLibraryPlot2Power.m` | stack 输出功率、compressor/pump 消耗、热耗散绘图 | 否 | 可复用为功率/寄生功耗基线图，但需迁移模型名和 simlog 路径 |
@@ -339,5 +357,5 @@ A6 当前仍只代表“结构与低 EGR smoke 成立”，不代表 EGR 阀、�
 1. 不继续修路线 B 的 37 个 `model_check` errors，除非其中某条直接影响路线 A 设计判断。
 2. 不从零重建 MEA、电负载、热端和官方测量结构。
 3. 不把 Moist Air PEMFC 或 FCEV 作为主骨架；它们只作为加湿、冷却、BOP 和整车接口参考。
-4. 不把台架 DQ60、加湿器或背压阀资料提前写死进通用母版。
+4. 不把台架 DQ60、加湿器、背压阀资料、10 kW workbook、旧标定 CSV 或公司临时资料写进通用母版默认参数。
 5. 不在路线 A 第一版引入 AMESim；只有 Simscape 四物种网络、水分离或主动回流设备长期无法闭合时再评估。

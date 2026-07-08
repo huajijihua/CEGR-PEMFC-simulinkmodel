@@ -143,6 +143,10 @@ commentBlocks = { ...
     [oxygen '/CompInletDiagnostics'], ...
     [model '/CathodeOutletChamber'], ...
     [model '/CathodeOutletResistance'], ...
+    [model '/ExhaustMassFlowSensor'], ...
+    [model '/Exhaust_mdot_Converter'], ...
+    [model '/Exhaust_mdot_ToWorkspace'], ...
+    [model '/Exhaust Diagnostics'], ...
     [model '/CathodeOutletChamberInsulator'], ...
     [model '/OutletP_Converter'], ...
     [model '/OutletT_Converter'], ...
@@ -212,6 +216,8 @@ function restoreOfficialCathodeOutlet(model)
 cathodeGas = [model '/Cathode Gas Channels'];
 cathodeExhaust = [model '/Cathode Exhaust'];
 outletChamber = [model '/CathodeOutletChamber'];
+exhaustSensor = [model '/ExhaustMassFlowSensor'];
+exhaustConverter = [model '/Exhaust_mdot_Converter'];
 
 phGas = get_param(cathodeGas, 'PortHandles');
 phExhaust = get_param(cathodeExhaust, 'PortHandles');
@@ -223,6 +229,24 @@ for portHandle = [phGas.LConn(2), phExhaust.LConn(1), ...
     lineHandle = get_param(portHandle, 'Line');
     if lineHandle ~= -1
         lineHandles(end + 1) = lineHandle; %#ok<AGROW>
+    end
+end
+if getSimulinkBlockHandle(exhaustSensor) ~= -1
+    phExhaustSensor = get_param(exhaustSensor, 'PortHandles');
+    for portHandle = [phExhaustSensor.LConn(1), phExhaustSensor.RConn(1), phExhaustSensor.RConn(4)]
+        lineHandle = get_param(portHandle, 'Line');
+        if lineHandle ~= -1
+            lineHandles(end + 1) = lineHandle; %#ok<AGROW>
+        end
+    end
+end
+if getSimulinkBlockHandle(exhaustConverter) ~= -1
+    phExhaustConverter = get_param(exhaustConverter, 'PortHandles');
+    if ~isempty(phExhaustConverter.Outport)
+        lineHandle = get_param(phExhaustConverter.Outport(1), 'Line');
+        if lineHandle ~= -1
+            lineHandles(end + 1) = lineHandle; %#ok<AGROW>
+        end
     end
 end
 

@@ -325,6 +325,10 @@ function blocks = routeAOutletAndEGRBlocks(model)
 blocks = [ ...
     {[model '/CathodeOutletChamber'], ...
     [model '/CathodeOutletResistance'], ...
+    [model '/ExhaustMassFlowSensor'], ...
+    [model '/Exhaust_mdot_Converter'], ...
+    [model '/Exhaust_mdot_ToWorkspace'], ...
+    [model '/Exhaust Diagnostics'], ...
     [model '/CathodeOutletChamberInsulator'], ...
     [model '/OutletP_Converter'], ...
     [model '/OutletT_Converter'], ...
@@ -414,6 +418,8 @@ function restoreOfficialCathodeOutlet(model)
 cathodeGas = [model '/Cathode Gas Channels'];
 cathodeExhaust = [model '/Cathode Exhaust'];
 outletChamber = [model '/CathodeOutletChamber'];
+exhaustSensor = [model '/ExhaustMassFlowSensor'];
+exhaustConverter = [model '/Exhaust_mdot_Converter'];
 
 phGas = get_param(cathodeGas, 'PortHandles');
 phExhaust = get_param(cathodeExhaust, 'PortHandles');
@@ -423,6 +429,18 @@ lineHandles = [];
 for portHandle = [phGas.LConn(2), phExhaust.LConn(1), ...
         phOutlet.LConn(3), phOutlet.LConn(4), phOutlet.LConn(5)]
     lineHandles = appendLineAtPort(lineHandles, portHandle);
+end
+if getSimulinkBlockHandle(exhaustSensor) ~= -1
+    phExhaustSensor = get_param(exhaustSensor, 'PortHandles');
+    for portHandle = [phExhaustSensor.LConn(1), phExhaustSensor.RConn(1), phExhaustSensor.RConn(4)]
+        lineHandles = appendLineAtPort(lineHandles, portHandle);
+    end
+end
+if getSimulinkBlockHandle(exhaustConverter) ~= -1
+    phExhaustConverter = get_param(exhaustConverter, 'PortHandles');
+    if ~isempty(phExhaustConverter.Outport)
+        lineHandles = appendLineAtPort(lineHandles, phExhaustConverter.Outport(1));
+    end
 end
 
 deleteLines(lineHandles);

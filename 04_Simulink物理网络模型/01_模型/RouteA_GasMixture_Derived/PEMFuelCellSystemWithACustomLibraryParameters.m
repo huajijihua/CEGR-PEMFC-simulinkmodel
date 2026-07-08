@@ -2,8 +2,18 @@
 % Open Model Workspace in the Model Explorer to view and modify parameter
 % values. Click 'Reinitialize from Source' to reset to the parameter values
 % in this script.
+%
+% Route A platform-default parameter policy:
+% - This default initialization chain is deliberately isolated from company,
+%   bench, DQ60, 10 kW workbook, and legacy calibration data.
+% - Default values come from the MathWorks official example, literature-scale
+%   ranges, and engineering-order matching between stack, BOP, and cEGR loop.
+% - Bench or product data may only be loaded by explicit external_case scripts.
 
 % Copyright 2020 The MathWorks, Inc.
+
+routeA_parameter_layer = "platform_default";
+routeA_external_case_enabled = false;
 
 load PEMFuelCellSystemWithACustomLibraryDriveCycle.mat
 
