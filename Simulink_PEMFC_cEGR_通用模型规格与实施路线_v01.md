@@ -285,6 +285,16 @@ PEMFuelCellSystemWithACustomLibrary
 
 ### 11.5 分阶段执行计划
 
+Route A 后续不按“直接代入台架参数”推进，而按“通用平台 -> 台架配置 -> 车载配置”的层级推进：
+
+| 层级 | 角色 | 阴极侧结构 | 参数原则 |
+|---|---|---|---|
+| `RouteA_Platform` | 通用 PEMFC-cEGR 系统平台 | 空压机/增压源、可选中冷、可选加湿器、电堆、背压/排气、水汽分离、cEGR 阀和回流支路 | `platform_default`；官方案例、文献量级、工程经验匹配 |
+| `Bench_Config_v1` | 第一版台架测试结构配置 | 空压机/等效供气、中冷器、电堆、阀门、水汽分离器、cEGR；无加湿器 | 仍用通用默认参数；不读取 10 kW 数据，不追求产品拟合 |
+| `Vehicle_Config_v1` | 后续车载结构配置 | 空压机、中冷器、加湿器、电堆、阀门、水汽分离器、cEGR，并逐步补完整 BOP/控制接口 | 采用 `scaling_rule` 和可替换设备性能接口，不绑定公司临时资料 |
+
+关键门槛：只有当模型结构和模块语义足以支撑“基于设备性能的燃料电池阴极尾气循环系统模型”时，才进入详细参数表、性能曲线或设备匹配；若结构不足，只允许使用经验默认参数跑通和审计，不做伪精细标定。
+
 | 阶段 | 目标 | 完成条件 |
 |---|---|---|
 | Phase A0 | 建立派生工作副本并只读复核官方基线 | 工作副本存在；官方归档未修改；`model_overview` 能读到原顶层结构 |
@@ -294,7 +304,11 @@ PEMFuelCellSystemWithACustomLibrary
 | Phase A4 | 加入 `CompressorInletCoupledEGR` 并回到 `CompressorInletMixer` | `egr_mdot` 非占位输出；排气支路仍存在；压缩机入口组分受回流影响 |
 | Phase A5 | 加入水分离/冷凝等效与测量接口 | 第一版先完成 p/T/y_i 与 EGR 压力链诊断；RH 与 `m_condensed` 进入后续水管理细化 |
 | Phase A6 | no-EGR 与低 EGR smoke 验证 | no-EGR 近似回到官方基线；低 EGR 下压缩机入口 O2 降低或湿度回灌方向可解释；若初始化阻塞，需记录失败栈并先修初值策略 |
-| Phase A7 | 平台参数层剥离与默认匹配检查 | 默认参数来源分层清楚；stack/BOP/cEGR 粗量级自洽；旧台架案例保持默认禁用 |
+| Phase A7 | 平台结构充分性审计与参数层剥离 | 判定当前模型是否足以支撑设备性能型 PEMFC-cEGR；默认参数来源分层清楚；旧台架案例保持默认禁用 |
+| Phase A8 | 通用平台设备链补齐 | 阴极主链、cEGR 支链、阳极基本气路、冷却基本回路和 KPI 测量接口完整；加湿器可旁路，水汽分离器/中冷器有 L2 等效接口 |
+| Phase A9 | `Bench_Config_v1` 台架结构配置 | 无加湿器阴极结构可运行；空压机/中冷器/电堆/阀门/水汽分离器/cEGR 链路明确；不读取旧台架数据 |
+| Phase A10 | `Vehicle_Config_v1` 车载结构配置 | 打开或补齐加湿器、完整 BOP 接口和车载功率等级 scaling；仍不绑定公司临时产品参数 |
+| Phase A11 | 参数表、缩放规则和验证闭环治理 | 每类参数有来源层级、单位、适用范围和可替换接口；smoke/audit 脚本收敛为少数规范入口 |
 
 ### 11.6 路线 A 验收标准
 
@@ -307,6 +321,8 @@ PEMFuelCellSystemWithACustomLibrary
 7. EGR 支路压力链需符合 `p_cathode_out > p_separator/egr_up > p_egr_down >= p_compressor_inlet` 的主方向；允许小幅动态波动，但不允许稳态长期反向。
 8. 第一版不要求 10 kW 电压误差最小，不以误差表作为路线 A 建模完成条件。
 9. A7 不验收产品拟合或台架误差，只验收默认平台参数治理、源头隔离、粗量级匹配和 KPI 语义完整性。
+10. A7 之后的详细参数设置必须通过结构充分性门槛：若缺少中冷器、水汽分离器、阀门、旁路、阳极基本气路、冷却基本回路或关键 KPI 接口，则先补结构，不做精细参数化。
+11. 台架版和车载版必须作为通用平台配置或变体表达，不复制出两套互相割裂的模型；台架版无加湿器应通过旁路/禁用实现，不能从通用平台删除加湿器能力。
 
 ### 11.7 当前执行记录
 
@@ -323,11 +339,15 @@ PEMFuelCellSystemWithACustomLibrary
 | Phase A5 | 已完成第一版诊断与等效冷凝参数化 | `PEMFuelCellSystemWithACustomLibraryParameters.m` 已新增 `cegr_*` 参数；`CathodeOutletChamber`、`EGRPipe`、`CompressorInletMixer` 已启用水为可冷凝组分；出口/入口 p/T/y_i 改用 Chamber 自带输出，EGR 阀前后压力用 PT sensor |
 | Phase A6 | 已通过第一轮分层 smoke | `run_routeA_a6_smoke.m` gated smoke 已通过：`no_egr_isolated`、`no_egr_closed_valve`、`low_egr` 均通过 0.1/5/30 s。关键结构修复是在 `Cathode Gas Channels.C` 与 `CathodeOutletChamber.A` 之间加入 `CathodeOutletResistance`，避免两个 `Constant Volume Chamber (FC)` 零阻抗直连。低 EGR 面积已降为 `cegr_valve_area_frac_low = 5e-4`，30 s 时 `egr_ratio_comp_in ≈ 0.0168` |
 | Phase A6.5 | 已完成 A6 收口审计 | 已新增 `ExhaustMassFlowSensor` 与 `Exhaust_mdot_ToWorkspace`，用于真实计算 `egr_split_ratio_out = egr_mdot / (egr_mdot + exhaust_mdot)`。`run_routeA_a6_5_audit.m` 已完成 5 点阀面积扫描：`[1e-6, 5e-4, 1e-3, 2e-3, 5e-3]` 均通过 30 s；`egr_mdot` 单调增加、压缩机入口 O2 单调下降、压力链通过。RH 与冷凝排水仍标记为 `not_available_direct_signal`，不作为 A6 硬门槛 |
-| Phase A7 | 待执行，已重定义 | A7 主任务是平台参数层剥离与默认匹配检查；旧 10 kW 台架回放保持 `external_case` 默认禁用，不作为 A7 验收入口 |
+| Phase A7 | 待执行，已重定义 | A7 主任务是平台结构充分性审计与参数层剥离；旧 10 kW 台架回放保持 `external_case` 默认禁用，不作为 A7 验收入口 |
+| Phase A8 | 待执行 | 若 A7 判定结构不足，先补通用平台设备链：中冷器、水汽分离、加湿器旁路、阳极基本气路、冷却基本回路和 KPI 接口 |
+| Phase A9 | 待执行 | 在通用平台上形成无加湿器 `Bench_Config_v1`，只作为结构配置，不做台架参数拟合 |
+| Phase A10 | 待执行 | 在通用平台上形成含加湿器的 `Vehicle_Config_v1`，逐步引入车载 BOP 和功率等级缩放 |
+| Phase A11 | 待执行 | 建立参数表、缩放规则、验证入口和脚本收敛机制 |
 
 当前 A6 的核心结论不是单纯数值容差问题，而是物理网络拓扑问题。官方 `Cathode Gas Channels` 本身是 `Constant Volume Chamber (FC)`；新增 `CathodeOutletChamber` 也是库存容腔。分层诊断显示：`no_egr_isolated` 与保留 `CompressorInletMixer` 的 no-EGR 可计算；只要把 `CathodeOutletChamber` 直接插入 `Cathode Gas Channels.C -> Cathode Exhaust` 主路径，即使不接 EGR 传感器、阀、管和入口回流，也会 IC failure。加入 `Flow Resistance (FC)` 后，完整 closed-valve 回路可计算，说明该流阻承担的是系统级 ODE/DAE 网络中必要的流量-压差关系，而不是为了“调参”硬凑收敛。
 
-A6 当前已收口为“官方 Route A 默认模型上的 cEGR 物理拓扑与低/中 EGR 扫描成立”。它不代表 EGR 阀、出口分离器、冷凝排水、台架背压或控制策略已经完成标定。A7 不执行 10 kW 外部案例回放；下一步先完成平台默认参数来源剥离、stack/BOP/cEGR 粗匹配检查和外部案例默认禁用。
+A6 当前已收口为“官方 Route A 默认模型上的 cEGR 物理拓扑与低/中 EGR 扫描成立”。它不代表 EGR 阀、出口分离器、冷凝排水、台架背压或控制策略已经完成标定。A7 不执行 10 kW 外部案例回放；下一步先完成平台结构充分性审计、默认参数来源剥离、stack/BOP/cEGR 粗匹配检查和外部案例默认禁用。若结构不足，A8 先补通用平台设备链；若结构足够，再进入 A9 台架配置。
 
 ### 11.8 配套脚本资产
 
