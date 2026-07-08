@@ -1,1 +1,0 @@
-web('ssc_car_fuel_cell_1motor.html')

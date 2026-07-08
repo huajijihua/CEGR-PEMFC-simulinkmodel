@@ -150,9 +150,11 @@ Official MEA
 
 ## 7. External Case 资料隔离
 
-10 kW 台架资料保留为外部案例资料池，不作为 Route A 母版的架构依据、默认参数来源或默认验收标准。本轮只读确认的数据目录为：
+10 kW 台架资料已从当前工作树外置归档，只保留外部案例语义，不作为 Route A 母版的架构依据、默认参数来源或默认验收标准。历史只读确认的数据目录原为：
 
 `E:\agentwork_pemfc_cEGR_0519\00_支撑材料\实验数据-设备说明书`
+
+当前默认平台不要求该目录存在；若后续确需 10 kW 外部案例回放，应先从外部归档恢复资料，并保持显式 `external_case` 开关。
 
 可用材料类型和用途：
 
@@ -202,7 +204,7 @@ Official MEA
 
 | 项目 | 决定 |
 |---|---|
-| 官方归档母版 | `00_支撑材料/参考建模材料/05_成熟模型案例/simulink模型案例/MathWorks_Official_Examples_R2025b/01_GasMixture_PEMFuelCellSystemWithCustomLibrary/PEMFuelCellSystemWithACustomLibrary.slx` |
+| 官方归档母版 | `00_支撑材料/MathWorks_Official_Examples_R2025b/01_GasMixture_PEMFuelCellSystemWithCustomLibrary/PEMFuelCellSystemWithACustomLibrary.slx` |
 | 派生工作目录 | `04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/` |
 | 建议派生模型名 | `PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx` |
 | 参数起点 | 继承官方 `PEMFuelCellSystemWithACustomLibraryParameters.m` 的 model workspace 变量，再新增 `cegr_*` 参数组 |

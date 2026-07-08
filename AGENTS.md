@@ -23,15 +23,15 @@
 
 | 分支 | 路径 | 状态 | 保真度 | 结构特征 |
 |------|------|------|--------|----------|
-| 车载系统 v3 | `01_自吸方案/01_车载系统_10kW_GZS60_v3/` | 已冻结 | L2 标定型 | 有 GZS60 膜加湿器，含中冷器和空压机 BOP |
-| 台架测试 v1 | `01_自吸方案/02_台架测试_10kW/` | 可运行 | L2 标定型 | 无加湿器，DQ60 空压机等效 |
-| 简化台架 v1 | `01_自吸方案/03_台架测试_10kW_简化版/` | 外部案例/历史标定资产 | L2 标定型 | 无空压机和加湿器 BOP，直接以台架入堆条件为边界 |
+| 车载系统 v3 | 原路径 `01_自吸方案/01_车载系统_10kW_GZS60_v3/` | 已外置归档 | L2 标定型 | 有 GZS60 膜加湿器，含中冷器和空压机 BOP；仅作历史背景 |
+| 台架测试 v1 | 原路径 `01_自吸方案/02_台架测试_10kW/` | 已外置归档 | L2 标定型 | 无加湿器，DQ60 空压机等效；仅作历史背景 |
+| 简化台架 v1 | 原路径 `01_自吸方案/03_台架测试_10kW_简化版/` | 已外置归档/外部案例 | L2 标定型 | 无空压机和加湿器 BOP，直接以台架入堆条件为边界；不在当前默认工作树内 |
 | Route A 通用平台 | `04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/` | 当前 Simulink 主线 | L2/L3 之间的系统级物理网络 | 官方 Gas Mixture PEMFC 派生母版，新增 cathode-cEGR 支路 |
-| COMSOL 机理 | `02_多物理场机理模型演示/` | 活跃 | L3 高保真 | 2D PEMFC + cEGR，用于局部机理研究和参数校核 |
+| COMSOL 机理 | 原路径 `02_多物理场机理模型演示/` | 已外置归档 | L3 高保真 | 2D PEMFC + cEGR，用于局部机理研究和参数校核；当前 Route A 不依赖其文件 |
 
 ## 外部案例资产入口
 
-简化台架 v1 不再作为通用平台主线或默认参数来源。其主要脚本位于 `01_自吸方案/03_台架测试_10kW_简化版/02_脚本/`，只可作为 `external_case`、历史审计和边界语义参考：
+简化台架 v1 不再作为通用平台主线或默认参数来源。相关资产已移出当前工作树，原路径为 `01_自吸方案/03_台架测试_10kW_简化版/`；如需回放，只能从外部归档或 Git 历史恢复，并作为 `external_case`、历史审计和边界语义参考：
 
 | 用途 | 入口 | 说明 |
 |------|------|------|
@@ -44,7 +44,7 @@
 | 自定义进气 | `run_testbench_10kw_simplified_custom_inlet_study.m` | 新鲜空气 EGR 扫描 |
 | 模型本体 | `../01_模型/CEGR_TestBench_10kW_SimplifiedEGR_v01.slx` | 7 个 MATLAB Function 模块 |
 
-这些 CSV 和 workbook 只对旧台架外部案例成立，不是 Route A 通用平台默认参数真源。Route A 默认初始化链不得读取 `simplified_*.csv`、`combined_noegr_cegr_fit_points.csv`、DQ60 map 或 10 kW workbook；若后续需要回放旧台架，必须通过显式 `external_case` 脚本和手动开关启用。
+这些 CSV 和 workbook 只对旧台架外部案例成立，不是 Route A 通用平台默认参数真源。Route A 默认初始化链不得读取 `simplified_*.csv`、`combined_noegr_cegr_fit_points.csv`、DQ60 map 或 10 kW workbook；若后续需要回放旧台架，必须先显式恢复外部案例资产，再通过专用 `external_case` 脚本和手动开关启用。
 
 ## 工具链验证入口
 
@@ -57,8 +57,8 @@
 ## Agent MATLAB 会话分离
 
 1. 普通 MATLAB 不绑定任何 agent，不自动注册 MCP。
-2. Codex 使用 MATLAB 时，通过桌面 `C:\Users\ADMIN\Desktop\MATLAB_Agent_Launcher.hta` 的 `Codex MCP MATLAB` 按钮，或 `02_多物理场机理模型演示/02_脚本/start_codex_matlab_gui.ps1` 启动专用 GUI。
-3. Claude 使用 MATLAB 时，通过同一桌面面板的 `Claude MCP MATLAB` 按钮，或 `02_多物理场机理模型演示/02_脚本/start_claude_matlab_gui.ps1` 启动另一套专用 GUI。
+2. Codex 使用 MATLAB 时，通过桌面 `C:\Users\ADMIN\Desktop\MATLAB_Agent_Launcher.hta` 的 `Codex MCP MATLAB` 按钮启动专用 GUI。
+3. Claude 使用 MATLAB 时，通过同一桌面面板的 `Claude MCP MATLAB` 按钮启动另一套专用 GUI。
 4. 两个 agent 同时用 MATLAB 时必须打开两个 GUI；Codex 只 attach 命令窗口显示 `CODEX` 的 MCP session，不复用 Claude session。
 5. Codex 和 Claude 使用不同 MCP session 根目录，因为 `shareMATLABSession()` 会在根目录下写单个 `sessionDetails.json`。Codex 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Codex`，Claude 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Claude`；`startup.m` 通过 `register_agent_matlab_mcp_session.m` 写入对应根目录，不修改 MATLAB 的 `APPDATA`。
 6. 客户端配置或启动脚本更新后，应重启或刷新 agent 客户端/session，让正式 MCP 工具重新加载。不要把临时 MCP 探针脚本当作常规工作流。
@@ -87,7 +87,7 @@
 ### 基本纪律
 
 1. 本机 COMSOL 入口固定为 `D:\COMSOL63\Multiphysics`；GUI 使用 `bin\win64\comsol.exe`，Server 使用 `bin\win64\comsolmphserver.exe`，MATLAB LiveLink 使用 `mli`。
-2. 本项目 COMSOL 模型位于 `02_多物理场机理模型演示`。不得直接按二进制、XML 或文本方式修改 `.mph`；必须通过 COMSOL GUI、COMSOL API、MATLAB LiveLink 或受控脚本访问。
+2. 本项目 COMSOL 历史模型原位于 `02_多物理场机理模型演示`，当前已外置归档；如需继续 COMSOL 工作，应先从外部归档恢复或重新建立受控工作副本。不得直接按二进制、XML 或文本方式修改 `.mph`；必须通过 COMSOL GUI、COMSOL API、MATLAB LiveLink 或受控脚本访问。
 3. COMSOL 任务先区分新建模型、增量修改、模型审查和仿真验证。新建模型先形成模型规格和构建计划；增量修改先只读盘点当前模型；模型审查只输出证据链、风险和建议，不默认修改。
 4. 默认采用共享 server 会话：用户在 GUI 中打开目标 `.mph`，Codex 连接同一个 `localhost:2036` COMSOL Server。
 5. 脚本默认不得保存 `.mph`；最终保存由用户通过 GUI 执行。只有在用户明确授权且保存目标、文件名和原因都明确时，脚本才可保存。

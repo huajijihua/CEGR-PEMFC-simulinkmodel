@@ -1,3 +1,0 @@
-stage,free_parameters,row_count,rmse_before,rmse_after,max_abs_after
-low_current_activation,"theta1_act,theta2_act,theta3_act,theta4_act",8,0.0276658926652095,0.00783667334660663,0.0121713703527966
-mid_current_ohmic,"sigma_pem_correction",4,0.0161504696043209,0.00489241766658024,0.00659862832094016

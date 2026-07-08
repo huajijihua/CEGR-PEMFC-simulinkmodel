@@ -1,7 +1,0 @@
-parameter,stack_model_index,value,unit,model_location,meaning_cn,calibration_role,source_note
-theta1_act,12,1.41541756506746,V,StackModelParam_simplified(12),活化极化经验式常数项，参与 etaAct 计算,noEGR voltage fit,书籍活化极化 theta1；ASR0 当前不启用，避免与活化常数项耦合
-theta2_act,13,-0.00405379733571735,V/K,StackModelParam_simplified(13),活化极化经验式温度项系数，参与 etaAct 计算,noEGR voltage fit,书籍活化极化 theta2；温度和电流相关性较强，需检查边界
-theta3_act,14,-0.000294947066605618,V/K,StackModelParam_simplified(14),活化极化经验式氧浓度项系数，参与 etaAct 计算,noEGR voltage fit,书籍活化极化 theta3；约束为负值以保留低氧浓度增大活化损失的方向
-theta4_act,15,0.00011011377464623,V/K,StackModelParam_simplified(15),活化极化经验式电流项系数，参与 etaAct 计算,noEGR voltage fit,书籍活化极化 theta4；电流输入使用 j+I_leak，单位 A/cm2
-sigma_pem_correction,16,0.304150979849026,-,StackModelParam_simplified(16),膜电导率 sigma_PEM 修正系数，参与 etaOhm 计算,noEGR voltage fit,欧姆极化可拟合参数；sigma_PEM 的 lambda 来自电堆内部膜水含量
-tau_mem_s,18,1,s,StackModelParam_simplified(18),膜水通量一阶松弛时间常数,model dynamic setting,膜水动态设置，不作为本轮电压拟合参数
