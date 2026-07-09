@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PEMFC-cEGR 三层设备拓扑可视化</title>
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --panel: #ffffff;
+      --ink: #102033;
+      --muted: #64748b;
+      --grid: #e7ecf3;
+      --stroke: #8291a6;
+      --air: #2f7ed8;
+      --egr: #df5c24;
+      --exhaust: #6f7b8a;
+      --h2: #12a36b;
+      --coolant: #7c3aed;
+      --electric: #f59e0b;
+      --control: #4b5563;
+      --stack: #d97706;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+    }
+
+    header {
+      padding: 14px 22px 10px;
+      border-bottom: 1px solid var(--grid);
+      background: var(--panel);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 21px;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 22px;
+      border-bottom: 1px solid var(--grid);
+      background: #fbfcfe;
+    }
+
+    .tabs {
+      display: inline-grid;
+      grid-template-columns: repeat(3, 150px);
+      overflow: hidden;
+      border: 1px solid var(--grid);
+      border-radius: 6px;
+      background: var(--panel);
+    }
+
+    button {
+      height: 34px;
+      border: 0;
+      border-right: 1px solid var(--grid);
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    button:last-child { border-right: 0; }
+
+    button[aria-selected="true"] {
+      background: #eaf4ff;
+      color: #0f4e8a;
+      font-weight: 700;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .swatch {
+      width: 21px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--grid);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 282px;
+      gap: 14px;
+      padding: 14px 22px 22px;
+    }
+
+    .canvas-shell,
+    .info {
+      border: 1px solid var(--grid);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 12px 28px rgba(16, 32, 51, 0.08);
+    }
+
+    .canvas-shell {
+      overflow: auto;
+      min-width: 0;
+    }
+
+    .diagram-wrap {
+      min-width: 1280px;
+      padding: 12px;
+    }
+
+    svg {
+      display: block;
+      width: 1280px;
+      height: 720px;
+      background:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 32px 32px;
+      background-position: -1px -1px;
+    }
+
+    .node rect {
+      fill: #ffffff;
+      stroke: var(--stroke);
+      stroke-width: 1.15;
+      rx: 5;
+    }
+
+    .node.boundary rect {
+      fill: #f8fafc;
+      stroke-dasharray: 5 4;
+    }
+
+    .node.stack rect {
+      fill: #fff7ed;
+      stroke: var(--stack);
+      stroke-width: 1.6;
+    }
+
+    .node.control rect {
+      fill: #f6f2ff;
+      stroke: var(--electric);
+    }
+
+    .node:hover rect,
+    .node.active rect {
+      stroke: #0f4e8a;
+      stroke-width: 2;
+    }
+
+    .node text {
+      fill: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    .node text.sub {
+      fill: var(--muted);
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .pipe {
+      fill: none;
+      stroke-width: 3.2;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+      marker-end: url(#arrow);
+    }
+
+    .pipe.air { stroke: var(--air); }
+    .pipe.egr { stroke: var(--egr); }
+    .pipe.exhaust { stroke: var(--exhaust); }
+    .pipe.h2 { stroke: var(--h2); }
+    .pipe.coolant { stroke: var(--coolant); }
+    .pipe.electric { stroke: var(--electric); }
+    .pipe.control {
+      stroke: var(--control);
+      stroke-width: 2;
+      stroke-dasharray: 7 6;
+      marker-end: url(#arrowThin);
+    }
+
+    .title {
+      fill: var(--ink);
+      font-size: 14px;
+      font-weight: 760;
+    }
+
+    .lane-label {
+      fill: #334155;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .info {
+      align-self: start;
+      padding: 15px;
+      min-height: 306px;
+    }
+
+    .info h2 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .info p,
+    .info dd {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .info p { margin: 0 0 12px; }
+
+    .info dl {
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .info dt {
+      color: #334155;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .info dd {
+      margin: 3px 0 0;
+      color: var(--ink);
+    }
+
+    .note {
+      margin-top: 13px;
+      padding-top: 11px;
+      border-top: 1px solid var(--grid);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 980px) {
+      main { grid-template-columns: 1fr; }
+      .tabs { grid-template-columns: 1fr; width: 100%; }
+      button { border-right: 0; border-bottom: 1px solid var(--grid); }
+      button:last-child { border-bottom: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PEMFC-cEGR 三层设备拓扑可视化</h1>
+    <p class="subtitle">按 Simulink 读图习惯重排：小设备块、正交连线、主气路横向展开，氢气和冷却回路在下方。</p>
+  </header>
+
+  <section class="toolbar" aria-label="拓扑切换和图例">
+    <div class="tabs" role="tablist" aria-label="拓扑视图">
+      <button type="button" role="tab" aria-selected="true" data-target="platform">RouteA_Platform</button>
+      <button type="button" role="tab" aria-selected="false" data-target="bench">Bench_Config_v1</button>
+      <button type="button" role="tab" aria-selected="false" data-target="vehicle">Vehicle_Config_v1</button>
+    </div>
+    <div class="legend" aria-label="管路图例">
+      <span><i class="swatch" style="background:var(--air)"></i>空气/阴极</span>
+      <span><i class="swatch" style="background:var(--egr)"></i>cEGR</span>
+      <span><i class="swatch" style="background:var(--exhaust)"></i>排气</span>
+      <span><i class="swatch" style="background:var(--h2)"></i>氢气/阳极</span>
+      <span><i class="swatch" style="background:var(--coolant)"></i>冷却</span>
+      <span><i class="swatch" style="background:var(--electric)"></i>电功率</span>
+      <span><i class="swatch" style="background:var(--control)"></i>控制/测量</span>
+    </div>
+  </section>
+
+  <main>
+    <section class="canvas-shell" aria-label="设备拓扑图">
+      <div class="diagram-wrap">
+        <svg id="topology" viewBox="0 0 1280 720" role="img" aria-label="PEMFC-cEGR topology">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"></path>
+            </marker>
+            <marker id="arrowThin" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#4b5563"></path>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </section>
+
+    <aside class="info" aria-live="polite">
+      <h2 id="info-title">RouteA_Platform</h2>
+      <p id="info-summary">点击设备块查看角色说明。</p>
+      <dl>
+        <div>
+          <dt>当前选择</dt>
+          <dd id="info-name">通用平台完整结构</dd>
+        </div>
+        <div>
+          <dt>角色</dt>
+          <dd id="info-role">台架配置和车载配置的共同母版。</dd>
+        </div>
+        <div>
+          <dt>说明</dt>
+          <dd id="info-detail">主气路、cEGR、氢气、冷却、电功率、控制测量接口都在同一拓扑族内表达。</dd>
+        </div>
+      </dl>
+      <div class="note">这是结构方案图，不表示 Simulink 模型已经完成所有对应改动。</div>
+    </aside>
+  </main>
+
+  <script>
+    const svg = document.getElementById("topology");
+    const infoTitle = document.getElementById("info-title");
+    const infoSummary = document.getElementById("info-summary");
+    const infoName = document.getElementById("info-name");
+    const infoRole = document.getElementById("info-role");
+    const infoDetail = document.getElementById("info-detail");
+
+    const views = {
+      platform: {
+        title: "RouteA_Platform",
+        header: "RouteA_Platform: 完整通用 PEMFC-cEGR 系统平台",
+        intro: {
+          name: "通用平台完整结构",
+          role: "台架配置和车载配置的共同母版。",
+          detail: "保留空气主链、cEGR 回流、氢气阳极、冷却、电负载、控制与 KPI 测量接口。"
+        },
+        lanes: [
+          ["阴极空气主链", 72],
+          ["阴极尾气 / cEGR / 排气", 300],
+          ["阳极氢气链", 520],
+          ["冷却与电功率", 628]
+        ],
+        nodes: [
+          n("air", "环境空气", "", 28, 96, 86, 42, "boundary", "新鲜空气边界", "通用平台的新鲜空气入口。"),
+          n("filter", "入口过滤", "边界/阻力", 150, 92, 96, 50, "", "空气入口", "可映射为空滤、入口阻力或环境边界。"),
+          n("mix", "压缩机入口", "混合腔", 294, 88, 104, 58, "", "空气与 cEGR 混合", "新鲜空气和阴极尾气回流先在有限容积内混合。"),
+          n("comp", "空压机", "增压源", 446, 92, 96, 50, "", "阴极供气做功部件", "通用平台保留空压机或等效增压源接口。"),
+          n("ic", "中冷器", "后冷器", 590, 92, 96, 50, "", "压缩后空气热管理", "位于压缩机后、加湿器前。"),
+          n("hum", "阴极", "加湿器", 734, 92, 96, 50, "", "可配置加湿", "通用平台保留加湿能力；台架配置可旁路。"),
+          n("stack", "PEMFC 电堆", "MEA / 热端 / 电端", 904, 178, 112, 66, "stack", "核心能量转换部件", "三种结构共享的电堆核心。"),
+          n("load", "电负载", "功率请求", 1088, 104, 92, 50, "control", "电功率接口", "给定电流、功率或整车负载请求。"),
+          n("caout", "阴极出口", "歧管", 760, 316, 96, 50, "", "阴极尾气汇集", "电堆阴极出口进入分离与分流链路。"),
+          n("sep", "水汽分离", "冷凝排水", 604, 316, 96, 50, "", "尾气水管理", "从阴极尾气中分离或等效处理冷凝水。"),
+          n("split", "尾气分流", "节点", 448, 316, 96, 50, "", "排气与回流分流", "把阴极尾气分为 cEGR 回流支路和排气支路。"),
+          n("egrv", "cEGR 阀", "回流控制", 294, 430, 96, 50, "", "回流量控制接口", "控制回流质量流量，不直接把 EGR 率当输入。"),
+          n("bpv", "背压阀", "环境排气", 944, 410, 98, 50, "boundary", "阴极排气边界", "提供背压调节和最终排气边界。"),
+          n("h2", "氢气源", "", 28, 542, 86, 42, "boundary", "阳极供氢边界", "可对应氢瓶、减压后氢源或实验室供氢。"),
+          n("h2reg", "供氢调节", "阀/减压", 166, 536, 96, 50, "", "减压/阀接口", "连接氢气源和阳极入口。"),
+          n("anode", "阳极入口", "供氢歧管", 604, 536, 104, 50, "", "阳极入口气路", "接收供氢调节后的氢气，并送入电堆阳极入口。"),
+          n("anout", "阳极出口", "循环/排放", 760, 536, 104, 50, "", "阳极出口气路", "接收电堆阳极出口气体，可进入循环、排氮或排水支路。"),
+          n("pump", "冷却泵", "", 166, 644, 96, 42, "", "冷却流量源", "驱动电堆冷却回路。"),
+          n("rad", "散热器", "冷却换热器", 322, 638, 104, 50, "", "系统热管理", "把电堆热量排向环境或外部冷却系统。"),
+          n("ctrl", "测量与控制", "KPI / commands", 1068, 536, 118, 54, "control", "KPI 与控制量", "汇总压力、温度、RH、组分、流量、电压电流和控制命令。")
+        ],
+        pipes: [
+          p("air", "air", "filter"), p("air", "filter", "mix"), p("air", "mix", "comp"), p("air", "comp", "ic"), p("air", "ic", "hum"),
+          path("air", "M830 117 H960 V178"),
+          p("electric", "stack", "load", "right-left"),
+          path("exhaust", "M904 211 H856 V341"),
+          p("exhaust", "caout", "sep", "left"), p("exhaust", "sep", "split", "left"),
+          path("egr", "M448 341 H342 V430"),
+          path("egr", "M342 430 V242 H342 V146"),
+          path("egr", "M342 242 H346"),
+          path("exhaust", "M496 341 V435 H944"),
+          p("h2", "h2", "h2reg"), path("h2", "M262 561 H604"), path("h2", "M708 561 H960 V244"),
+          path("h2", "M960 244 V561 H864"), path("h2", "M760 561 H708"),
+          path("coolant", "M262 665 H322"), path("coolant", "M426 663 H936 V244"),
+          path("coolant", "M960 244 V682 H426"),
+          path("control", "M1068 552 C970 510 880 466 790 366"),
+          path("control", "M1068 565 C900 604 720 592 650 586")
+        ]
+      },
+
+      bench: {
+        title: "Bench_Config_v1",
+        header: "Bench_Config_v1: 无加湿器台架结构配置",
+        intro: {
+          name: "无加湿器台架结构",
+          role: "由通用平台配置化派生，用于台架方案研究。",
+          detail: "加湿器通过旁路表达，供气和冷却边界台架化，同时保留 cEGR、背压、水汽分离和 KPI 接口。"
+        },
+        lanes: [
+          ["台架阴极供气链", 72],
+          ["阴极尾气 / cEGR / 排气", 300],
+          ["台架阳极供氢", 520],
+          ["台架冷却与采集", 628]
+        ],
+        nodes: [
+          n("air", "实验室空气", "", 28, 96, 88, 42, "boundary", "台架空气边界", "台架版以可控供气边界或等效空压机替代车载进气。"),
+          n("mix", "入口混合腔", "供气 + cEGR", 166, 88, 104, 58, "", "台架入口混合", "台架供气与 cEGR 回流在入口前混合。"),
+          n("supply", "台架供气", "等效空压机", 330, 92, 104, 50, "", "台架供气设备", "可用质量流量源、压力源或等效增压设备表达。"),
+          n("ic", "中冷器", "温控段", 494, 92, 96, 50, "", "台架进气温控", "控制入堆空气温度。"),
+          n("bypass", "加湿器", "旁路", 650, 92, 96, 50, "", "无加湿器配置", "不启用阴极加湿器，但保持平台接口一致。"),
+          n("stack", "PEMFC 电堆", "台架被测对象", 854, 178, 118, 66, "stack", "台架被测对象", "保留电堆、阴极、阳极、热端和电端接口。"),
+          n("load", "电子负载", "DAQ", 1074, 120, 92, 50, "control", "台架电负载", "给定台架电流或功率并采集电性能。"),
+          n("caout", "阴极出口", "歧管", 720, 316, 96, 50, "", "台架尾气汇集", "进入水汽分离和分流。"),
+          n("sep", "水汽分离", "排水", 552, 316, 96, 50, "", "台架水管理", "保留排水测量和冷凝处理接口。"),
+          n("split", "尾气分流", "节点", 390, 316, 96, 50, "", "排气与回流分流", "区分回流支路和排气支路。"),
+          n("egrv", "cEGR 阀", "回流控制", 234, 430, 96, 50, "", "台架回流控制", "控制回流管路阻力或有效面积。"),
+          n("bpv", "台架背压阀", "排气", 948, 410, 104, 50, "boundary", "台架出口边界", "提供台架背压设置和排气边界。"),
+          n("h2", "台架氢气源", "", 28, 542, 96, 42, "boundary", "台架供氢边界", "对应实验室氢气源。"),
+          n("h2reg", "减压/流量", "控制", 182, 536, 104, 50, "", "台架供氢调节", "把氢气源转换为阳极入口压力或流量边界。"),
+          n("anode", "阳极入口", "供氢歧管", 560, 536, 104, 50, "", "台架阳极入口", "接收台架供氢调节后的氢气，并送入电堆阳极入口。"),
+          n("anout", "阳极出口", "排放/排水", 720, 536, 104, 50, "", "台架阳极出口", "接收电堆阳极出口气体，并接排放或排水边界。"),
+          n("cool", "台架冷却机", "恒温水路", 182, 638, 104, 50, "", "恒温冷却边界", "以台架冷却机或恒温水路表达冷却边界。"),
+          n("return", "冷却回水", "换热", 350, 638, 104, 50, "", "台架热管理回路", "与电堆热端形成闭合冷却回路。"),
+          n("daq", "台架采集", "KPI / DAQ", 1060, 536, 118, 54, "control", "测量接口", "汇总压力、温度、RH、流量、阀开度、EGR 比例和排水量。")
+        ],
+        pipes: [
+          p("air", "air", "mix"), p("air", "mix", "supply"), p("air", "supply", "ic"), p("air", "ic", "bypass"), path("air", "M746 117 H913 V178"),
+          p("electric", "stack", "load", "right-left"),
+          path("exhaust", "M854 211 H816 V341"),
+          p("exhaust", "caout", "sep", "left"), p("exhaust", "sep", "split", "left"),
+          path("egr", "M390 341 H282 V430"),
+          path("egr", "M282 430 V242 H218 V146"),
+          path("exhaust", "M438 341 V435 H948"),
+          p("h2", "h2", "h2reg"), path("h2", "M286 561 H560"), path("h2", "M664 561 H913 V244"),
+          path("h2", "M936 244 V561 H824"),
+          path("coolant", "M286 663 H350"), path("coolant", "M454 663 H910 V244"),
+          path("coolant", "M936 244 V682 H454"),
+          path("control", "M1060 552 C940 510 820 460 768 366"),
+          path("control", "M1060 565 C880 604 710 592 662 586")
+        ]
+      },
+
+      vehicle: {
+        title: "Vehicle_Config_v1",
+        header: "Vehicle_Config_v1: 含加湿器车载系统结构配置",
+        intro: {
+          name: "含加湿器车载结构",
+          role: "由通用平台配置化派生，用于车载系统方案研究。",
+          detail: "启用加湿器，引入车载空压机、供氢执行机构、热管理、电接口和燃料电池控制器。"
+        },
+        lanes: [
+          ["车载阴极空气链", 72],
+          ["阴极尾气 / cEGR / 排气", 300],
+          ["车载阳极供氢", 520],
+          ["车载热管理与电接口", 628]
+        ],
+        nodes: [
+          n("air", "车外空气", "", 28, 96, 86, 42, "boundary", "车载进气边界", "车载空气入口。"),
+          n("filter", "空气滤清器", "", 150, 96, 96, 42, "", "车载进气过滤", "表达车载空气滤清器及入口阻力。"),
+          n("mix", "压缩机入口", "混合腔", 294, 88, 104, 58, "", "新鲜空气与 cEGR 混合", "cEGR 回流接到压缩机入口前。"),
+          n("comp", "车载空压机", "", 446, 96, 96, 42, "", "车载阴极供气", "后续可接入性能 map 和控制策略。"),
+          n("ic", "中冷器", "热管理", 590, 92, 96, 50, "", "压缩空气冷却", "与整车热管理系统耦合。"),
+          n("hum", "阴极", "加湿器", 734, 92, 96, 50, "", "车载加湿模块", "车载配置启用加湿器，控制入堆湿度。"),
+          n("stack", "车载 PEMFC", "电堆", 904, 178, 112, 66, "stack", "车载能量转换核心", "输出直流电功率。"),
+          n("dcdc", "DC/DC", "高压母线", 1088, 104, 92, 50, "control", "车载电接口", "电堆输出经 DC/DC 接入高压母线。"),
+          n("caout", "阴极出口", "歧管", 760, 316, 96, 50, "", "尾气汇集", "进入水汽分离和尾气分流。"),
+          n("sep", "水汽分离", "排水", 604, 316, 96, 50, "", "车载水管理", "分离阴极尾气中的液态水。"),
+          n("egrv", "cEGR", "控制阀", 294, 430, 96, 50, "", "车载回流控制", "由燃料电池控制器控制的 cEGR 阀。"),
+          n("bpv", "背压阀", "车载排气", 944, 410, 98, 50, "boundary", "阴极排气调节", "控制堆端背压并排向车载排气路径。"),
+          n("h2", "高压氢瓶", "", 28, 542, 86, 42, "boundary", "车载储氢源", "车载高压氢气边界。"),
+          n("prv", "减压阀", "供氢调节", 166, 536, 96, 50, "", "供氢压力调节", "高压氢气经减压和调节后进入喷氢或循环装置。"),
+          n("inj", "喷氢/引射", "循环泵", 446, 536, 104, 50, "", "阳极供氢执行机构", "可选择喷氢阀、引射器或循环泵模型。"),
+          n("anode", "阳极入口", "供氢歧管", 650, 536, 104, 50, "", "车载阳极入口", "接收喷氢、引射或循环泵后的氢气，送入电堆阳极入口。"),
+          n("anout", "阳极出口", "循环/排氮", 804, 536, 104, 50, "", "车载阳极出口", "接收电堆阳极出口气体，并进入阳极循环、排氮或排水支路。"),
+          n("pump", "冷却泵", "", 166, 644, 96, 42, "", "车载冷却执行器", "驱动冷却液通过电堆和散热器。"),
+          n("rad", "散热器", "旁通阀", 322, 638, 104, 50, "", "车载热管理回路", "包含散热器、旁通和节温控制接口。"),
+          n("fcu", "燃料电池", "控制器", 1068, 536, 118, 54, "control", "车载控制中心", "控制空压机、加湿器、cEGR 阀、背压阀、供氢和冷却泵。")
+        ],
+        pipes: [
+          p("air", "air", "filter"), p("air", "filter", "mix"), p("air", "mix", "comp"), p("air", "comp", "ic"), p("air", "ic", "hum"), path("air", "M830 117 H960 V178"),
+          p("electric", "stack", "dcdc", "right-left"),
+          path("exhaust", "M904 211 H856 V341"),
+          p("exhaust", "caout", "sep", "left"),
+          path("egr", "M604 341 H342 V430"), path("egr", "M342 430 V242 H342 V146"),
+          path("exhaust", "M700 341 V435 H944"),
+          p("h2", "h2", "prv"), path("h2", "M262 561 H446"), p("h2", "inj", "anode"), path("h2", "M754 561 H960 V244"),
+          path("h2", "M960 244 V561 H908"), path("h2", "M804 561 V596 H498 V586"),
+          path("coolant", "M262 665 H322"), path("coolant", "M426 663 H936 V244"),
+          path("coolant", "M960 244 V682 H426"),
+          path("control", "M1068 552 C970 510 880 466 790 366"),
+          path("control", "M1068 565 C900 604 720 592 670 586"),
+          path("control", "M1068 548 C1010 430 1010 290 960 210")
+        ]
+      }
+    };
+
+    function n(id, title, sub, x, y, w, h, cls, role, detail) {
+      return { id, title, sub, x, y, w, h, cls, role, detail };
+    }
+
+    function p(type, from, to, mode = "right") {
+      return { type, from, to, mode };
+    }
+
+    function path(type, d) {
+      return { type, d };
+    }
+
+    function nodeCenter(node, side) {
+      if (side === "left") return [node.x, node.y + node.h / 2];
+      if (side === "right") return [node.x + node.w, node.y + node.h / 2];
+      if (side === "top") return [node.x + node.w / 2, node.y];
+      if (side === "bottom") return [node.x + node.w / 2, node.y + node.h];
+      return [node.x + node.w / 2, node.y + node.h / 2];
+    }
+
+    function makePath(pipe, nodes) {
+      if (pipe.d) return pipe.d;
+      const a = nodes.get(pipe.from);
+      const b = nodes.get(pipe.to);
+      let startSide = "right";
+      let endSide = "left";
+      if (pipe.mode === "left") {
+        startSide = "left";
+        endSide = "right";
+      } else if (pipe.mode === "right-left") {
+        startSide = "right";
+        endSide = "left";
+      }
+      const [x1, y1] = nodeCenter(a, startSide);
+      const [x2, y2] = nodeCenter(b, endSide);
+      const mid = Math.round((x1 + x2) / 2);
+      return `M${x1} ${y1} H${mid} V${y2} H${x2}`;
+    }
+
+    function setInfo(view, node) {
+      infoTitle.textContent = view.title;
+      if (!node) {
+        infoSummary.textContent = "点击设备块查看角色说明。";
+        infoName.textContent = view.intro.name;
+        infoRole.textContent = view.intro.role;
+        infoDetail.textContent = view.intro.detail;
+        return;
+      }
+      infoSummary.textContent = "设备节点说明";
+      infoName.textContent = node.title + (node.sub ? ` / ${node.sub}` : "");
+      infoRole.textContent = node.role;
+      infoDetail.textContent = node.detail;
+    }
+
+    function render(viewKey) {
+      const view = views[viewKey];
+      svg.querySelectorAll(".rendered").forEach((el) => el.remove());
+      const layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      layer.setAttribute("class", "rendered");
+      svg.appendChild(layer);
+
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      title.setAttribute("x", "24");
+      title.setAttribute("y", "28");
+      title.setAttribute("class", "title");
+      title.textContent = view.header;
+      layer.appendChild(title);
+
+      view.lanes.forEach(([label, y]) => {
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", "24");
+        t.setAttribute("y", String(y));
+        t.setAttribute("class", "lane-label");
+        t.textContent = label;
+        layer.appendChild(t);
+      });
+
+      const nodeMap = new Map(view.nodes.map((item) => [item.id, item]));
+      view.pipes.forEach((pipe) => {
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        line.setAttribute("class", `pipe ${pipe.type}`);
+        line.setAttribute("d", makePath(pipe, nodeMap));
+        layer.appendChild(line);
+      });
+
+      view.nodes.forEach((node) => {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", `node ${node.cls || ""}`);
+        g.setAttribute("tabindex", "0");
+        g.addEventListener("click", () => {
+          svg.querySelectorAll(".node.active").forEach((item) => item.classList.remove("active"));
+          g.classList.add("active");
+          setInfo(view, node);
+        });
+        g.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            g.dispatchEvent(new Event("click"));
+          }
+        });
+
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", node.x);
+        rect.setAttribute("y", node.y);
+        rect.setAttribute("width", node.w);
+        rect.setAttribute("height", node.h);
+        g.appendChild(rect);
+
+        const main = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        main.setAttribute("x", node.x + node.w / 2);
+        main.setAttribute("y", node.y + (node.sub ? node.h / 2 - 6 : node.h / 2));
+        main.textContent = node.title;
+        g.appendChild(main);
+
+        if (node.sub) {
+          const sub = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          sub.setAttribute("class", "sub");
+          sub.setAttribute("x", node.x + node.w / 2);
+          sub.setAttribute("y", node.y + node.h / 2 + 12);
+          sub.textContent = node.sub;
+          g.appendChild(sub);
+        }
+        layer.appendChild(g);
+      });
+
+      setInfo(view, null);
+    }
+
+    document.querySelectorAll("[data-target]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll("[data-target]").forEach((item) => {
+          item.setAttribute("aria-selected", String(item === tab));
+        });
+        render(tab.dataset.target);
+      });
+    });
+
+    render("platform");
+  </script>
+</body>
+</html>

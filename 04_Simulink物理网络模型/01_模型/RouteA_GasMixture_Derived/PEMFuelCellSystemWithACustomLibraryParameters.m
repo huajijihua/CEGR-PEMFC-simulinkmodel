@@ -48,14 +48,14 @@ stack_alpha = 0.7; % [-] Charge transfer coefficient
 stack_mea_rho = 1800; % [kg/s] Overall density of membrane electrode assembly
 stack_mea_cp = 870; % [J/(kg*K)] Overall specific heat of membrane electrode assembly
 
-anode_tube_D = 0.01; % [m] Hydrogen tube diameter
+anode_tube_D = 0.02; % [m] Hydrogen tube diameter, A9 second-round 50 kW baseline
 cathode_tube_D = 0.05; % [m] Air tube diameter
 
 % Route A cathode cEGR additions
 % The first cEGR implementation returns cathode exhaust to the compressor
-% inlet mixer through an equivalent valve and pipe. Water removal is modeled
-% with the FuelCell_lib chamber/pipe condensation dynamics and audited from
-% Simscape logging before a dedicated separator block is introduced.
+% inlet mixer through an equivalent valve and pipe. Water removal uses
+% explicit FuelCell_lib FC-domain separator interfaces plus chamber/pipe
+% condensation dynamics, with a separate KPI observer for drainage estimates.
 comp_inlet_mixer_V = 0.1; % [l] Compressor inlet mixer volume
 cathode_outlet_chamber_V = 0.2; % [l] Cathode outlet chamber volume
 cegr_pipe_D = cathode_tube_D; % [m] cEGR pipe hydraulic diameter
@@ -69,11 +69,55 @@ cegr_pipe_p0 = env_p; % [MPa] Initial cEGR pipe pressure target
 cegr_inlet_mixer_p0 = env_p; % [MPa] Initial compressor inlet mixer pressure target
 cegr_valve_area_frac_low = 5e-4; % [-] A6 low-EGR smoke valve area fraction
 cegr_valve_area_frac_closed = 1e-6; % [-] Near-closed no-EGR valve area fraction
+cegr_valve_area_frac_max = 0.02; % [-] A9 50 kW platform cEGR upper sanity area fraction
 cegr_valve_area_low = cegr_valve_area_frac_low * cegr_pipe_area; % [m^2]
 cegr_valve_area_closed = cegr_valve_area_frac_closed * cegr_pipe_area; % [m^2]
-cegr_valve_max_area = 0.8 * cegr_pipe_area; % [m^2]
+cegr_valve_max_area = cegr_valve_area_frac_max * cegr_pipe_area; % [m^2]
 cegr_valve_min_area = 1e-10; % [m^2]
 cegr_comp_map_t_denom_epsilon = 1e-9; % [-] Compressor map denominator guard for initialization
+
+% Route A A8 device-chain interface defaults
+% These are platform-default L2 interface values. They make the equipment
+% chain explicit without binding the platform to bench or vehicle hardware.
+intercooler_length = 0.25; % [m] Equivalent charge-air cooler gas path length
+intercooler_extra_length = 0.05; % [m] Equivalent fitting/manifold length
+intercooler_Dh = cathode_tube_D; % [m] Equivalent hydraulic diameter
+intercooler_area = pi*intercooler_Dh^2/4; % [m^2] Equivalent flow area
+intercooler_roughness = 15e-6; % [m] Equivalent wall roughness
+intercooler_cond_tau = 1; % [s] First-order condensation time constant
+intercooler_p0 = env_p; % [MPa] Initial pressure target
+intercooler_T0 = env_T; % [degC] Initial temperature target
+intercooler_dp_nominal = 0.001; % [MPa] Equivalent nominal pressure drop
+intercooler_mdot_nominal = 0.1; % [kg/s] Equivalent nominal cathode flow
+intercooler_laminar_fraction = 1e-3; % [-] Flow resistance smoothing fraction
+
+separator_condensation_enabled = true; % [-] A8 outlet water-management interface flag
+separator_l2_efficiency = 0.5; % [-] First-version separated-water KPI efficiency
+separator_l2_source = "l2_saturation_excess_estimator";
+cathode_separator_D = cegr_pipe_D; % [m] Cathode EGR water separator hydraulic diameter
+cathode_separator_area = pi*cathode_separator_D^2/4; % [m^2] Cathode EGR separator flow area
+cathode_separator_length = 0.15; % [m] Equivalent cathode EGR separator gas path length
+cathode_separator_extra_length = 0.05; % [m] Equivalent cathode separator manifold length
+cathode_separator_roughness = cegr_pipe_roughness; % [m] Equivalent cathode separator roughness
+cathode_separator_p0 = env_p; % [MPa] Initial cathode separator pressure target
+cathode_separator_T0 = env_T; % [degC] Initial cathode separator temperature target
+cathode_separator_dp_nominal = 0.0005; % [MPa] L2 cathode separator nominal pressure drop
+cathode_separator_mdot_nominal = 0.10; % [kg/s] L2 cathode separator nominal gas flow, A9 50 kW baseline
+cathode_separator_laminar_fraction = 1e-3; % [-] L2 cathode separator smoothing fraction
+anode_separator_D = anode_tube_D; % [m] Anode recycle water separator hydraulic diameter
+anode_separator_area = pi*anode_separator_D^2/4; % [m^2] Anode separator flow area
+anode_separator_length = 0.12; % [m] Equivalent anode separator gas path length
+anode_separator_extra_length = 0.04; % [m] Equivalent anode separator manifold length
+anode_separator_roughness = 15e-6; % [m] Equivalent anode separator roughness
+anode_separator_p0 = env_p; % [MPa] Initial anode separator pressure target
+anode_separator_T0 = env_T; % [degC] Initial anode separator temperature target
+anode_separator_dp_nominal = 0.0005; % [MPa] L2 anode separator nominal pressure drop
+anode_separator_mdot_nominal = 0.01; % [kg/s] L2 anode separator nominal gas flow
+anode_separator_laminar_fraction = 1e-3; % [-] L2 anode separator smoothing fraction
+
+routeA_cathode_humidifier_enabled = true; % [-] Default platform keeps cathode humidifier active
+routeA_cathode_humidifier_gain = double(routeA_cathode_humidifier_enabled); % [-] 1 active, 0 bypass
+humidifier_bypass_mode = "command_gain";
 
 % Coolant system
 coolant_w_channels = 1; % [cm] Coolant channel width/height
