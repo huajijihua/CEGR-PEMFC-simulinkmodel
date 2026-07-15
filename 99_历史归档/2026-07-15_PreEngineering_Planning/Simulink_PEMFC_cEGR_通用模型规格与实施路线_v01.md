@@ -4,7 +4,7 @@
 阶段：路线 A 决策后规格更新、接口契约、官方基准模型派生实施路线。
 范围：当前唯一 Simulink 主线为路线 A：以 MathWorks 官方 `PEM Fuel Cell System with the Gas Mixture Domain` 为基准母版，在 `04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/` 中维护唯一模型 `PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`。根层 Simscape Variant Subsystem 以 `routeA_cegr_enabled` 在直接回流和官方无限流阻隔离之间编译期切换。原路线 B `PEMFC_cEGR_Core_Physical_v01.slx` 已归档到 `99_历史归档/2026-07-14_RouteB_Core_Physical/`，不再作为当前建模、计算、排障或默认参考对象。
 
-本文件回答“我们要建成什么模型、有哪些边界、接口如何定义、先后如何实施”。材料来源、候选模型和组件取舍见 [Simulink_PEMFC_cEGR_材料池与模型候选比较_v01.md](E:/agentwork_pemfc_cEGR_0519/Simulink_PEMFC_cEGR_材料池与模型候选比较_v01.md)。
+本文件回答“我们要建成什么模型、有哪些边界、接口如何定义、先后如何实施”。材料来源、候选模型和组件取舍见 [Simulink_PEMFC_cEGR_材料池与模型候选比较_v01.md](../../00_支撑材料/RouteA_材料池与模型候选比较_v01.md)。
 
 ## 0. 剥离原则与参数来源分层
 

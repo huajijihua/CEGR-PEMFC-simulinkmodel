@@ -4,7 +4,7 @@
 阶段：材料池盘点、路线 A 基准模型决策、路线 B 留存审查。  
 范围：MATLAB/Simulink/Simscape 优先；不引入 COMSOL；AMESim 仅作为后续不足时的备选。2026-07-07 已决定全面转向路线 A：以官方 Gas Mixture PEMFC 示例派生 cathode-cEGR 模型；2026-07-14 起 `PEMFC_cEGR_Core_Physical_v01.slx` 已移入 `99_历史归档/2026-07-14_RouteB_Core_Physical/`。
 
-本文件只回答“有哪些成熟材料、候选模型和可复用组件”。当前工程化定义、接口契约和实施路线见 [RouteA_cEGR_PEMFC_工程化建模规格_v01.md](04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md) 与 [RouteA_cEGR_PEMFC_实施与验证路线_v01.md](04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_实施与验证路线_v01.md)。
+本文件只回答“有哪些成熟材料、候选模型和可复用组件”。当前工程化定义、接口契约和实施路线见 [RouteA_cEGR_PEMFC_工程化建模规格_v01.md](../04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md) 与 [RouteA_cEGR_PEMFC_实施与验证路线_v01.md](../04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_实施与验证路线_v01.md)。
 
 ## 1. 结论先行
 
@@ -127,7 +127,7 @@ Moist Air PEMFC 和 FCEV `SSCFuelCell` 的电堆方程成熟，适合对照 MEA 
 5. File Exchange/GitHub 的 `GasN` 只作为 compressor、管路、冷凝和膜水方程参考；除非后续证明官方 `FuelCell` 域组件不足，否则不切换主气体域。
 6. 10 kW 台架只作为后续配置场景和 sanity check，不反向定义路线 A 母版架构。
 
-当前判断：Simulink/Simscape 支撑仍然足够，不需要为当前 Route A 引入 AMESim。具体模型规格、接口契约和实施路线见 [RouteA_cEGR_PEMFC_工程化建模规格_v01.md](04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md) 与 [RouteA_cEGR_PEMFC_实施与验证路线_v01.md](04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_实施与验证路线_v01.md)。
+当前判断：Simulink/Simscape 支撑仍然足够，不需要为当前 Route A 引入 AMESim。具体模型规格、接口契约和实施路线见 [RouteA_cEGR_PEMFC_工程化建模规格_v01.md](../04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md) 与 [RouteA_cEGR_PEMFC_实施与验证路线_v01.md](../04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_实施与验证路线_v01.md)。
 
 ## 7.1 路线 A 基准模型盘点结论
 
