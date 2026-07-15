@@ -1,11 +1,11 @@
 # Route A A10 主模型与复用入口收口 v01
 
-对象模型：`PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`（有 cEGR）和 `PEMFuelCellSystem_GasMixture_noCEGR_RouteA_v01.slx`（无 cEGR）
+对象模型：`PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`（唯一当前模型）
 阶段定位：A10 不再代表台架配置派生，而是 Route A 通用 PEMFC-cEGR 平台的主模型、参数入口、运行入口和可视化入口收口。A10.1 是进入 A11 前的收口强化轮，重点补齐设备语义、参数边界和模型可读性，不新增产品拟合。
 
 ## 1. 主模型结构
 
-Route A 当前保持一套统一的 `platform_default` 参数链、设备子系统边界和控制语义；为稳态基线提供两份规范模型，而不复制台架版或车载版模型。物理主线和控制入口分工如下：
+Route A 当前保持一套统一的 `platform_default` 参数链、设备子系统边界和控制语义；无/有 cEGR 由唯一主模型的编译期物理变体表达，不复制台架版、车载版或独立 no-cEGR 模型。物理主线和控制入口分工如下：
 
 | 区域 | 作用 |
 |---|---|
@@ -26,14 +26,14 @@ Route A 当前保持一套统一的 `platform_default` 参数链、设备子系�
 | 中冷/水分离 | `Intercooler_L2_Interface`、`CathodeWaterSeparator_FC`、`AnodeWaterSeparator_FC` | 当前是 L2 压降/KPI 接口，不写成完整高保真换热器或液态水分离器 |
 | `SeparatorOrCondensation` | 根据出口 `p/T/y_i` 和 EGR/排气流量估算分离/冷凝水 KPI | 只做审计 observer，不改写物理网络内气体组分 |
 
-### 1.1 双基础模型
+### 1.1 单模型 cEGR 变体
 
-| 基础模型 | cEGR 物理连接 | 使用边界 |
+| 模式 | cEGR 物理连接 | 使用边界 |
 |---|---|---|
-| `PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx` | `Cathode_Air_cEGR_BOP.Conn5` 与 `Cathode_Exhaust_Backpressure_Water.Conn1` 直接物理连接，保留水分离、EGR 阀、回流管和压缩机入口混合链 | 有 cEGR 稳态与控制研究；默认 `target_ratio=0.02` |
-| `PEMFuelCellSystem_GasMixture_noCEGR_RouteA_v01.slx` | 在同一跨子系统接口间串入官方 `Infinite Flow Resistance (FC)`，块名 `NoCEGR_CathodeIsolation`，使整条 cEGR 支路零质量流量 | 无 cEGR 稳态基线；阴极出口仍通过既有 `Cathode_Exhaust_Backpressure_Water` 主排气支路离开系统 |
+| `routeA_cegr_enabled=true` | `cEGR_Mode_Selector/withCEGR_PassThrough` 直接连接 `Cathode_Air_cEGR_BOP.Conn5` 与 `Cathode_Exhaust_Backpressure_Water.Conn1`，保留水分离、EGR 阀、回流管和压缩机入口混合链 | 有 cEGR 稳态与控制研究 |
+| `routeA_cegr_enabled=false` | `cEGR_Mode_Selector/noCEGR_Isolation` 在同一接口间串入官方 `Infinite Flow Resistance (FC)`，使整条回流支路零质量流量 | 无 cEGR 稳态基线；阴极出口仍通过既有主排气支路离开系统 |
 
-两者共享同一参数初始化脚本、顶层子系统封装和非 cEGR 物理网络。无 cEGR 基线不用极小阀面积近似关闭，以避免把数值零交叉问题误判为结构差异。
+两种模式共享同一参数初始化脚本、顶层子系统封装和非 cEGR 物理网络。变体仅在 update diagram 时生效，不允许在连续仿真中切换。无 cEGR 强制回流目标为零，不用极小阀面积近似关闭。
 
 ## 2. 长期入口
 
@@ -41,7 +41,7 @@ Route A 当前保持一套统一的 `platform_default` 参数链、设备子系�
 |---|---|---|
 | `01_模型/RouteA_GasMixture_Derived/PEMFuelCellSystemWithACustomLibraryParameters.m` | 模型工作区默认参数源 | 平台初始化、默认工况、控制接口变量 |
 | `03_脚本/RouteA_GasMixture_Derived/run_routeA_platform_demo.m` | 日常仿真入口 | 实验人员或建模人员快速运行名义 PEMFC-cEGR 工况 |
-| `03_脚本/RouteA_GasMixture_Derived/run_routeA_steady_state_cegr_comparison.m` | 双基础模型稳态入口 | 顺序运行 120 s 无 cEGR / 有 cEGR 工况，并验收功率稳态、零回流和目标回流 |
+| `03_脚本/RouteA_GasMixture_Derived/run_routeA_fullcase_study.m` | 唯一全工况研究入口 | 顺序运行低/中/高负载的 no cEGR、0.10、0.30 cEGR 共 9 个 120 s 工况；验收功率、回流、主排气和实测入堆氧计量比 |
 | `03_脚本/RouteA_GasMixture_Derived/run_routeA_a10_entrypoint_audit.m` | A10 收口审计入口 | 检查主模型入口、demo、A9.8/A9.9 最小回归 |
 | `03_脚本/RouteA_GasMixture_Derived/run_routeA_a9_parameter_governance_audit.m` | 参数治理回归入口 | 验证 `platform_default`、external-case guard 和 50 kW 参数门槛 |
 | `03_脚本/RouteA_GasMixture_Derived/run_routeA_a9_8_fcu_bop_control_audit.m` | FCU/BoP 控制回归入口 | 验证空气/cEGR 控制接口 |
@@ -115,7 +115,7 @@ cEGR 跨边界仍按物理责任拆分：阴极出口容腔、EGR 流量测量�
 ```matlab
 run('04_Simulink物理网络模型/03_脚本/RouteA_GasMixture_Derived/run_routeA_platform_demo.m')
 run('04_Simulink物理网络模型/03_脚本/RouteA_GasMixture_Derived/run_routeA_a10_entrypoint_audit.m')
-run('04_Simulink物理网络模型/03_脚本/RouteA_GasMixture_Derived/run_routeA_steady_state_cegr_comparison.m')
+run('04_Simulink物理网络模型/03_脚本/RouteA_GasMixture_Derived/run_routeA_fullcase_study.m')
 ```
 
 通过条件：
@@ -123,7 +123,7 @@ run('04_Simulink物理网络模型/03_脚本/RouteA_GasMixture_Derived/run_route
 - demo runner 完成名义 50.96 kW 工况，`routeA_platform_demo_summary.passed == true`。
 - A10 审计中 preflight、demo、A9.8 最小回归、A9.9 名义压力回归均通过。
 - `model_read(depth=0/1)` 可读回 Route A 操作注释、`FCU_BoP_Control`、空气控制、背压目标和 EGR 阀受控面积链路。
-- 双基础模型对比中无 cEGR 的 `egr_ratio_comp_in` 为零，有 cEGR 的比值收敛到设定值，且两者电堆功率尾段稳定。
+- 全工况 runner 中无 cEGR 的 `egr_ratio_comp_in` 为零；有 cEGR 的 0.10 / 0.30 比值收敛到设定值，功率尾段稳定，且最后 10 s 的实测 `lambda_ca_in > 1`。
 
 ## 7. A10.1 收口强化记录
 
@@ -160,9 +160,9 @@ run('04_Simulink物理网络模型/03_脚本/RouteA_GasMixture_Derived/run_route
 
 A10.2 不改变 A10.1 已冻结的参数来源、控制边界和 A11/A12 研究范围；后续设备配置仍通过 `platform_default` / `external_case` 明确分层。
 
-## 9. 双基础模型稳态验证记录
+## 9. A10.2 双基础模型历史验证记录
 
-执行日期：2026-07-15。无 cEGR 直接使用近零阀面积时出现连续零交叉的数值求解问题，因此没有将该数值现象当作结构结论；改为在完整且已读回的 cEGR 跨子系统物理接口串入官方 `Infinite Flow Resistance (FC)`。这只切断回流支路，未删除主排气路径或改变其他子系统耦合。
+执行日期：2026-07-15。此节保留 A10.2 的历史证据；独立 no-cEGR 模型和双模型 runner 已在 A10.3 单模型变体收口后移入 `99_历史归档/2026-07-15_RouteA_TwoModel_Baseline/`。无 cEGR 直接使用近零阀面积时出现连续零交叉的数值求解问题，因此没有将该数值现象当作结构结论；当前主模型改为在同一跨子系统物理接口内通过变体串入官方 `Infinite Flow Resistance (FC)`。
 
 | 工况 | 120 s 末值 | 稳态判据 |
 |---|---|---|
@@ -170,3 +170,20 @@ A10.2 不改变 A10.1 已冻结的参数来源、控制边界和 A11/A12 研究�
 | 有 cEGR | `P=50.96 kW`，功率尾段跨度 `9.34e-11 kW`，`egr_ratio=0.0200002`，排气 `0.0482054 kg/s` | 通过：目标回流比 0.02，最后 10 s 比值跨度 `2.38e-7` |
 
 `model_check(["all"])` 对两个顶层模型均无 error-level 问题；仍有 65 条 warning-level 物理端口诊断，这是普通 Subsystem 边界下该检查器不能完整追踪 Simscape 守恒连接的已知限制。已由根层连接读回和上述两套独立仿真结果交叉验证，未将 warning 伪报为零告警。
+
+## 10. A10.3 单模型全工况收口
+
+执行日期：2026-07-15。
+
+- 唯一主模型的根层 `cEGR_Mode_Selector` 使用 Simscape Variant Subsystem；`routeA_cegr_enabled=true` 激活 `withCEGR_PassThrough`，`false` 激活串有官方 `Infinite Flow Resistance (FC)` 的 `noCEGR_Isolation`。变体激活时机为 update diagram，单次连续仿真内不得切换。
+- `CathodeInletMassFlowSensor_FC` 串接在 `Cathode_Air_cEGR_BOP.B -> Stack_Core.B`；其氧组分质量流与 `Measurements.i` 共同计算只读 KPI：`lambda_ca_in=(mdot_O2_in/M_O2)/(N_cells*abs(I_stack)/(4F))`。该 KPI 不反馈控制器。
+- 0.30 回流目标暴露原 `cegr_valve_area_frac_max=0.02` 的控制器饱和，更新为 `0.05` 后名义 0.30 达到 0.29997。低负载无 cEGR 初始化时，`FCU_BoP_Control/Abs comp mdot` 在零流量处产生连续零交叉；仅关闭该 Abs 块的零交叉检测，保留绝对值计算、PI 控制律和物理连接。
+- `run_routeA_fullcase_study.m` 是唯一研究入口。每个 case 重新加载模型、设置变体并 update diagram；no-cEGR 强制目标回流为零，非零目标会被拒止。默认不导出 CSV、图片或缓存文件，仅返回 `routeA_fullcase_study` 和 `routeA_fullcase_summary`。
+
+| 负载 | OER | no cEGR: 实际回流 / `lambda_ca_in` | 0.10: 实际回流 / `lambda_ca_in` | 0.30: 实际回流 / `lambda_ca_in` |
+|---|---:|---:|---:|---:|
+| 17.472 kW | 4 | `0 / 3.998` | `0.099996 / 3.866` | `0.299966 / 3.477` |
+| 50.960 kW | 3 | `0 / 2.998` | `0.099993 / 2.868` | `0.299974 / 2.489` |
+| 77.952 kW | 2 | `0 / 1.999` | `0.099994 / 1.878` | `0.299983 / 1.540` |
+
+九个 120 s case 全部完成，关键 KPI 有限、功率尾段稳定、主排气有限，且每个 case 最后 10 s 内 `lambda_ca_in > 1`。同一负载下实际回流均满足 `noCEGR < 0.10 < 0.30`。本轮 `model_check(["all"])` 无 error-level 问题；70 条 warning-level 物理端口诊断仍由模型结构读回和全工况仿真交叉验证，不伪报为零告警。

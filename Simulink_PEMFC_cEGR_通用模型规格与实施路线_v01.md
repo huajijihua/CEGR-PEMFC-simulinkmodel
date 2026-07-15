@@ -2,7 +2,7 @@
 
 日期：2026-07-07；状态核查更新：2026-07-15
 阶段：路线 A 决策后规格更新、接口契约、官方基准模型派生实施路线。
-范围：当前唯一 Simulink 主线为路线 A：以 MathWorks 官方 `PEM Fuel Cell System with the Gas Mixture Domain` 为基准母版，在 `04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/` 中维护一套共享参数和子系统边界的双基础模型：`PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx` 与 `PEMFuelCellSystem_GasMixture_noCEGR_RouteA_v01.slx`。原路线 B `PEMFC_cEGR_Core_Physical_v01.slx` 已归档到 `99_历史归档/2026-07-14_RouteB_Core_Physical/`，不再作为当前建模、计算、排障或默认参考对象。
+范围：当前唯一 Simulink 主线为路线 A：以 MathWorks 官方 `PEM Fuel Cell System with the Gas Mixture Domain` 为基准母版，在 `04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/` 中维护唯一模型 `PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`。根层 Simscape Variant Subsystem 以 `routeA_cegr_enabled` 在直接回流和官方无限流阻隔离之间编译期切换。原路线 B `PEMFC_cEGR_Core_Physical_v01.slx` 已归档到 `99_历史归档/2026-07-14_RouteB_Core_Physical/`，不再作为当前建模、计算、排障或默认参考对象。
 
 本文件回答“我们要建成什么模型、有哪些边界、接口如何定义、先后如何实施”。材料来源、候选模型和组件取舍见 [Simulink_PEMFC_cEGR_材料池与模型候选比较_v01.md](E:/agentwork_pemfc_cEGR_0519/Simulink_PEMFC_cEGR_材料池与模型候选比较_v01.md)。
 
@@ -208,9 +208,9 @@ Official MEA
 | 派生模型目录 | `04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/` |
 | Route A 脚本目录 | `04_Simulink物理网络模型/03_脚本/RouteA_GasMixture_Derived/` |
 | Route A 说明目录 | `04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/` |
-| Route A 规范基础模型 | 有 cEGR：`PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`；无 cEGR：`PEMFuelCellSystem_GasMixture_noCEGR_RouteA_v01.slx` |
+| Route A 规范基础模型 | 唯一模型：`PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`；`routeA_cegr_enabled` 在 update-diagram 时选择 cEGR 直连或 no-cEGR 隔离 |
 | 参数起点 | 继承官方 `PEMFuelCellSystemWithACustomLibraryParameters.m` 的 model workspace 变量，再新增 `cegr_*` 参数组 |
-| 基础模型差异 | 有 cEGR 模型保留跨子系统回流连接；无 cEGR 模型仅以官方 `Infinite Flow Resistance (FC)` 块 `NoCEGR_CathodeIsolation` 替换该连接，使回流质量流量为零，同时保留原阴极主排气支路 |
+| 模式差异 | `cEGR_Mode_Selector/withCEGR_PassThrough` 保留跨子系统回流直连；`noCEGR_Isolation` 以官方 `Infinite Flow Resistance (FC)` 隔离该连接，使回流质量流量为零，同时保留原阴极主排气支路 |
 | 禁止事项 | 不覆盖官方归档 `.slx`；不把路线 B 模型另存为路线 A；不先删除官方阳极、热端、电负载和测量结构 |
 
 ### 11.2 最小插入路径
@@ -294,7 +294,7 @@ PEMFuelCellSystemWithACustomLibrary
 
 ### 11.5 分阶段执行计划
 
-Route A 后续不按“直接代入台架参数”推进，而按“通用平台参数治理、基底多工况验证、边界驱动探明、控制开放度治理、主模型入口收口后，再派生台架配置与车载配置”的层级推进。A8 设备链补齐后，已按 Phase A9 完成当前 50 kW 通用平台的参数表、缩放规则和验证闭环治理；A9.5-A9.9 已完成多工况、边界、执行器、FCU/BoP 和背压接口审计。Phase A10 先收口主模型、参数脚本、长期 runner、阶段审计入口和模型内可视化。无 cEGR / 有 cEGR 是同一平台透明且可比较的两份基础模型，不是台架或车载派生；随后才进入 A11/A12 结构配置派生：
+Route A 后续不按“直接代入台架参数”推进，而按“通用平台参数治理、基底多工况验证、边界驱动探明、控制开放度治理、主模型入口收口后，再派生台架配置与车载配置”的层级推进。A8 设备链补齐后，已按 Phase A9 完成当前 50 kW 通用平台的参数表、缩放规则和验证闭环治理；A9.5-A9.9 已完成多工况、边界、执行器、FCU/BoP 和背压接口审计。Phase A10 先收口主模型、参数脚本、长期 runner、阶段审计入口和模型内可视化。无 cEGR / 有 cEGR 是同一模型的编译期物理变体，不是台架或车载派生；随后才进入 A11/A12 结构配置派生：
 
 | 层级 | 角色 | 阴极侧结构 | 参数原则 |
 |---|---|---|---|
@@ -358,13 +358,13 @@ A9.5 输出应以 summary table 为主，默认包含：case id、负载档、EG
 12. A9.5 不验收产品拟合或台架误差，只验收 9 个功能性工况的可计算性、关键 KPI 有限性、压力链合理性、EGR 档位方向性和负载趋势一致性。
 13. A9.6 不修改 `.slx`，只验收边界输入清单、气路节点传递关系、现有测量口径和控制接口缺口是否讲清楚。
 14. 台架版和车载版必须继承同一套通用平台参数基线与缩放规则，再做 A11/A12 结构改版。
-15. 无 cEGR / 有 cEGR 基础模型允许作为同一平台的规范对照对存在；它们必须共享 `platform_default`、顶层子系统语义和非 cEGR 网络，差异只允许位于明确标记的回流隔离接口。台架版和车载版仍必须作为通用平台配置或变体表达，不复制出互相割裂的模型；台架版无加湿器应通过旁路/禁用实现，不能从通用平台删除加湿器能力。
+15. 无 cEGR / 有 cEGR 必须作为同一模型的规范物理变体表达，共享 `platform_default`、顶层子系统语义和非 cEGR 网络；差异只允许位于明确标记的 `cEGR_Mode_Selector` 回流隔离接口。台架版和车载版仍必须作为通用平台配置或变体表达，不复制出互相割裂的模型；台架版无加湿器应通过旁路/禁用实现，不能从通用平台删除加湿器能力。
 16. A10 验收主模型与复用入口，不验收产品拟合或新控制性能：顶层操作/诊断标注可读回，参数脚本分区清楚，`run_routeA_platform_demo.m` 可作为日常入口，`run_routeA_a10_entrypoint_audit.m` 可完成 preflight、demo、A9.8 最小回归和 A9.9 名义压力回归。
 
 ### 11.7 当前执行记录
 
-首次执行日期：2026-07-07；A9 收尾复验日期：2026-07-10；A9.5 多工况仿真测试日期：2026-07-10；A9.6 边界驱动审计日期：2026-07-10；A10.1 收口强化日期：2026-07-14；双基础模型稳态复验日期：2026-07-15。<br>
-工作副本：`04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`（有 cEGR）和 `04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/PEMFuelCellSystem_GasMixture_noCEGR_RouteA_v01.slx`（无 cEGR）。
+首次执行日期：2026-07-07；A9 收尾复验日期：2026-07-10；A9.5 多工况仿真测试日期：2026-07-10；A9.6 边界驱动审计日期：2026-07-10；A10.1 收口强化日期：2026-07-14；A10.3 单模型全工况复验日期：2026-07-15。<br>
+工作副本：`04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`；无/有 cEGR 由 `routeA_cegr_enabled` 控制的 `cEGR_Mode_Selector` 变体提供。
 
 | 阶段 | 当前状态 | 证据 |
 |---|---|---|
@@ -386,13 +386,13 @@ A9.5 输出应以 summary table 为主，默认包含：case id、负载档、EG
 | Phase A9.9 | 已完成第一轮阴极背压/出口压力控制接口规整 | 已将 `Cathode Exhaust/Stack Pressure` 从固定 `0.06` 改为 `routeA_target_p_ca_out_MPa - env_p`，保留官方 `Pressure Relief Valve` 作为目标压力驱动的 backpressure regulator；新增 `run_routeA_a9_9_backpressure_control_audit.m` 和审计文档。三点压力目标 0.145/0.161325/0.180 MPa 均通过，`generated=1`、`passed=1` |
 | Phase A10 | 已完成入口收口 | 新增 `run_routeA_platform_demo.m`、`run_routeA_a10_entrypoint_audit.m` 和 `RouteA_A10_主模型与复用入口收口_v01.md`；`run_routeA_platform_demo.m` 已通过名义 50.96 kW 工况，`run_routeA_a10_entrypoint_audit.m` 已通过 preflight、demo、A9.8 三个最小工况和 A9.9 名义压力回归 |
 | Phase A10.1 | 已完成收口强化 | 模型顶层操作注释更新为 `RouteA Operator A10.1`；参数脚本补充 air/compressor、cEGR、backpressure、water-management、anode、cooling 和 FCU-BoP control 的 profile 边界注释；A10 说明补充设备语义、L2 接口边界和紧凑回归口径；项目非官方支撑材料范围内未发现 `slprj/` 或 `.slxc` |
-| Phase A10.2 | 已完成双基础模型与稳态验证 | 顶层已按设备语义封装为六个功能域。无 cEGR 模型在 `Cathode_Air_cEGR_BOP.Conn5` 与 `Cathode_Exhaust_Backpressure_Water.Conn1` 间串入官方 `NoCEGR_CathodeIsolation`，有 cEGR 模型保留直连。120 s 对比通过：两者均为 50.96 kW 稳态；无 cEGR `egr_ratio=0`、主排气 `0.04901 kg/s`，有 cEGR `egr_ratio=0.0200002`、主排气 `0.0482054 kg/s` |
+| Phase A10.3 | 已完成单模型全工况收口 | 根层 `cEGR_Mode_Selector` 以 `routeA_cegr_enabled` 在直连与官方无限流阻隔离间编译期切换；`run_routeA_fullcase_study.m` 的 9 个 120 s 工况全部通过，no-cEGR 实际回流为零，0.10/0.30 均跟踪，尾段实测 `lambda_ca_in > 1` |
 | Phase A11 | 待启动 | 在通用平台上形成无加湿器 `Bench_Config_v1`，只作为结构配置，不做台架参数拟合 |
 | Phase A12 | 待启动 | 在通用平台上形成含加湿器的 `Vehicle_Config_v1`，逐步引入车载 BOP 和功率等级缩放 |
 
 当前 A6 的核心结论不是单纯数值容差问题，而是物理网络拓扑问题。官方 `Cathode Gas Channels` 本身是 `Constant Volume Chamber (FC)`；新增 `CathodeOutletChamber` 也是库存容腔。分层诊断显示：`no_egr_isolated` 与保留 `CompressorInletMixer` 的 no-EGR 可计算；只要把 `CathodeOutletChamber` 直接插入 `Cathode Gas Channels.C -> Cathode Exhaust` 主路径，即使不接 EGR 传感器、阀、管和入口回流，也会 IC failure。加入 `Flow Resistance (FC)` 后，完整 closed-valve 回路可计算，说明该流阻承担的是系统级 ODE/DAE 网络中必要的流量-压差关系，而不是为了“调参”硬凑收敛。
 
-A6 当前已收口为“官方 Route A 默认模型上的 cEGR 物理拓扑与低/中 EGR 扫描成立”。它不代表 EGR 阀、出口分离器、冷凝排水、台架背压或控制策略已经完成标定。A7 已收口为“默认参数层隔离、外部案例拒止、平台最小结构读回和 stack/BOP/cEGR 粗量级匹配通过”。A8 已收口为“通用平台设备链缺口补齐”：显式中冷/后冷 L2 接口、阴极 EGR 与阳极回流两侧 FC 域水分离接口、可配置加湿器旁路、直接 RH KPI 和冷凝/分离水 KPI 均已具备模型内命名块、信号和 30 s smoke 证据。`SeparatorOrCondensation` 当前只作为 KPI observer，不替代物理设备接口。A9 已收口为“50 kW 通用平台参数基线与验证入口治理完成”：以 `400 cells x 280 cm^2` 电堆和约 50 kW 名义点为内核，第二轮将 `anode_tube_D=0.02 m`、`cathode_separator_mdot_nominal=0.10 kg/s`、`cegr_valve_area_frac_max=0.02` 固化为默认基线，`run_routeA_a9_parameter_governance_audit.m` 已通过 A8 回归、`nominal_50kW_steady`、`max_cegr_area_sanity` 和第二轮硬门槛。A9.5 已收口为“基底模型 9 点多工况功能性仿真通过”：no-EGR、low-EGR、mid-EGR 分别覆盖低/中/高负载，全部 30 s 达到稳态，EGR 档位方向性和功率负载趋势通过；A9.5 后 A9 回归仍通过。A9.6 已完成第一轮只读边界驱动审计：功率命令、外界/氢源组分与状态、阀面积、加湿器 gain 和设备参数是当前主要开放入口；气体质量流量由物理网络求解。A9.7 已完成控制执行器与宏观边界量化关系审计：功率需求、OER setpoint、cEGR 阀面积和加湿器 gain 的方向性均已用 17 个短工况量化验证。A9.8 已完成第一轮 FCU/BoP 控制接口显式化：空气目标质量流量、OER 和 direct command 已进入模型内 compressor command/rpm 链路；cEGR 目标 ratio 和 direct_area 已进入 `FCU_BoP_Control -> EGRValveRestriction.AR` 链路。A9.9 已完成阴极出口压力/背压设定接口规整：现有 `Pressure Relief Valve` 明确为目标压力驱动的 backpressure regulator，`routeA_target_p_ca_out_MPa` 可直接设置阴极出口压力目标。A10/A10.1 已把这些能力收口为清晰的主模型入口、参数入口、demo runner、回归 runner、模型内操作说明和参数 profile 边界；A10.1 的紧凑回归只验收被过滤工况的完成性和 KPI 有限性，不把 A9.8 单工况 filter 输出中的全矩阵分类 `passed=0` 误判为失败。阳极 lambda/purge、阀开度型背压 PI 变体和完整热管理 FCU 仍是 A11/A12 之后的扩展项。
+A6 当前已收口为“官方 Route A 默认模型上的 cEGR 物理拓扑与低/中 EGR 扫描成立”。它不代表 EGR 阀、出口分离器、冷凝排水、台架背压或控制策略已经完成标定。A7 已收口为“默认参数层隔离、外部案例拒止、平台最小结构读回和 stack/BOP/cEGR 粗量级匹配通过”。A8 已收口为“通用平台设备链缺口补齐”：显式中冷/后冷 L2 接口、阴极 EGR 与阳极回流两侧 FC 域水分离接口、可配置加湿器旁路、直接 RH KPI 和冷凝/分离水 KPI 均已具备模型内命名块、信号和 30 s smoke 证据。`SeparatorOrCondensation` 当前只作为 KPI observer，不替代物理设备接口。A9 已收口为“50 kW 通用平台参数基线与验证入口治理完成”：以 `400 cells x 280 cm^2` 电堆和约 50 kW 名义点为内核，第二轮将 `anode_tube_D=0.02 m`、`cathode_separator_mdot_nominal=0.10 kg/s`、`cegr_valve_area_frac_max=0.02` 作为当时的默认基线。A10.3 为覆盖 0.30 回流目标，将后者更新为 `0.05`，并用全工况 runner 复验。`run_routeA_a9_parameter_governance_audit.m` 保留 A9 历史证据，不再单独定义当前研究入口。A9.5 已收口为“基底模型 9 点多工况功能性仿真通过”：no-EGR、low-EGR、mid-EGR 分别覆盖低/中/高负载，全部 30 s 达到稳态，EGR 档位方向性和功率负载趋势通过；A9.5 后 A9 回归仍通过。A9.6 已完成第一轮只读边界驱动审计：功率命令、外界/氢源组分与状态、阀面积、加湿器 gain 和设备参数是当前主要开放入口；气体质量流量由物理网络求解。A9.7 已完成控制执行器与宏观边界量化关系审计：功率需求、OER setpoint、cEGR 阀面积和加湿器 gain 的方向性均已用 17 个短工况量化验证。A9.8 已完成第一轮 FCU/BoP 控制接口显式化：空气目标质量流量、OER 和 direct command 已进入模型内 compressor command/rpm 链路；cEGR 目标 ratio 和 direct_area 已进入 `FCU_BoP_Control -> EGRValveRestriction.AR` 链路。A9.9 已完成阴极出口压力/背压设定接口规整：现有 `Pressure Relief Valve` 明确为目标压力驱动的 backpressure regulator，`routeA_target_p_ca_out_MPa` 可直接设置阴极出口压力目标。A10/A10.1 已把这些能力收口为清晰的主模型入口、参数入口、demo runner、回归 runner、模型内操作说明和参数 profile 边界；A10.1 的紧凑回归只验收被过滤工况的完成性和 KPI 有限性，不把 A9.8 单工况 filter 输出中的全矩阵分类 `passed=0` 误判为失败。阳极 lambda/purge、阀开度型背压 PI 变体和完整热管理 FCU 仍是 A11/A12 之后的扩展项。
 
 ### 11.8 配套脚本资产
 
@@ -404,7 +404,7 @@ A6 当前已收口为“官方 Route A 默认模型上的 cEGR 物理拓扑与�
 | `01_模型/RouteA_GasMixture_Derived/PEMFuelCellSystemWithACustomLibraryDriveCycle.mat` | 官方 drive cycle 数据源，被参数脚本加载 | 是，若继续使用官方 drive-cycle 工况 | 与参数脚本同目录保留；10 kW 代表点不得接入默认初始化链 |
 | `03_脚本/RouteA_GasMixture_Derived/run_routeA_platform_demo.m` | Route A A10 后的日常仿真入口；设置名义工况、调用 `sim()`、输出 `routeA_platform_demo_summary` | 是，长期入口 | 默认 50.96 kW、target_mdot、target_egr_ratio、target_p_ca_out、加湿器 gain 和冷却 setpoint 均走模型工作区变量；不导出 CSV/图片/全量 timeseries |
 | `03_脚本/RouteA_GasMixture_Derived/run_routeA_a10_entrypoint_audit.m` | Route A A10 主模型与复用入口收口审计；检查主模型入口、参数变量、可视化注释、demo runner、A9.8/A9.9 最小回归 | 是，A10 收口入口 | 输出 `routeA_a10_entrypoint_audit`；用于确认 A10 没有把计算搬到脚本，也没有破坏 A9.8/A9.9 控制接口 |
-| `03_脚本/RouteA_GasMixture_Derived/run_routeA_steady_state_cegr_comparison.m` | 两份规范基础模型的稳态对比入口 | 是，A10.2 验证入口 | 顺序加载模型工作区并运行 120 s；验收功率尾段稳定、无 cEGR 回流为零、有 cEGR 回流达到目标比值 |
+| `03_脚本/RouteA_GasMixture_Derived/run_routeA_fullcase_study.m` | 单模型全工况研究入口 | 是，唯一研究入口 | 每 case 重载模型并在 update-diagram 时选择变体；覆盖低/中/高负载与 no-cEGR/0.10/0.30，验收功率、回流、主排气和实测氧计量比 |
 | `03_脚本/RouteA_GasMixture_Derived/run_routeA_*.m` | A6-A9.9 阶段回归和排障脚本 | 是，阶段证据/回归入口 | 已从模型目录移出；脚本运行时会显式定位并加载 `01_模型/RouteA_GasMixture_Derived/` 下的模型 |
 | `04_说明/RouteA_GasMixture_Derived/RouteA_*.md` | Route A 阶段审计和说明文档 | 是，说明入口 | 已从模型目录移出；保留 A8-A10 设备链、参数治理、边界、控制和背压接口证据 |
 | `03_脚本/RouteA_GasMixture_Derived/run_routeA_a7_bench_sanity.m` | 旧 10 kW 外部案例 sanity 草稿入口 | 否，默认禁用 | 不是 A7 主入口；只允许作为显式 `external_case` 回放工具。脚本默认报错，只有显式设置 `routeA_enable_external_case_bench_10kw = true` 后才运行 |

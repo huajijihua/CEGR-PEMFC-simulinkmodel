@@ -124,7 +124,10 @@ cegr_pipe_p0 = env_p; % [MPa] Initial cEGR pipe pressure target
 cegr_inlet_mixer_p0 = env_p; % [MPa] Initial compressor inlet mixer pressure target
 cegr_valve_area_frac_low = 5e-4; % [-] A6 low-EGR smoke valve area fraction
 cegr_valve_area_frac_closed = 1e-6; % [-] Near-closed no-EGR valve area fraction
-cegr_valve_area_frac_max = 0.02; % [-] A9 50 kW platform cEGR upper sanity area fraction
+% The 0.30 cEGR target requires more than the former 2 percent limit at the
+% 50 kW platform point. This remains an upper physical opening bound, not a
+% no-cEGR numerical workaround; no-cEGR uses cEGR_Mode_Selector isolation.
+cegr_valve_area_frac_max = 0.05; % [-] Platform cEGR upper opening fraction
 cegr_valve_area_low = cegr_valve_area_frac_low * cegr_pipe_area; % [m^2]
 cegr_valve_area_closed = cegr_valve_area_frac_closed * cegr_pipe_area; % [m^2]
 cegr_valve_max_area = cegr_valve_area_frac_max * cegr_pipe_area; % [m^2]
@@ -223,6 +226,10 @@ routeA_air_pid_Kp = 5; % [-/(kg/s)] First-version mass-flow PI proportional gain
 routeA_air_pid_Ki = 0.5; % [-/(kg/s*s)] First-version mass-flow PI integral gain
 
 routeA_control_mode_egr = "target_ratio";
+% cEGR topology is selected at update-diagram time by cEGR_Mode_Selector.
+% Keep the full recirculation network as the platform default; no-cEGR
+% cases use the same model with an Infinite Flow Resistance (FC) isolation.
+routeA_cegr_enabled = true;
 routeA_egr_control_mode_id = 1; % 1 target_ratio, 2 direct_area
 routeA_target_egr_ratio_comp_in = 0.02; % [-] abs(cEGR mdot)/abs(compressor inlet mdot)
 routeA_egr_valve_area_direct = 2e-3 * cegr_pipe_area; % [m^2] Open-loop cEGR valve area
