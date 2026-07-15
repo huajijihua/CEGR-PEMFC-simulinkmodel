@@ -57,7 +57,7 @@ try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
     paths = routeA_block_paths(model);
-    markDemoSignals(model, paths);
+    markDemoSignals(paths);
     mw = get_param(model, 'ModelWorkspace');
     pipeArea = getWorkspaceValue(mw, 'cegr_pipe_area', 0.0019634954);
     if ~isfinite(cfg.directEgrArea)
@@ -148,7 +148,7 @@ summary.mWaterSep = scalarLastOrFallback(simOut, logsout, ...
     "routeA_m_water_sep", "routeA_m_water_sep_ts");
 end
 
-function markDemoSignals(model, paths)
+function markDemoSignals(paths)
 nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
 nameLineFromBlockOut(paths.compressorCommandSwitch, ...

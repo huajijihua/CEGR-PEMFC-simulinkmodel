@@ -3,7 +3,7 @@
 日期：2026-07-07
 定位：本文件从 `Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md` 分离出原路线 B 的结构探索记录、接口命名、审查结果和缺陷经验。路线 B 不再作为当前主建模路线；当前主线以官方 Gas Mixture PEMFC 派生路线 A 为准。
 
-关联主文件：[Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md](E:/agentwork_pemfc_cEGR_0519/Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md)
+关联主文件：[Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md](Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md)
 
 ## 11. 路线 B 留存模型状态
 

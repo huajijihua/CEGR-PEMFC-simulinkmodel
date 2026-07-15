@@ -47,7 +47,7 @@
 | `Vehicle Configuration` | 车载系统扩展 | 空压机、中冷器、加湿器、完整冷却回路、控制器、大功率电堆、整车功率接口 | 需要后续供应商/文献/实验数据支撑 |
 | `Scaling Rules` | 功率等级迁移 | `N_cell`、`area_cell`、流道体积、阀面积、气源能力、冷却容量、热容量、传感器量程参数化 | 不用 10 kW 数据外推为通用规律 |
 
-路线 B 的完整留存记录已分离至 [Simulink_PEMFC_cEGR_路线B留存归档_v01.md](E:/agentwork_pemfc_cEGR_0519/Simulink_PEMFC_cEGR_路线B留存归档_v01.md)。2026-07-14 已将路线 B 模型、参数脚本、旧审计脚本和旧整改要求移入 `99_历史归档/2026-07-14_RouteB_Core_Physical/`。主文件只保留路线 B 的历史定位；后续 Route A 工作不再默认查路线 B 文件，只在需要解释早期决策来源时追溯。
+路线 B 的完整留存记录已分离至 [Simulink_PEMFC_cEGR_路线B留存归档_v01.md](Simulink_PEMFC_cEGR_路线B留存归档_v01.md)。2026-07-14 已将路线 B 模型、参数脚本、旧审计脚本和旧整改要求移入 `99_历史归档/2026-07-14_RouteB_Core_Physical/`。主文件只保留路线 B 的历史定位；后续 Route A 工作不再默认查路线 B 文件，只在需要解释早期决策来源时追溯。
 
 ## 3. Route A 推荐系统边界
 
