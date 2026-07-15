@@ -6,7 +6,7 @@
 |---|---|
 | `2026-07-14_RouteA_Official_Example_Scripts/` | 官方示例的历史展示与绘图脚本 |
 | `2026-07-14_RouteB_Core_Physical/` | 已停用的路线 B 物理模型与配套资产 |
-| `2026-07-15_PreEngineering_Planning/` | 工程化重整前的路线说明和拓扑可视化 |
+| `2026-07-15_PreEngineering_Planning/` | 工程化重整前的路线说明、拓扑可视化、旧 Agent/COMSOL 协作说明及 10/240 kW 结构要求素材 |
 | `2026-07-15_RouteA_TwoModel_Baseline/` | 独立无 cEGR 模型与双模型比较 runner |
 | `2026-07-15_RouteA_Stage_Evidence/` | A6-A10 阶段审计脚本和说明 |
 
