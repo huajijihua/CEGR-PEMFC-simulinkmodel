@@ -45,14 +45,16 @@ study.results = results;
 study.nominalGatePassed = nominalGatePassed;
 study.monotonicEgrChecks = checkEgrOrdering(results);
 study.summaryTable = resultTable(results);
-study.passed = all([results.passed]) && all([study.monotonicEgrChecks.passed]);
+study.passed = builtin('all', [results.passed]) && ...
+    builtin('all', [study.monotonicEgrChecks.passed]);
 assignin('base', 'routeA_fullcase_study', study);
 assignin('base', 'routeA_fullcase_summary', study.summaryTable);
 
 fprintf('\nRoute A full-case study summary\n');
 disp(study.summaryTable);
 fprintf('  nominalGatePassed=%d orderingPassed=%d overallPassed=%d\n', ...
-    study.nominalGatePassed, all([study.monotonicEgrChecks.passed]), study.passed);
+    study.nominalGatePassed, ...
+    builtin('all', [study.monotonicEgrChecks.passed]), study.passed);
 
 function cfg = studyConfig(model, modelFile)
 resetModelFromDisk(model, modelFile);
@@ -211,7 +213,7 @@ r.egrTailSpan = timeTailSpan(egr, cfg.tailSeconds);
 r.exhaustMdotKgS = exhaust.Data(end);
 r.lambdaCaInTailMin = tailMinimum(lambda, cfg.tailSeconds);
 r.lambdaCaInTailMax = tailMaximum(lambda, cfg.tailSeconds);
-r.finiteOk = all(isfinite([r.actualPowerKW, r.powerTailSpanKW, ...
+r.finiteOk = builtin('all', isfinite([r.actualPowerKW, r.powerTailSpanKW, ...
     r.egrRatio, r.egrTailSpan, r.exhaustMdotKgS, ...
     r.lambdaCaInTailMin, r.lambdaCaInTailMax]));
 end
@@ -290,7 +292,8 @@ for idx = 1:numel(loads)
     loadId = loads(idx);
     subset = results([results.loadId] == loadId);
     checks(idx).loadId = loadId;
-    if numel(subset) ~= 3 || any([subset.skipped]) || ~all([subset.passed])
+    if numel(subset) ~= 3 || any([subset.skipped]) || ...
+            ~builtin('all', [subset.passed])
         checks(idx).message = "All three passing topology cases are required.";
         continue;
     end

@@ -99,6 +99,8 @@ paths.recirculation = [paths.anode '/Recirculation'];
 paths.anodeHumidifier = [paths.anode '/Anode Humidifier'];
 
 paths.coolingSystem = [paths.thermal '/Cooling System'];
+paths.coolingPump = [paths.coolingSystem '/Pump'];
+paths.coolingPumpControl = [paths.coolingSystem '/Pump Control'];
 paths.heatDissipation = [paths.thermal '/Heat Dissipation'];
 paths.stackTemperature = [paths.coolingSystem '/Stack Temperature'];
 end
