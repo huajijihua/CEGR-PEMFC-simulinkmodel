@@ -3,17 +3,18 @@
 % 3 cEGR valve settings. It does not save or structurally edit the model.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
-oldDir = pwd;
 scriptDir = fileparts(mfilename('fullpath'));
-if ~isempty(scriptDir)
-    cd(scriptDir);
-end
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
+oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a9_5_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
 
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 mw = get_param(model, 'ModelWorkspace');
+paths = routeA_block_paths(model);
 
 audit = struct();
 audit.model = model;
@@ -21,7 +22,7 @@ audit.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 audit.phase = "A9.5";
 audit.scope = "platform_default functional multicase test";
 audit.note = "No structural edit; no external_case; no stoich/inlet control interface added.";
-audit.preflight = runPreflight(model, mw);
+audit.preflight = runPreflight(model, mw, paths);
 audit.caseDefinitions = buildCaseDefinitions(mw);
 audit.caseFilter = getBaseStringArray('routeA_a9_5_case_filter');
 if ~isempty(audit.caseFilter)
@@ -80,7 +81,7 @@ end
 assignin('base', 'routeA_a9_5_multicase_functional_test', audit);
 dispAudit(audit);
 
-function result = runPreflight(model, mw)
+function result = runPreflight(model, mw, paths)
 result = struct( ...
     'passed', false, ...
     'errorId', "", ...
@@ -105,7 +106,7 @@ try
     result.anodeTubeOk = near(anodeTubeD, 0.02, 1e-9);
     result.cathodeSeparatorOk = near(cathSepMdot, 0.10, 1e-9);
     result.cegrMaxFractionOk = near(cegrMaxFrac, 0.02, 1e-12);
-    result.signalsAvailable = requiredBlocksPresent(model);
+    result.signalsAvailable = requiredBlocksPresent(model, paths);
     result.passed = result.layerOk && result.externalCaseDisabled && ...
         result.anodeTubeOk && result.cathodeSeparatorOk && ...
         result.cegrMaxFractionOk && result.signalsAvailable;
@@ -202,7 +203,8 @@ fprintf('\nRoute A A9.5 case: %s stop=%g s target=%.4g kW area=%s\n', ...
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    markAuditSignals(model);
+    paths = routeA_block_paths(model);
+    markAuditSignals(paths);
     simIn = Simulink.SimulationInput(model);
     simIn = simIn.setModelParameter( ...
         'StopTime', sprintf('%.16g', stopTime), ...
@@ -216,7 +218,7 @@ try
         [0; c.targetPowerKW; c.targetPowerKW], 'Workspace', model);
     simIn = simIn.setVariable('routeA_cathode_humidifier_gain', ...
         c.humidifierGain);
-    simIn = simIn.setBlockParameter([model '/EGRValveRestriction'], ...
+    simIn = simIn.setBlockParameter(paths.egrValve, ...
         'restriction_area', char(c.restrictionArea));
     simOut = sim(simIn);
     result.simCompleted = true;
@@ -424,13 +426,15 @@ powerKW = NaN;
 heatKW = NaN;
 try
     simlog = simOut.get(['simlog_' model]);
-    powerData = simlog.Membrane_Electrode_Assembly.power_elec.series.values('kW');
+    mea = routeA_simscape_log_mea(simlog);
+    powerData = mea.power_elec.series.values('kW');
     powerKW = powerData(end);
 catch
 end
 try
     simlog = simOut.get(['simlog_' model]);
-    heatData = simlog.Membrane_Electrode_Assembly.power_dissipated.series.values('kW');
+    mea = routeA_simscape_log_mea(simlog);
+    heatData = mea.power_dissipated.series.values('kW');
     heatKW = heatData(end);
 catch
 end
@@ -441,7 +445,8 @@ timeS = [];
 powerKW = [];
 try
     simlog = simOut.get(['simlog_' model]);
-    series = simlog.Membrane_Electrode_Assembly.power_elec.series;
+    mea = routeA_simscape_log_mea(simlog);
+    series = mea.power_elec.series;
     timeS = series.time;
     powerKW = series.values('kW');
     timeS = double(timeS(:));
@@ -589,30 +594,27 @@ ok = isfinite(result.pOutlet) && isfinite(result.pEgrValveUp) && ...
     result.pEgrValveDown + tol >= result.pCompInlet;
 end
 
-function ok = requiredBlocksPresent(model)
-blocks = [ ...
-    model + "/EGRValveRestriction"; ...
-    model + "/Oxygen Source/PS-Simulink Converter"; ...
-    model + "/Exhaust_mdot_Converter"; ...
-    model + "/Cathode Humidifier/PS-Simulink Converter2"; ...
-    model + "/OutletRH_Converter"; ...
-    model + "/SeparatorOrCondensation"];
+function ok = requiredBlocksPresent(~, paths)
+blocks = { ...
+    paths.egrValve, paths.compressorFlowConverter, ...
+    paths.exhaustMassFlowConverter, paths.cathodeHumidifierConverter, ...
+    paths.outletRHConverter, paths.separatorObserver};
 ok = true;
 for idx = 1:numel(blocks)
-    ok = ok && getSimulinkBlockHandle(char(blocks(idx))) ~= -1;
+    ok = ok && getSimulinkBlockHandle(blocks{idx}) ~= -1;
 end
 end
 
-function markAuditSignals(model)
-nameLineFromBlockOut([model '/Oxygen Source/PS-Simulink Converter'], ...
+function markAuditSignals(paths)
+nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
-nameLineFromBlockOut([model '/Exhaust_mdot_Converter'], ...
+nameLineFromBlockOut(paths.exhaustMassFlowConverter, ...
     'routeA_exhaust_mdot');
-nameLineFromBlockOut([model '/Cathode Humidifier/PS-Simulink Converter2'], ...
+nameLineFromBlockOut(paths.cathodeHumidifierConverter, ...
     'routeA_RH_ca_in');
-nameLineFromBlockOut([model '/OutletRH_Converter'], ...
+nameLineFromBlockOut(paths.outletRHConverter, ...
     'routeA_RH_ca_out');
-nameLineFromBlockOut([model '/SeparatorOrCondensation'], ...
+nameLineFromBlockOut(paths.separatorObserver, ...
     'routeA_m_water_sep');
 end
 

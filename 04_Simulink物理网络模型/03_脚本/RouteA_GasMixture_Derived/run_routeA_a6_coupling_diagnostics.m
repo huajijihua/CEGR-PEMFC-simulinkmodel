@@ -4,11 +4,13 @@
 % The model is reloaded from disk before each probe and is never saved.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
 scriptDir = fileparts(mfilename('fullpath'));
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
 oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a6_diag_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
-cd(scriptDir);
 
 if bdIsLoaded(model) && strcmp(get_param(model, 'Dirty'), 'on')
     error('RouteA:A6Diag:DirtyModel', ...
@@ -121,8 +123,9 @@ fprintf('  %s\n', probeDef.description);
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    applyProbeTopology(model, probeDef.mode);
-    setClosedValveArea(model);
+    paths = routeA_block_paths(model);
+    applyProbeTopology(model, paths, probeDef.mode);
+    setClosedValveArea(paths);
 
     simIn = Simulink.SimulationInput(model);
     simIn = simIn.setModelParameter( ...
@@ -150,47 +153,47 @@ end
 resetModelFromDisk(model, modelFile);
 end
 
-function applyProbeTopology(model, mode)
+function applyProbeTopology(model, paths, mode)
 switch mode
     case "official_no_egr"
-        applyOfficialNoEGRBypass(model);
+        applyOfficialNoEGRBypass(model, paths);
     case "keep_mixer_no_egr"
-        applyOutletAndEGRBypassKeepMixer(model);
+        applyOutletAndEGRBypassKeepMixer(model, paths);
     case "outlet_chamber_capped"
-        applyOutletChamberCapped(model);
+        applyOutletChamberCapped(model, paths);
     case "outlet_chamber_two_port"
-        applyOutletChamberTwoPort(model);
+        applyOutletChamberTwoPort(model, paths);
     case "outlet_chamber_no_cond"
-        applyOutletChamberCapped(model);
-        disableOutletChamberCondensation(model);
+        applyOutletChamberCapped(model, paths);
+        disableOutletChamberCondensation(paths);
     case "outlet_two_port_no_cond"
-        applyOutletChamberTwoPort(model);
-        disableOutletChamberCondensation(model);
+        applyOutletChamberTwoPort(model, paths);
+        disableOutletChamberCondensation(paths);
     case "outlet_with_resistance"
-        applyOutletChamberWithResistance(model);
+        applyOutletChamberWithResistance(model, paths);
     case "mass_sensor_capped"
-        applyMassSensorCapped(model);
+        applyMassSensorCapped(model, paths);
     case "valve_capped"
-        applyValveCapped(model);
+        applyValveCapped(model, paths);
     case "pipe_capped"
-        applyPipeCapped(model);
+        applyPipeCapped(model, paths);
     case "full_closed_loop"
         % Use the model as saved, only force closed-valve area.
     case "full_loop_with_resistance"
-        applyOutletResistanceOnly(model);
+        applyOutletResistanceOnly(model, paths);
     otherwise
         error('RouteA:A6Diag:UnknownProbe', 'Unknown probe mode: %s', mode);
 end
 end
 
-function applyOutletResistanceOnly(model)
+function applyOutletResistanceOnly(model, paths)
 resPath = [model '/RouteAProbeOutletResistance'];
 if getSimulinkBlockHandle(resPath) ~= -1
     delete_block(resPath);
 end
 
-cathodeGas = [model '/Cathode Gas Channels'];
-outletChamber = [model '/CathodeOutletChamber'];
+cathodeGas = paths.cathodeGas;
+outletChamber = paths.outletChamber;
 deleteLineAtBlockPort(cathodeGas, 'LConn', 2);
 deleteLineAtBlockPort(outletChamber, 'LConn', 3);
 
@@ -206,8 +209,8 @@ add_line(model, phGas.LConn(2), phRes.LConn(1), 'autorouting', 'on');
 add_line(model, phRes.RConn(1), phOutlet.LConn(3), 'autorouting', 'on');
 end
 
-function disableOutletChamberCondensation(model)
-set_param([model '/CathodeOutletChamber'], ...
+function disableOutletChamberCondensation(paths)
+set_param(paths.outletChamber, ...
     'cond_spec', 'FuelCell.enum.ChamberCondSpec.Disabled');
 end
 
@@ -218,54 +221,54 @@ if strcmp(modelWorkspace.DataSource, 'MATLAB File')
 end
 end
 
-function setClosedValveArea(model)
-if getSimulinkBlockHandle([model '/EGRValveRestriction']) ~= -1
-    set_param([model '/EGRValveRestriction'], ...
+function setClosedValveArea(paths)
+if getSimulinkBlockHandle(paths.egrValve) ~= -1
+    set_param(paths.egrValve, ...
         'restriction_area', 'cegr_valve_area_closed');
 end
 end
 
-function applyOfficialNoEGRBypass(model)
-commentBlocks(model, routeAOutletAndEGRBlocks(model));
-commentBlocks(model, oxygenMixerBlocks(model));
-restoreOfficialOxygenSourceInlet(model);
-restoreOfficialCathodeOutlet(model);
+function applyOfficialNoEGRBypass(model, paths)
+commentBlocks(routeAOutletAndEGRBlocks(paths));
+commentBlocks(oxygenMixerBlocks(paths));
+restoreOfficialOxygenSourceInlet(paths);
+restoreOfficialCathodeOutlet(model, paths);
 end
 
-function applyOutletAndEGRBypassKeepMixer(model)
-commentBlocks(model, routeAOutletAndEGRBlocks(model));
-restoreOfficialCathodeOutlet(model);
+function applyOutletAndEGRBypassKeepMixer(model, paths)
+commentBlocks(routeAOutletAndEGRBlocks(paths));
+restoreOfficialCathodeOutlet(model, paths);
 end
 
-function applyOutletChamberCapped(model)
-commentBlocks(model, egrBranchBlocks(model));
-deleteLineAtBlockPort([model '/CathodeOutletChamber'], 'LConn', 5);
-deleteLineAtBlockPort([model '/Oxygen Source'], 'LConn', 2);
-addCapToBlockPort(model, [model '/CathodeOutletChamber'], 'LConn', 5, ...
+function applyOutletChamberCapped(model, paths)
+commentBlocks(egrBranchBlocks(paths));
+deleteLineAtBlockPort(paths.outletChamber, 'LConn', 5);
+deleteLineAtBlockPort(paths.oxygen, 'LConn', 2);
+addCapToBlockPort(model, paths.outletChamber, 'LConn', 5, ...
     'RouteAProbeCap_OutletC', [1280 905 1330 955]);
-addCapToBlockPort(model, [model '/Oxygen Source'], 'LConn', 2, ...
+addCapToBlockPort(model, paths.oxygen, 'LConn', 2, ...
     'RouteAProbeCap_CompInC', [1540 560 1590 610]);
 end
 
-function applyOutletChamberTwoPort(model)
-commentBlocks(model, egrBranchBlocks(model));
-deleteLineAtBlockPort([model '/CathodeOutletChamber'], 'LConn', 5);
-deleteLineAtBlockPort([model '/Oxygen Source'], 'LConn', 2);
-set_param([model '/CathodeOutletChamber'], ...
+function applyOutletChamberTwoPort(model, paths)
+commentBlocks(egrBranchBlocks(paths));
+deleteLineAtBlockPort(paths.outletChamber, 'LConn', 5);
+deleteLineAtBlockPort(paths.oxygen, 'LConn', 2);
+set_param(paths.outletChamber, ...
     'num_ports', 'foundation.enum.num_ports.two');
-addCapToBlockPort(model, [model '/Oxygen Source'], 'LConn', 2, ...
+addCapToBlockPort(model, paths.oxygen, 'LConn', 2, ...
     'RouteAProbeCap_CompInC', [1540 560 1590 610]);
 end
 
-function applyOutletChamberWithResistance(model)
-applyOutletChamberCapped(model);
+function applyOutletChamberWithResistance(model, paths)
+applyOutletChamberCapped(model, paths);
 resPath = [model '/RouteAProbeOutletResistance'];
 if getSimulinkBlockHandle(resPath) ~= -1
     delete_block(resPath);
 end
 
-cathodeGas = [model '/Cathode Gas Channels'];
-outletChamber = [model '/CathodeOutletChamber'];
+cathodeGas = paths.cathodeGas;
+outletChamber = paths.outletChamber;
 deleteLineAtBlockPort(cathodeGas, 'LConn', 2);
 deleteLineAtBlockPort(outletChamber, 'LConn', 3);
 
@@ -281,102 +284,79 @@ add_line(model, phGas.LConn(2), phRes.LConn(1), 'autorouting', 'on');
 add_line(model, phRes.RConn(1), phOutlet.LConn(3), 'autorouting', 'on');
 end
 
-function applyMassSensorCapped(model)
-commentBlocks(model, downstreamOfMassSensorBlocks(model));
-deleteLineAtBlockPort([model '/EGRMassFlowSensor'], 'RConn', 4);
-deleteLineAtBlockPort([model '/Oxygen Source'], 'LConn', 2);
-addCapToBlockPort(model, [model '/EGRMassFlowSensor'], 'RConn', 4, ...
+function applyMassSensorCapped(model, paths)
+commentBlocks(downstreamOfMassSensorBlocks(paths));
+deleteLineAtBlockPort(paths.egrMassFlowSensor, 'RConn', 4);
+deleteLineAtBlockPort(paths.oxygen, 'LConn', 2);
+addCapToBlockPort(model, paths.egrMassFlowSensor, 'RConn', 4, ...
     'RouteAProbeCap_MassSensorB', [1500 585 1550 635]);
-addCapToBlockPort(model, [model '/Oxygen Source'], 'LConn', 2, ...
+addCapToBlockPort(model, paths.oxygen, 'LConn', 2, ...
     'RouteAProbeCap_CompInC', [1540 560 1590 610]);
 end
 
-function applyValveCapped(model)
-commentBlocks(model, downstreamOfValveBlocks(model));
-deleteLineAtBlockPort([model '/EGRValveRestriction'], 'RConn', 1);
-deleteLineAtBlockPort([model '/Oxygen Source'], 'LConn', 2);
-addCapToBlockPort(model, [model '/EGRValveRestriction'], 'RConn', 1, ...
+function applyValveCapped(model, paths)
+commentBlocks(downstreamOfValveBlocks(paths));
+deleteLineAtBlockPort(paths.egrValve, 'RConn', 1);
+deleteLineAtBlockPort(paths.oxygen, 'LConn', 2);
+addCapToBlockPort(model, paths.egrValve, 'RConn', 1, ...
     'RouteAProbeCap_ValveB', [1500 900 1550 950]);
-addCapToBlockPort(model, [model '/Oxygen Source'], 'LConn', 2, ...
+addCapToBlockPort(model, paths.oxygen, 'LConn', 2, ...
     'RouteAProbeCap_CompInC', [1540 560 1590 610]);
 end
 
-function applyPipeCapped(model)
-deleteLineAtBlockPort([model '/EGRPipe'], 'RConn', 1);
-deleteLineAtBlockPort([model '/Oxygen Source'], 'LConn', 2);
-addCapToBlockPort(model, [model '/EGRPipe'], 'RConn', 1, ...
+function applyPipeCapped(model, paths)
+deleteLineAtBlockPort(paths.egrPipe, 'RConn', 1);
+deleteLineAtBlockPort(paths.oxygen, 'LConn', 2);
+addCapToBlockPort(model, paths.egrPipe, 'RConn', 1, ...
     'RouteAProbeCap_PipeB', [1510 280 1560 330]);
-addCapToBlockPort(model, [model '/Oxygen Source'], 'LConn', 2, ...
+addCapToBlockPort(model, paths.oxygen, 'LConn', 2, ...
     'RouteAProbeCap_CompInC', [1540 560 1590 610]);
 end
 
-function blocks = oxygenMixerBlocks(model)
-oxygen = [model '/Oxygen Source'];
+function blocks = oxygenMixerBlocks(paths)
+oxygen = paths.oxygen;
 blocks = { ...
-    [oxygen '/CompressorInletMixer'], ...
-    [oxygen '/CompressorInletMixerInsulator'], ...
-    [oxygen '/CompInletP_Converter'], ...
-    [oxygen '/CompInletT_Converter'], ...
-    [oxygen '/CompInletYi_Converter'], ...
-    [oxygen '/CompInletDiagnostics']};
+    paths.compressorInletMixer, ...
+    paths.compressorInletMixerInsulator, ...
+    paths.compressorInletPressureConverter, ...
+    paths.compressorInletTemperatureConverter, ...
+    paths.compressorInletCompositionConverter, ...
+    paths.compressorInletDiagnostics};
 end
 
-function blocks = routeAOutletAndEGRBlocks(model)
+function blocks = routeAOutletAndEGRBlocks(paths)
 blocks = [ ...
-    {[model '/CathodeOutletChamber'], ...
-    [model '/CathodeOutletResistance'], ...
-    [model '/ExhaustMassFlowSensor'], ...
-    [model '/Exhaust_mdot_Converter'], ...
-    [model '/Exhaust_mdot_ToWorkspace'], ...
-    [model '/Exhaust Diagnostics'], ...
-    [model '/CathodeOutletChamberInsulator'], ...
-    [model '/OutletP_Converter'], ...
-    [model '/OutletT_Converter'], ...
-    [model '/OutletYi_Converter'], ...
-    [model '/OutletPTDiagnostics'], ...
-    [model '/OutletCompositionDiagnostics']}, ...
-    egrBranchBlocks(model)];
+    {paths.outletChamber, paths.outletResistance, ...
+    paths.exhaustMassFlowSensor, paths.exhaustMassFlowConverter, ...
+    paths.exhaustMdotWorkspace, paths.exhaustDiagnostics, ...
+    paths.outletChamberInsulator, paths.outletPConverter, ...
+    paths.outletTConverter, paths.outletYiConverter, ...
+    paths.outletTemperatureDiagnostics, paths.outletCompositionDiagnostics}, ...
+    egrBranchBlocks(paths)];
 end
 
-function blocks = egrBranchBlocks(model)
+function blocks = egrBranchBlocks(paths)
 blocks = { ...
-    [model '/EGRMassFlowSensor'], ...
-    [model '/EGR_mdot_Converter'], ...
-    [model '/EGR Diagnostics'], ...
-    [model '/EGRValveRestriction'], ...
-    [model '/EGRValveUpPTSensor'], ...
-    [model '/EGRValveUpPTRef'], ...
-    [model '/EGRValveUpP_Converter'], ...
-    [model '/EGRValveDownPTSensor'], ...
-    [model '/EGRValveDownPTRef'], ...
-    [model '/EGRValveDownP_Converter'], ...
-    [model '/PressureChainDiagnostics'], ...
-    [model '/EGRPipe'], ...
-    [model '/EGRPipeInsulator']};
+    paths.egrMassFlowSensor, paths.egrMassFlowConverter, ...
+    paths.egrDiagnostics, paths.egrValve, paths.egrValveUpSensor, ...
+    paths.egrValveUpReference, paths.egrValveUpPConverter, ...
+    paths.egrValveDownSensor, paths.egrValveDownReference, ...
+    paths.egrValveDownPConverter, paths.pressureChainDiagnostics, ...
+    paths.egrPipe, [paths.cathodeAir '/EGRPipeInsulator']};
 end
 
-function blocks = downstreamOfMassSensorBlocks(model)
-blocks = { ...
-    [model '/EGRValveRestriction'], ...
-    [model '/EGRValveUpPTSensor'], ...
-    [model '/EGRValveUpPTRef'], ...
-    [model '/EGRValveUpP_Converter'], ...
-    [model '/EGRValveDownPTSensor'], ...
-    [model '/EGRValveDownPTRef'], ...
-    [model '/EGRValveDownP_Converter'], ...
-    [model '/PressureChainDiagnostics'], ...
-    [model '/EGRPipe'], ...
-    [model '/EGRPipeInsulator']};
+function blocks = downstreamOfMassSensorBlocks(paths)
+blocks = {paths.egrValve, paths.egrValveUpSensor, ...
+    paths.egrValveUpReference, paths.egrValveUpPConverter, ...
+    paths.egrValveDownSensor, paths.egrValveDownReference, ...
+    paths.egrValveDownPConverter, paths.pressureChainDiagnostics, ...
+    paths.egrPipe, [paths.cathodeAir '/EGRPipeInsulator']};
 end
 
-function blocks = downstreamOfValveBlocks(model)
-blocks = { ...
-    [model '/EGRValveDownPTSensor'], ...
-    [model '/EGRValveDownPTRef'], ...
-    [model '/EGRValveDownP_Converter'], ...
-    [model '/PressureChainDiagnostics'], ...
-    [model '/EGRPipe'], ...
-    [model '/EGRPipeInsulator']};
+function blocks = downstreamOfValveBlocks(paths)
+blocks = {paths.egrValveDownSensor, paths.egrValveDownReference, ...
+    paths.egrValveDownPConverter, paths.pressureChainDiagnostics, ...
+    paths.egrPipe, [paths.cathodeAir '/EGRPipeInsulator']};
 end
 
 function commentBlocks(~, blocks)
@@ -387,11 +367,11 @@ for k = 1:numel(blocks)
 end
 end
 
-function restoreOfficialOxygenSourceInlet(model)
-oxygen = [model '/Oxygen Source'];
-airIntake = [oxygen '/Air Intake'];
-mixer = [oxygen '/CompressorInletMixer'];
-compressor = [oxygen '/Compressor'];
+function restoreOfficialOxygenSourceInlet(paths)
+oxygen = paths.oxygen;
+airIntake = paths.airIntake;
+mixer = paths.compressorInletMixer;
+compressor = paths.compressor;
 compressorMap = [oxygen '/Compressor Map'];
 
 phMixer = get_param(mixer, 'PortHandles');
@@ -414,12 +394,12 @@ add_line(oxygen, phAir.LConn(1), phCompressor.LConn(2), 'autorouting', 'on');
 add_line(oxygen, phAir.LConn(1), phMap.RConn(1), 'autorouting', 'on');
 end
 
-function restoreOfficialCathodeOutlet(model)
-cathodeGas = [model '/Cathode Gas Channels'];
-cathodeExhaust = [model '/Cathode Exhaust'];
-outletChamber = [model '/CathodeOutletChamber'];
-exhaustSensor = [model '/ExhaustMassFlowSensor'];
-exhaustConverter = [model '/Exhaust_mdot_Converter'];
+function restoreOfficialCathodeOutlet(model, paths)
+cathodeGas = paths.cathodeGas;
+cathodeExhaust = paths.cathodeExhaustBlock;
+outletChamber = paths.outletChamber;
+exhaustSensor = paths.exhaustMassFlowSensor;
+exhaustConverter = paths.exhaustMassFlowConverter;
 
 phGas = get_param(cathodeGas, 'PortHandles');
 phExhaust = get_param(cathodeExhaust, 'PortHandles');
@@ -451,7 +431,8 @@ add_line(model, phGas.LConn(2), phExhaust.LConn(1), 'autorouting', 'on');
 end
 
 function addCapToBlockPort(model, blockPath, portGroup, portIndex, capName, position)
-capPath = [model '/' capName];
+parentPath = fileparts(blockPath);
+capPath = [parentPath '/' capName];
 if getSimulinkBlockHandle(capPath) ~= -1
     delete_block(capPath);
 end
@@ -463,7 +444,7 @@ phBlock = get_param(blockPath, 'PortHandles');
 phCap = get_param(capPath, 'PortHandles');
 targetPort = phBlock.(portGroup)(portIndex);
 capPort = firstPhysicalPort(phCap);
-add_line(model, targetPort, capPort, 'autorouting', 'on');
+add_line(parentPath, targetPort, capPort, 'autorouting', 'on');
 end
 
 function port = firstPhysicalPort(portHandles)

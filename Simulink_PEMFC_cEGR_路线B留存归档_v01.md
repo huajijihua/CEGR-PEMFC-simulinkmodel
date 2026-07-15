@@ -1,20 +1,20 @@
 # Simulink/Simscape PEMFC-cEGR 路线 B 留存归档 v01
 
-日期：2026-07-07  
+日期：2026-07-07
 定位：本文件从 `Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md` 分离出原路线 B 的结构探索记录、接口命名、审查结果和缺陷经验。路线 B 不再作为当前主建模路线；当前主线以官方 Gas Mixture PEMFC 派生路线 A 为准。
 
 关联主文件：[Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md](E:/agentwork_pemfc_cEGR_0519/Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md)
 
 ## 11. 路线 B 留存模型状态
 
-本节记录 `PEMFC_cEGR_Core_Physical_v01.slx` 的已完成探索、接口命名和缺口判断。自 2026-07-07 路线决策后，它不再作为主深化对象；后续只作为路线 A 插入 cEGR 支路时的拓扑参考、接口参考和风险清单。
+本节记录 `PEMFC_cEGR_Core_Physical_v01.slx` 的已完成探索、接口命名和缺口判断。自 2026-07-07 路线决策后，它不再作为主深化对象；2026-07-14 已移入 `99_历史归档/2026-07-14_RouteB_Core_Physical/`，后续只作为历史追溯资料，不再作为 Route A 当前排障入口。
 
 ### 11.1 路线 B 已有交付物与边界
 
 | 项目 | 决定 |
 |---|---|
-| 留存模型文件 | `04_Simulink物理网络模型/01_模型/PEMFC_cEGR_Core_Physical_v01.slx` |
-| 留存参数脚本 | `04_Simulink物理网络模型/02_参数/PEMFC_cEGR_params_v01.m` |
+| 留存模型文件 | `99_历史归档/2026-07-14_RouteB_Core_Physical/PEMFC_cEGR_Core_Physical_v01.slx` |
+| 留存参数脚本 | `99_历史归档/2026-07-14_RouteB_Core_Physical/PEMFC_cEGR_params_v01.m` |
 | 初始参数形式 | `.m` 脚本返回 `P` 结构体；模型稳定后再迁移 `.sldd` |
 | 旧模型边界 | 不改 `01_自吸方案/03_台架测试_10kW_简化版`；旧模型只做参数、工况和结果口径参考 |
 | 当前角色 | 路线 B 结构探索成果，不再作为路线 A 的母版 |
@@ -134,9 +134,9 @@
 
 ### 11.9 当前模型审查结论 v0.2
 
-审查日期：2026-07-07  
-审查对象：`04_Simulink物理网络模型/01_模型/PEMFC_cEGR_Core_Physical_v01.slx`  
-配套脚本：`04_Simulink物理网络模型/02_参数/PEMFC_cEGR_params_v01.m`、`04_Simulink物理网络模型/03_脚本/run_pemfc_cegr_core_scenario_audit_v01.m`  
+审查日期：2026-07-07
+审查对象：`99_历史归档/2026-07-14_RouteB_Core_Physical/PEMFC_cEGR_Core_Physical_v01.slx`（审查时原位于 `04_Simulink物理网络模型/01_模型/`）
+配套脚本：`99_历史归档/2026-07-14_RouteB_Core_Physical/PEMFC_cEGR_params_v01.m`、`99_历史归档/2026-07-14_RouteB_Core_Physical/run_pemfc_cegr_core_scenario_audit_v01.m`
 审查方式：MATLAB MCP / SATK `model_overview`、`model_read(depth=1)`、`model_check`、MATLAB `find_system`、4 工况 smoke run。
 
 当前模型已经达到“规范化物理网络骨架已创建并可运行”的级别，但未达到“PEMFC-cEGR 通用规范模型完成”的级别。

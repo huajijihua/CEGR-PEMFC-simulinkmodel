@@ -9,14 +9,13 @@
 %   routeA_enable_external_case_bench_10kw = true;
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
 scriptDir = fileparts(mfilename('fullpath'));
-projectRoot = fileparts(fileparts(fileparts(scriptDir)));
-dataFile = fullfile(projectRoot, '01_自吸方案', '03_台架测试_10kW_简化版', ...
-    '00_输入参数', '实验数据', 'combined_noegr_cegr_fit_points.csv');
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
 oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a7_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
-cd(scriptDir);
 
 if ~evalin('base', ['exist(''routeA_enable_external_case_bench_10kw'', ''var'') ', ...
         '&& routeA_enable_external_case_bench_10kw'])
@@ -124,7 +123,8 @@ fprintf('\nRoute A external_case bench case: %s targetEGR=%.5g areaFrac=%.5g\n',
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    markAuditSignals(model);
+    paths = routeA_block_paths(model);
+    markAuditSignals(paths);
 
     simIn = Simulink.SimulationInput(model);
     simIn = simIn.setModelParameter( ...
@@ -135,15 +135,15 @@ try
         'SimscapeLogType', 'none');
     simIn = simIn.setVariable('drive_cycle_time', [0; 5; 30], 'Workspace', model);
     simIn = simIn.setVariable('drive_cycle_power', [0; targetPowerW; targetPowerW], 'Workspace', model);
-    simIn = simIn.setBlockParameter([model '/Oxygen Source/Air Intake'], ...
+    simIn = simIn.setBlockParameter(paths.airIntake, ...
         'p0', sprintf('%.12g', result.stackInPAbsMPa));
-    simIn = simIn.setBlockParameter([model '/Oxygen Source/Air Intake'], ...
+    simIn = simIn.setBlockParameter(paths.airIntake, ...
         'T0', sprintf('%.12g', result.stackInTC));
-    simIn = simIn.setBlockParameter([model '/Oxygen Source/Air Intake'], ...
+    simIn = simIn.setBlockParameter(paths.airIntake, ...
         'y0', sprintf('[%.16g; %.16g; %.16g; %.16g]', targetY(1), targetY(2), targetY(3), targetY(4)));
-    simIn = simIn.setBlockParameter([model '/Cathode Exhaust/Stack Pressure'], ...
+    simIn = simIn.setBlockParameter([paths.cathodeExhaustBlock '/Stack Pressure'], ...
         'Value', sprintf('%.12g', result.stackOutPBackMPa));
-    simIn = simIn.setBlockParameter([model '/EGRValveRestriction'], ...
+    simIn = simIn.setBlockParameter(paths.egrValve, ...
         'restriction_area', sprintf('%.16g*cegr_pipe_area', result.valveAreaFraction));
 
     simOut = sim(simIn);
@@ -212,10 +212,10 @@ result.yO2CompInlet = pickSpecies(inletYi, 2);
 result.yH2OCompInlet = pickSpecies(inletYi, 4);
 end
 
-function markAuditSignals(model)
-nameLineFromBlockOut([model '/Oxygen Source/PS-Simulink Converter'], ...
+function markAuditSignals(paths)
+nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
-nameLineFromBlockOut([model '/Exhaust_mdot_Converter'], ...
+nameLineFromBlockOut(paths.exhaustMassFlowConverter, ...
     'routeA_exhaust_mdot');
 end
 

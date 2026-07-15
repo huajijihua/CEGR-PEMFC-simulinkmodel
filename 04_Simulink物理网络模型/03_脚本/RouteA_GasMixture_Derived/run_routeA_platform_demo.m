@@ -4,12 +4,12 @@
 % nominal operating point, runs sim(), and returns a compact summary.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
-oldDir = pwd;
 scriptDir = fileparts(mfilename('fullpath'));
-if ~isempty(scriptDir)
-    cd(scriptDir);
-end
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
+oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_platform_demo_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
 
 resetModelFromDisk(model, modelFile);
@@ -56,7 +56,8 @@ summary.targetPCaOutMPa = cfg.targetPCaOutMPa;
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    markDemoSignals(model);
+    paths = routeA_block_paths(model);
+    markDemoSignals(model, paths);
     mw = get_param(model, 'ModelWorkspace');
     pipeArea = getWorkspaceValue(mw, 'cegr_pipe_area', 0.0019634954);
     if ~isfinite(cfg.directEgrArea)
@@ -94,7 +95,7 @@ try
         cfg.humidifierGain, 'Workspace', model);
     simIn = simIn.setVariable('routeA_stack_temperature_set_C', ...
         cfg.stackTemperatureSetC, 'Workspace', model);
-    simIn = simIn.setBlockParameter([model '/Cooling System/Stack Temperature'], ...
+    simIn = simIn.setBlockParameter(paths.stackTemperature, ...
         'Value', 'routeA_stack_temperature_set_C');
 
     simOut = sim(simIn);
@@ -147,22 +148,22 @@ summary.mWaterSep = scalarLastOrFallback(simOut, logsout, ...
     "routeA_m_water_sep", "routeA_m_water_sep_ts");
 end
 
-function markDemoSignals(model)
-nameLineFromBlockOut([model '/Oxygen Source/PS-Simulink Converter'], ...
+function markDemoSignals(model, paths)
+nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
-nameLineFromBlockOut([model '/Oxygen Source/Compressor Control/A98_CompressorCmd_ModeSwitch'], ...
+nameLineFromBlockOut(paths.compressorCommandSwitch, ...
     'routeA_compressor_cmd');
-nameLineFromBlockOut([model '/Oxygen Source/Compressor Control/A98_CompressorRpmCmd'], ...
+nameLineFromBlockOut(paths.compressorRpmCommand, ...
     'routeA_compressor_rpm_cmd');
-nameLineFromBlockOutPort([model '/FCU_BoP_Control'], 1, ...
+nameLineFromBlockOutPort(paths.fcu, 1, ...
     'routeA_egr_valve_area_cmd');
-nameLineFromBlockOutPort([model '/FCU_BoP_Control'], 4, ...
+nameLineFromBlockOutPort(paths.fcu, 4, ...
     'routeA_egr_ratio_comp_in');
-nameLineFromBlockOut([model '/OutletP_Converter'], 'routeA_p_outlet');
-nameLineFromBlockOut([model '/Cathode Humidifier/RH_ca_in_ToWorkspace'], ...
+nameLineFromBlockOut(paths.outletPConverter, 'routeA_p_outlet');
+nameLineFromBlockOut(paths.cathodeRHInWorkspace, ...
     'routeA_RH_ca_in');
-nameLineFromBlockOut([model '/RH_ca_out_ToWorkspace'], 'routeA_RH_ca_out');
-nameLineFromBlockOut([model '/WaterSep_ToWorkspace'], 'routeA_m_water_sep');
+nameLineFromBlockOut(paths.rhOutWorkspace, 'routeA_RH_ca_out');
+nameLineFromBlockOut(paths.waterSepWorkspace, 'routeA_m_water_sep');
 end
 
 function nameLineFromBlockOut(blockPath, signalName)
@@ -258,7 +259,8 @@ function powerKW = collectSimscapePower(simOut, model)
 powerKW = NaN;
 try
     simlog = simOut.get(['simlog_' model]);
-    powerKW = simlog.Membrane_Electrode_Assembly.power_elec.series.values('kW');
+    mea = routeA_simscape_log_mea(simlog);
+    powerKW = mea.power_elec.series.values('kW');
     powerKW = powerKW(end);
 catch
 end

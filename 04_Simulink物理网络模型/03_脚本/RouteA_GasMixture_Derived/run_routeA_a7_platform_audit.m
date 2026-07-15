@@ -3,11 +3,13 @@
 % no model save, no external bench data load, no figures, and no exports.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
 scriptDir = fileparts(mfilename('fullpath'));
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
 oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a7_platform_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model));
-cd(scriptDir);
 
 if bdIsLoaded(model) && strcmp(get_param(model, 'Dirty'), 'on')
     error('RouteA:A7:DirtyModel', ...
@@ -17,13 +19,14 @@ end
 
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
+paths = routeA_block_paths(model);
 
 audit = struct();
 audit.model = string(model);
 audit.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
-audit.parameterIsolation = auditParameterIsolation(model, scriptDir);
+audit.parameterIsolation = auditParameterIsolation(model, modelDir);
 audit.externalCaseGuard = auditExternalCaseGuard(model);
-audit.structure = auditPlatformStructure(model);
+audit.structure = auditPlatformStructure(model, paths);
 audit.parameterMatching = auditParameterMatching(model);
 audit.a8Readiness = assessA8Readiness(audit);
 audit.passed = audit.parameterIsolation.passed && ...
@@ -34,13 +37,13 @@ audit.passed = audit.parameterIsolation.passed && ...
 assignin('base', 'routeA_a7_platform_audit', audit);
 dispAudit(audit);
 
-function result = auditParameterIsolation(model, scriptDir)
+function result = auditParameterIsolation(model, modelDir)
 mw = get_param(model, 'ModelWorkspace');
 result = struct();
 result.layer = string(getWorkspaceValue(mw, 'routeA_parameter_layer', ""));
 result.externalCaseEnabled = logical(getWorkspaceValue(mw, ...
     'routeA_external_case_enabled', true));
-parameterFile = fullfile(scriptDir, 'PEMFuelCellSystemWithACustomLibraryParameters.m');
+parameterFile = fullfile(modelDir, 'PEMFuelCellSystemWithACustomLibraryParameters.m');
 txt = string(fileread(parameterFile));
 result.parameterFile = string(parameterFile);
 result.defaultScriptReadsTables = contains(txt, "readtable(") || ...
@@ -71,7 +74,7 @@ refreshModelWorkspace(model);
 result.passed = result.disabledByDefault;
 end
 
-function result = auditPlatformStructure(model)
+function result = auditPlatformStructure(model, paths)
 result = struct();
 requiredTopBlocks = [ ...
     "Membrane Electrode Assembly", ...
@@ -94,9 +97,17 @@ requiredTopBlocks = [ ...
     "ExhaustMassFlowSensor"];
 result.requiredTopBlocks = requiredTopBlocks;
 result.requiredTopBlockPresent = false(size(requiredTopBlocks));
+requiredPaths = { ...
+    [paths.stack '/Membrane Electrode Assembly'], paths.oxygen, ...
+    paths.cathodeHumidifier, paths.cathodeGas, paths.cathodeExhaustBlock, ...
+    paths.anodeHumidifier, paths.anodeGas, paths.hydrogenSource, ...
+    paths.recirculation, paths.coolingSystem, paths.heatDissipation, ...
+    paths.measurements, paths.outletResistance, paths.outletChamber, ...
+    paths.egrMassFlowSensor, paths.egrValve, paths.egrPipe, ...
+    paths.exhaustMassFlowSensor};
 for k = 1:numel(requiredTopBlocks)
     result.requiredTopBlockPresent(k) = ...
-        ~isempty(findBlocksByName(model, requiredTopBlocks(k), 1));
+        getSimulinkBlockHandle(requiredPaths{k}) ~= -1;
 end
 
 oxygenBlocks = [ ...
@@ -105,7 +116,7 @@ oxygenBlocks = [ ...
     "Compressor", ...
     "Compressor Map", ...
     "PS-Simulink Converter"];
-oxygenPath = [model '/Oxygen Source'];
+oxygenPath = paths.oxygen;
 result.oxygenBlocks = oxygenBlocks;
 result.oxygenBlockPresent = false(size(oxygenBlocks));
 for k = 1:numel(oxygenBlocks)
@@ -113,7 +124,7 @@ for k = 1:numel(oxygenBlocks)
         ~isempty(findBlocksByName(oxygenPath, oxygenBlocks(k), 1));
 end
 
-result.requiredConnectionsOk = hasRequiredCegrConnections(model);
+result.requiredConnectionsOk = hasRequiredCegrConnections(paths);
 result.humidifierPresent = result.requiredTopBlockPresent( ...
     requiredTopBlocks == "Cathode Humidifier");
 result.coolingPresent = result.requiredTopBlockPresent( ...
@@ -315,15 +326,15 @@ for k = 1:numel(lineHandles)
 end
 end
 
-function tf = hasRequiredCegrConnections(model)
+function tf = hasRequiredCegrConnections(paths)
 try
-    chamber = [model '/CathodeOutletChamber'];
-    resistance = [model '/CathodeOutletResistance'];
-    exhaustSensor = [model '/ExhaustMassFlowSensor'];
-    egrSensor = [model '/EGRMassFlowSensor'];
-    egrValve = [model '/EGRValveRestriction'];
-    egrPipe = [model '/EGRPipe'];
-    oxygen = [model '/Oxygen Source'];
+    chamber = paths.outletChamber;
+    resistance = paths.outletResistance;
+    exhaustSensor = paths.exhaustMassFlowSensor;
+    egrSensor = paths.egrMassFlowSensor;
+    egrValve = paths.egrValve;
+    egrPipe = paths.egrPipe;
+    oxygen = paths.oxygen;
     phChamber = get_param(chamber, 'PortHandles');
     phResistance = get_param(resistance, 'PortHandles');
     phExhaustSensor = get_param(exhaustSensor, 'PortHandles');

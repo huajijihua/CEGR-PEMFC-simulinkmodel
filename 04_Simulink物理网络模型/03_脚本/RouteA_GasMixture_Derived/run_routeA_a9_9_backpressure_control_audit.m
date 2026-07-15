@@ -3,24 +3,25 @@
 % workspace setpoint and drives the existing pressure relief valve.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
-oldDir = pwd;
 scriptDir = fileparts(mfilename('fullpath'));
-if ~isempty(scriptDir)
-    cd(scriptDir);
-end
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
+oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a9_9_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
 
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 mw = get_param(model, 'ModelWorkspace');
+paths = routeA_block_paths(model);
 
 audit = struct();
 audit.model = model;
 audit.phase = "A9.9";
 audit.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 audit.scope = "cathode outlet pressure/backpressure setpoint audit";
-audit.preflight = runPreflight(model, mw);
+audit.preflight = runPreflight(model, mw, paths);
 audit.caseDefinitions = buildCaseDefinitions();
 audit.caseResults = repmat(emptyCaseResult(), numel(audit.caseDefinitions), 1);
 audit.stopTime = 10;
@@ -43,7 +44,7 @@ audit.passed = audit.generated && audit.relationChecks.allCritical;
 assignin('base', 'routeA_a9_9_backpressure_control_audit', audit);
 dispAudit(audit);
 
-function result = runPreflight(model, mw)
+function result = runPreflight(model, mw, paths)
 result = struct('passed', false, 'layerOk', false, ...
     'externalCaseDisabled', false, 'pressureTargetVariable', false, ...
     'stackPressureBlockUsesTarget', false, 'errorId', "", 'errorMessage', "");
@@ -55,7 +56,8 @@ try
     result.externalCaseDisabled = ~externalEnabled;
     result.pressureTargetVariable = isfinite(getWorkspaceValue(mw, ...
         'routeA_target_p_ca_out_MPa', NaN));
-    value = string(get_param([model '/Cathode Exhaust/Stack Pressure'], 'Value'));
+    value = string(get_param([paths.cathodeExhaustBlock '/Stack Pressure'], ...
+        'Value'));
     result.stackPressureBlockUsesTarget = contains(value, ...
         "routeA_target_p_ca_out_MPa");
     result.passed = result.layerOk && result.externalCaseDisabled && ...
@@ -97,7 +99,8 @@ fprintf('\nA9.9 case: %-18s target=%.4g MPa\n', ...
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    markAuditSignals(model);
+    paths = routeA_block_paths(model);
+    markAuditSignals(model, paths);
     simIn = Simulink.SimulationInput(model);
     simIn = simIn.setModelParameter( ...
         'StopTime', sprintf('%.16g', stopTime), ...
@@ -183,17 +186,18 @@ function powerKW = collectSimscapePower(simOut, model)
 powerKW = NaN;
 try
     simlog = simOut.get(['simlog_' model]);
-    powerKW = simlog.Membrane_Electrode_Assembly.power_elec.series.values('kW');
+    mea = routeA_simscape_log_mea(simlog);
+    powerKW = mea.power_elec.series.values('kW');
     powerKW = powerKW(end);
 catch
 end
 end
 
-function markAuditSignals(model)
-nameLineFromBlockOut([model '/OutletP_Converter'], 'routeA_p_outlet');
-nameLineFromBlockOut([model '/Oxygen Source/CompInletP_Converter'], ...
+function markAuditSignals(model, paths)
+nameLineFromBlockOut(paths.outletPConverter, 'routeA_p_outlet');
+nameLineFromBlockOut(paths.compressorInletPressureConverter, ...
     'routeA_p_comp_inlet');
-nameLineFromBlockOut([model '/Oxygen Source/PS-Simulink Converter'], ...
+nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
 end
 

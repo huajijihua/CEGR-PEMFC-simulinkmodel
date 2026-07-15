@@ -6,17 +6,18 @@
 % - routeA_a9_8_stop_time_override: stop time override in seconds.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
-oldDir = pwd;
 scriptDir = fileparts(mfilename('fullpath'));
-if ~isempty(scriptDir)
-    cd(scriptDir);
-end
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
+oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a9_8_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
 
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 mw = get_param(model, 'ModelWorkspace');
+paths = routeA_block_paths(model);
 
 audit = struct();
 audit.model = model;
@@ -24,7 +25,7 @@ audit.phase = "A9.8";
 audit.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 audit.scope = "FCU/BoP control interface explicitization audit";
 audit.generated = false;
-audit.preflight = runPreflight(model, mw);
+audit.preflight = runPreflight(model, mw, paths);
 audit.caseDefinitions = buildCaseDefinitions(mw);
 audit.stopTime = 10;
 audit.caseFilter = getBaseWorkspaceValue('routeA_a9_8_case_filter', strings(0, 1));
@@ -61,7 +62,7 @@ audit.passed = audit.generated && audit.relationChecks.allCritical;
 assignin('base', 'routeA_a9_8_fcu_bop_control_audit', audit);
 dispAudit(audit);
 
-function result = runPreflight(model, mw)
+function result = runPreflight(model, mw, paths)
 result = struct('passed', false, 'layerOk', false, ...
     'externalCaseDisabled', false, 'fcuExists', false, ...
     'egrValveControlled', false, 'errorId', "", 'errorMessage', "");
@@ -71,8 +72,8 @@ try
         'routeA_external_case_enabled', true));
     result.layerOk = layer == "platform_default";
     result.externalCaseDisabled = ~externalEnabled;
-    result.fcuExists = getSimulinkBlockHandle([model '/FCU_BoP_Control']) ~= -1;
-    result.egrValveControlled = string(get_param([model '/EGRValveRestriction'], ...
+    result.fcuExists = getSimulinkBlockHandle(paths.fcu) ~= -1;
+    result.egrValveControlled = string(get_param(paths.egrValve, ...
         'const_area')) == "false";
     result.passed = result.layerOk && result.externalCaseDisabled && ...
         result.fcuExists && result.egrValveControlled;
@@ -165,7 +166,8 @@ fprintf('\nA9.8 case: %-22s group=%s\n', result.caseId, result.group);
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    markAuditSignals(model);
+    paths = routeA_block_paths(model);
+    markAuditSignals(model, paths);
     simIn = Simulink.SimulationInput(model);
     simIn = simIn.setModelParameter( ...
         'StopTime', sprintf('%.16g', stopTime), ...
@@ -193,7 +195,7 @@ try
         c.directArea, 'Workspace', model);
     simIn = simIn.setVariable('routeA_stack_temperature_set_C', ...
         80, 'Workspace', model);
-    simIn = simIn.setBlockParameter([model '/Cooling System/Stack Temperature'], ...
+    simIn = simIn.setBlockParameter(paths.stackTemperature, ...
         'Value', 'routeA_stack_temperature_set_C');
     simOut = sim(simIn);
     result.simCompleted = true;
@@ -334,30 +336,31 @@ function powerKW = collectSimscapePower(simOut, model)
 powerKW = NaN;
 try
     simlog = simOut.get(['simlog_' model]);
-    powerKW = simlog.Membrane_Electrode_Assembly.power_elec.series.values('kW');
+    mea = routeA_simscape_log_mea(simlog);
+    powerKW = mea.power_elec.series.values('kW');
     powerKW = powerKW(end);
 catch
 end
 end
 
-function markAuditSignals(model)
-nameLineFromBlockOut([model '/Oxygen Source/PS-Simulink Converter'], ...
+function markAuditSignals(model, paths)
+nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
-nameLineFromBlockOut([model '/Oxygen Source/Compressor Control/A98_CompressorCmd_ModeSwitch'], ...
+nameLineFromBlockOut(paths.compressorCommandSwitch, ...
     'routeA_compressor_cmd');
-nameLineFromBlockOut([model '/Oxygen Source/Compressor Control/A98_CompressorRpmCmd'], ...
+nameLineFromBlockOut(paths.compressorRpmCommand, ...
     'routeA_compressor_rpm_cmd');
-nameLineFromBlockOut([model '/Oxygen Source/Compressor Control/Sum'], ...
+nameLineFromBlockOut(paths.airControlError, ...
     'routeA_air_control_error');
-nameLineFromBlockOut([model '/Oxygen Source/Compressor Control/A98_MdotSet_ModeSwitch'], ...
+nameLineFromBlockOut(paths.airMdotSetSwitch, ...
     'routeA_air_mdot_set');
-nameLineFromBlockOutPort([model '/FCU_BoP_Control'], 1, ...
+nameLineFromBlockOutPort(paths.fcu, 1, ...
     'routeA_egr_valve_area_cmd');
-nameLineFromBlockOutPort([model '/FCU_BoP_Control'], 2, ...
+nameLineFromBlockOutPort(paths.fcu, 2, ...
     'routeA_egr_valve_cmd_limited');
-nameLineFromBlockOutPort([model '/FCU_BoP_Control'], 3, ...
+nameLineFromBlockOutPort(paths.fcu, 3, ...
     'routeA_egr_control_error');
-nameLineFromBlockOutPort([model '/FCU_BoP_Control'], 4, ...
+nameLineFromBlockOutPort(paths.fcu, 4, ...
     'routeA_egr_ratio_comp_in');
 end
 

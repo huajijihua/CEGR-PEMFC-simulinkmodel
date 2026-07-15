@@ -5,11 +5,13 @@
 %   routeA_run_extended_scan = true;
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
 scriptDir = fileparts(mfilename('fullpath'));
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
 oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a65_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
-cd(scriptDir);
 
 if bdIsLoaded(model) && strcmp(get_param(model, 'Dirty'), 'on')
     error('RouteA:A65:DirtyModel', ...
@@ -19,7 +21,8 @@ end
 
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
-topology = verifyRouteATopology(model);
+paths = routeA_block_paths(model);
+topology = verifyRouteATopology(model, paths);
 dispTopology(topology);
 
 areaFractions = [1e-6, 5e-4, 1e-3, 2e-3, 5e-3];
@@ -41,7 +44,7 @@ if ~isempty(extendedResults)
 end
 dispAssessment(scanAssessment);
 
-function topology = verifyRouteATopology(model)
+function topology = verifyRouteATopology(model, paths)
 requiredBlocks = [ ...
     "CathodeOutletResistance", ...
     "CathodeOutletChamber", ...
@@ -57,8 +60,11 @@ topology.model = string(model);
 topology.requiredBlocks = requiredBlocks;
 topology.blockPresent = false(size(requiredBlocks));
 topology.referenceBlocks = strings(size(requiredBlocks));
+requiredPaths = {paths.outletResistance, paths.outletChamber, ...
+    paths.exhaustMassFlowSensor, paths.exhaustMdotWorkspace, ...
+    paths.egrMassFlowSensor, paths.egrValve, paths.egrPipe, paths.oxygen};
 for k = 1:numel(requiredBlocks)
-    path = [model '/' char(requiredBlocks(k))];
+    path = requiredPaths{k};
     topology.blockPresent(k) = getSimulinkBlockHandle(path) ~= -1;
     if topology.blockPresent(k)
         try
@@ -69,9 +75,9 @@ for k = 1:numel(requiredBlocks)
     end
 end
 
-topology.cathodeOutletResistanceRef = getRef(model, 'CathodeOutletResistance');
-topology.exhaustSensorRef = getRef(model, 'ExhaustMassFlowSensor');
-topology.savedConnectionsOk = hasRequiredConnection(model);
+topology.cathodeOutletResistanceRef = getRef(paths.outletResistance);
+topology.exhaustSensorRef = getRef(paths.exhaustMassFlowSensor);
+topology.savedConnectionsOk = hasRequiredConnection(paths);
 topology.rhStatus = "not_available_direct_signal";
 topology.condensedStatus = "not_available_direct_signal";
 topology.passed = all(topology.blockPresent) && topology.savedConnectionsOk && ...
@@ -79,16 +85,16 @@ topology.passed = all(topology.blockPresent) && topology.savedConnectionsOk && .
     contains(topology.exhaustSensorRef, 'Mass Flow Rate');
 end
 
-function tf = hasRequiredConnection(model)
+function tf = hasRequiredConnection(paths)
 tf = false;
 try
-    chamber = [model '/CathodeOutletChamber'];
-    resistance = [model '/CathodeOutletResistance'];
-    exhaustSensor = [model '/ExhaustMassFlowSensor'];
-    egrSensor = [model '/EGRMassFlowSensor'];
-    egrValve = [model '/EGRValveRestriction'];
-    egrPipe = [model '/EGRPipe'];
-    oxygen = [model '/Oxygen Source'];
+    chamber = paths.outletChamber;
+    resistance = paths.outletResistance;
+    exhaustSensor = paths.exhaustMassFlowSensor;
+    egrSensor = paths.egrMassFlowSensor;
+    egrValve = paths.egrValve;
+    egrPipe = paths.egrPipe;
+    oxygen = paths.oxygen;
     phChamber = get_param(chamber, 'PortHandles');
     phResistance = get_param(resistance, 'PortHandles');
     phExhaustSensor = get_param(exhaustSensor, 'PortHandles');
@@ -115,9 +121,8 @@ for k = 1:numel(portHandles)
 end
 end
 
-function ref = getRef(model, blockName)
+function ref = getRef(path)
 ref = "";
-path = [model '/' blockName];
 if getSimulinkBlockHandle(path) ~= -1
     ref = string(get_param(path, 'ReferenceBlock'));
 end
@@ -164,8 +169,9 @@ fprintf('\nRoute A A6.5 area scan: frac=%.6g StopTime=%s\n', areaFraction, stopT
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    markAuditSignals(model);
-    egrValvePath = [model '/EGRValveRestriction'];
+    paths = routeA_block_paths(model);
+    markAuditSignals(model, paths);
+    egrValvePath = paths.egrValve;
     simIn = Simulink.SimulationInput(model);
     simIn = simIn.setModelParameter( ...
         'StopTime', char(stopTime), ...
@@ -190,10 +196,10 @@ end
 resetModelFromDisk(model, modelFile);
 end
 
-function markAuditSignals(model)
-nameLineFromBlockOut([model '/Oxygen Source/PS-Simulink Converter'], ...
+function markAuditSignals(~, paths)
+nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
-nameLineFromBlockOut([model '/Exhaust_mdot_Converter'], ...
+nameLineFromBlockOut(paths.exhaustMassFlowConverter, ...
     'routeA_exhaust_mdot');
 end
 

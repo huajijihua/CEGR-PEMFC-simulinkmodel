@@ -3,12 +3,12 @@
 % SimulationInput, collect summary KPIs, and do not save the model.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
-oldDir = pwd;
 scriptDir = fileparts(mfilename('fullpath'));
-if ~isempty(scriptDir)
-    cd(scriptDir);
-end
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
+oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a9_7_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
 
 resetModelFromDisk(model, modelFile);
@@ -172,7 +172,8 @@ fprintf('\nA9.7 case: %-22s group=%s cmd=%.4g target=%.4g kW\n', ...
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    markAuditSignals(model);
+    paths = routeA_block_paths(model);
+    markAuditSignals(paths);
     simIn = Simulink.SimulationInput(model);
     simIn = simIn.setModelParameter( ...
         'StopTime', sprintf('%.16g', stopTime), ...
@@ -193,10 +194,10 @@ try
     simIn = simIn.setVariable('routeA_egr_valve_area_direct', ...
         evalModelExpression(model, c.restrictionArea), 'Workspace', model);
     simIn = simIn.setBlockParameter( ...
-        [model '/Oxygen Source/Oxygen Excess Ratio'], ...
+        paths.oerSetpoint, ...
         'Value', sprintf('%.16g', c.oerSetpoint));
     simIn = simIn.setBlockParameter( ...
-        [model '/Cooling System/Stack Temperature'], ...
+        paths.stackTemperature, ...
         'Value', sprintf('%.16g', c.stackTempSetC));
     simOut = sim(simIn);
     result.simCompleted = true;
@@ -384,13 +385,15 @@ powerKW = NaN;
 heatKW = NaN;
 try
     simlog = simOut.get(['simlog_' model]);
-    powerKW = simlog.Membrane_Electrode_Assembly.power_elec.series.values('kW');
+    mea = routeA_simscape_log_mea(simlog);
+    powerKW = mea.power_elec.series.values('kW');
     powerKW = powerKW(end);
 catch
 end
 try
     simlog = simOut.get(['simlog_' model]);
-    heatKW = simlog.Membrane_Electrode_Assembly.power_dissipated.series.values('kW');
+    mea = routeA_simscape_log_mea(simlog);
+    heatKW = mea.power_dissipated.series.values('kW');
     heatKW = heatKW(end);
 catch
 end
@@ -401,7 +404,8 @@ timeS = [];
 powerKW = [];
 try
     simlog = simOut.get(['simlog_' model]);
-    series = simlog.Membrane_Electrode_Assembly.power_elec.series;
+    mea = routeA_simscape_log_mea(simlog);
+    series = mea.power_elec.series;
     timeS = double(series.time(:));
     powerKW = double(series.values('kW'));
     powerKW = powerKW(:);
@@ -541,16 +545,16 @@ catch
 end
 end
 
-function markAuditSignals(model)
-nameLineFromBlockOut([model '/Oxygen Source/PS-Simulink Converter'], ...
+function markAuditSignals(paths)
+nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
-nameLineFromBlockOut([model '/Exhaust_mdot_Converter'], ...
+nameLineFromBlockOut(paths.exhaustMassFlowConverter, ...
     'routeA_exhaust_mdot');
-nameLineFromBlockOut([model '/Cathode Humidifier/PS-Simulink Converter2'], ...
+nameLineFromBlockOut(paths.cathodeHumidifierConverter, ...
     'routeA_RH_ca_in');
-nameLineFromBlockOut([model '/OutletRH_Converter'], ...
+nameLineFromBlockOut(paths.outletRHConverter, ...
     'routeA_RH_ca_out');
-nameLineFromBlockOut([model '/SeparatorOrCondensation'], ...
+nameLineFromBlockOut(paths.separatorObserver, ...
     'routeA_m_water_sep');
 end
 

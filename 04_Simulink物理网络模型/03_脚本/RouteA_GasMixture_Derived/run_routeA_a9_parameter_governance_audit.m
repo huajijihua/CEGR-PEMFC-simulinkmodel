@@ -4,11 +4,13 @@
 % parameter changes, no external bench workbook/CSV/DQ60 data.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
 scriptDir = fileparts(mfilename('fullpath'));
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
 oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a9_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
-cd(scriptDir);
 
 if bdIsLoaded(model) && strcmp(get_param(model, 'Dirty'), 'on')
     error('RouteA:A9:DirtyModel', ...
@@ -22,7 +24,7 @@ refreshModelWorkspace(model);
 audit = struct();
 audit.model = string(model);
 audit.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
-audit.parameterIsolation = auditParameterIsolation(model, scriptDir);
+audit.parameterIsolation = auditParameterIsolation(model, modelDir);
 audit.formulaEnvelope = auditFormulaEnvelope(model);
 audit.governance = auditParameterGovernance(model);
 audit.a8Regression = runA8Regression(model, modelFile);
@@ -47,9 +49,9 @@ audit.passed = audit.parameterIsolation.passed && ...
 assignin('base', 'routeA_a9_parameter_governance_audit', audit);
 dispAudit(audit);
 
-function result = auditParameterIsolation(model, scriptDir)
+function result = auditParameterIsolation(model, modelDir)
 mw = get_param(model, 'ModelWorkspace');
-parameterFile = fullfile(scriptDir, ...
+parameterFile = fullfile(modelDir, ...
     'PEMFuelCellSystemWithACustomLibraryParameters.m');
 txt = string(fileread(parameterFile));
 
@@ -520,7 +522,8 @@ result.restrictionArea = string(restrictionArea);
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    markAuditSignals(model);
+    paths = routeA_block_paths(model);
+    markAuditSignals(paths);
     simIn = Simulink.SimulationInput(model);
     simIn = simIn.setModelParameter( ...
         'StopTime', '30', ...
@@ -534,7 +537,7 @@ try
         [0; nominalEnvelope.powerKW; nominalEnvelope.powerKW], ...
         'Workspace', model);
     simIn = simIn.setVariable('routeA_cathode_humidifier_gain', 1);
-    simIn = simIn.setBlockParameter([model '/EGRValveRestriction'], ...
+    simIn = simIn.setBlockParameter(paths.egrValve, ...
         'restriction_area', char(restrictionArea));
     simOut = sim(simIn);
     result.passed = true;
@@ -652,13 +655,15 @@ powerKW = NaN;
 heatKW = NaN;
 try
     simlog = simOut.get(['simlog_' model]);
-    powerData = simlog.Membrane_Electrode_Assembly.power_elec.series.values('kW');
+    mea = routeA_simscape_log_mea(simlog);
+    powerData = mea.power_elec.series.values('kW');
     powerKW = powerData(end);
 catch
 end
 try
     simlog = simOut.get(['simlog_' model]);
-    heatData = simlog.Membrane_Electrode_Assembly.power_dissipated.series.values('kW');
+    mea = routeA_simscape_log_mea(simlog);
+    heatData = mea.power_dissipated.series.values('kW');
     heatKW = heatData(end);
 catch
 end
@@ -775,16 +780,16 @@ if lineHandle ~= -1
 end
 end
 
-function markAuditSignals(model)
-nameLineFromBlockOut([model '/Oxygen Source/PS-Simulink Converter'], ...
+function markAuditSignals(paths)
+nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
-nameLineFromBlockOut([model '/Exhaust_mdot_Converter'], ...
+nameLineFromBlockOut(paths.exhaustMassFlowConverter, ...
     'routeA_exhaust_mdot');
-nameLineFromBlockOut([model '/Cathode Humidifier/PS-Simulink Converter2'], ...
+nameLineFromBlockOut(paths.cathodeHumidifierConverter, ...
     'routeA_RH_ca_in');
-nameLineFromBlockOut([model '/OutletRH_Converter'], ...
+nameLineFromBlockOut(paths.outletRHConverter, ...
     'routeA_RH_ca_out');
-nameLineFromBlockOut([model '/SeparatorOrCondensation'], ...
+nameLineFromBlockOut(paths.separatorObserver, ...
     'routeA_m_water_sep');
 end
 

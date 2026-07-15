@@ -2,7 +2,7 @@
 
 日期：2026-07-07  
 阶段：材料池盘点、路线 A 基准模型决策、路线 B 留存审查。  
-范围：MATLAB/Simulink/Simscape 优先；不引入 COMSOL；AMESim 仅作为后续不足时的备选。2026-07-07 已决定全面转向路线 A：以官方 Gas Mixture PEMFC 示例派生 cathode-cEGR 模型；`PEMFC_cEGR_Core_Physical_v01.slx` 留作路线 B 拓扑探索成果。
+范围：MATLAB/Simulink/Simscape 优先；不引入 COMSOL；AMESim 仅作为后续不足时的备选。2026-07-07 已决定全面转向路线 A：以官方 Gas Mixture PEMFC 示例派生 cathode-cEGR 模型；2026-07-14 起 `PEMFC_cEGR_Core_Physical_v01.slx` 已移入 `99_历史归档/2026-07-14_RouteB_Core_Physical/`。
 
 本文件只回答“有哪些成熟材料、候选模型和可复用组件”。通用模型规格、接口契约、台架/车载/功率扩展路线已拆分到 [Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md](E:/agentwork_pemfc_cEGR_0519/Simulink_PEMFC_cEGR_通用模型规格与实施路线_v01.md)。
 
@@ -14,7 +14,7 @@
 2. 电堆/MEA 优先采用本机官方示例库中的 `+FuelCell/+elements/MEA.ssc` 思路：电化学电压、H2/O2 消耗、水生成、膜水传输和反应热在 Simscape 组件内闭合。
 3. 阴极管路、阀、容腔、传感器、源边界优先使用同一四物种气体域的官方 `FuelCell` 示例组件；若官方组件粒度不足，再参考本地 MathWorks File Exchange/GitHub 模型 `Fuel-Cell-Vehicle-Model-Simscape-25.2.1.5` 的 `GasN` 组件。
 4. Powertrain Blockset / FCEV Reference Application 更适合整车能量管理、控制接口、HIL 和 mapped fuel cell 对照，不建议作为 cathode-cEGR 物理网络主骨架。
-5. 路线 B `PEMFC_cEGR_Core_Physical_v01.slx` 只保留为 cathode-cEGR 拓扑、接口命名、主动/被动回流语义和水分离缺口的参考，不继续作为主开发对象。
+5. 路线 B `PEMFC_cEGR_Core_Physical_v01.slx` 已归档，只保留为 cathode-cEGR 拓扑、接口命名、主动/被动回流语义和水分离缺口的历史参考，不继续作为主开发对象。
 6. 旧简化台架模型只保留为边界条件、参数、工况和结果审计来源，不作为新模型的物理核心。
 
 暂不建议进入 AMESim。理由是：本机 Simscape 已有四物种气体域、MEA、电堆热端口、管路/容腔/节流/源/传感器、自定义 compressor 参考件，足以先完成 PEMFC-cEGR 的设备级骨架。只有当四物种压缩机、冷凝分离器或 cEGR 支路在 Simscape 中无法稳定闭合，且自定义 Simscape 组件投入超过收益时，再启动 AMESim 备选评估。
@@ -168,7 +168,7 @@ Moist Air PEMFC 和 FCEV `SSCFuelCell` 的电堆方程成熟，适合对照 MEA 
 ## 7.3 路线 B 初版模型留存审查
 
 审查日期：2026-07-07  
-审查对象：`04_Simulink物理网络模型/01_模型/PEMFC_cEGR_Core_Physical_v01.slx`
+审查对象：`99_历史归档/2026-07-14_RouteB_Core_Physical/PEMFC_cEGR_Core_Physical_v01.slx`（审查发生时原位于 `04_Simulink物理网络模型/01_模型/`）
 
 当前初版模型已实际复用本文件推荐的主材料池，但复用深度仍不均衡。路线 A 决策后，它的定位调整为“结构探索成果 / 风险清单 / 接口参考”，不再作为主开发母版。
 

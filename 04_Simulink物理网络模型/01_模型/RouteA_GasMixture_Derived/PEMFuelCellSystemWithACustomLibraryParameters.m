@@ -9,8 +9,8 @@
 % - Default values come from the MathWorks official example, literature-scale
 %   ranges, and engineering-order matching between stack, BoP, and cEGR loop.
 % - Bench or product data may only be loaded by explicit external_case scripts.
-% - A10 daily users should set routeA_* controls rather than editing physical
-%   block parameters directly.
+% - A10/A10.1 daily users should set routeA_* controls rather than editing
+%   physical block parameters directly.
 
 % Copyright 2020 The MathWorks, Inc.
 
@@ -20,7 +20,34 @@ routeA_external_case_enabled = false;
 
 load PEMFuelCellSystemWithACustomLibraryDriveCycle.mat
 
-Gas_properties_block = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01/Gas Mixture Properties';
+routeA_current_system = get_param(0, 'CurrentSystem');
+if isempty(routeA_current_system)
+    routeA_current_model = bdroot;
+else
+    routeA_current_model = bdroot(routeA_current_system);
+end
+if isempty(routeA_current_model) || strcmp(routeA_current_model, 'simulink')
+    routeA_loaded_models = find_system(0, 'SearchDepth', 0, ...
+        'Type', 'block_diagram');
+    routeA_loaded_models = getfullname(routeA_loaded_models);
+    routeA_loaded_models = routeA_loaded_models(contains( ...
+        string(routeA_loaded_models), 'PEMFuelCellSystem_GasMixture'));
+    if isempty(routeA_loaded_models)
+        error('RouteA:MissingModelContext', ...
+            'No loaded Route A model was found for parameter initialization.');
+    end
+    routeA_current_model = routeA_loaded_models{1};
+end
+Gas_properties_candidates = find_system( ...
+    routeA_current_model, ...
+    'LookUnderMasks', 'all', 'FollowLinks', 'on', ...
+    'MatchFilter', @Simulink.match.allVariants, ...
+    'Name', 'Gas Mixture Properties');
+if isempty(Gas_properties_candidates)
+    error('RouteA:MissingGasProperties', ...
+        'Gas Mixture Properties block was not found in the model.');
+end
+Gas_properties_block = Gas_properties_candidates{1};
 T_TLU = eval(get_param(Gas_properties_block, 'T_LUT')); % [K] Temperature table
 pSat_TLU = eval(get_param(Gas_properties_block, 'pSat')); % [kPa] Saturation pressures
 pSat_H2O_TLU = pSat_TLU(4,:); % [MPa] Water saturation table
@@ -47,6 +74,11 @@ stack_mea_rho = 1800; % [kg/s] Overall density of membrane electrode assembly
 stack_mea_cp = 870; % [J/(kg*K)] Overall specific heat of membrane electrode assembly
 
 %% Air supply and compressor
+% Profile: platform_default / A11-A12 override candidate.
+% The default air path keeps the official compressor source/map structure.
+% routeA_air_control_mode_id selects the command semantics; compressor map
+% values remain platform-scale placeholders unless replaced by a later
+% vehicle or bench configuration profile.
 cathode_tube_D = 0.05; % [m] Air tube diameter
 comp_inlet_mixer_V = 0.1; % [l] Compressor inlet mixer volume
 cegr_comp_map_t_denom_epsilon = 1e-9; % [-] Compressor map denominator guard
@@ -73,10 +105,13 @@ intercooler_mdot_nominal = 0.1; % [kg/s] Equivalent nominal cathode flow
 intercooler_laminar_fraction = 1e-3; % [-] Flow resistance smoothing fraction
 
 %% Cathode cEGR loop
+% Profile: platform_default / A11-A12 override candidate.
 % The first cEGR implementation returns cathode exhaust to the compressor
 % inlet mixer through an equivalent valve and pipe. Water removal uses
 % explicit FuelCell_lib FC-domain separator interfaces plus chamber/pipe
 % condensation dynamics, with a separate KPI observer for drainage estimates.
+% routeA_target_egr_ratio_comp_in is defined against total compressor inlet
+% mass flow, not fresh-air-only flow.
 cathode_outlet_chamber_V = 0.2; % [l] Cathode outlet chamber volume
 cegr_pipe_D = cathode_tube_D; % [m] cEGR pipe hydraulic diameter
 cegr_pipe_area = pi*cegr_pipe_D^2/4; % [m^2] cEGR pipe cross-sectional area
@@ -96,6 +131,10 @@ cegr_valve_max_area = cegr_valve_area_frac_max * cegr_pipe_area; % [m^2]
 cegr_valve_min_area = 1e-10; % [m^2]
 
 %% Backpressure and cathode exhaust
+% Profile: platform_default / A11-A12 override candidate.
+% The current backpressure regulator reuses the official Pressure Relief
+% Valve as a target outlet-pressure interface; it is not yet a valve-opening
+% PI controller or product-calibrated exhaust valve model.
 routeA_control_mode_backpressure = "target_p_ca_out";
 routeA_backpressure_control_mode_id = 1; % 1 target_p_ca_out through pressure relief valve
 routeA_target_p_ca_out_MPa = env_p + 0.06; % [MPa] Cathode outlet pressure target
@@ -103,6 +142,9 @@ routeA_target_p_ca_out_MPa = env_p + 0.06; % [MPa] Cathode outlet pressure targe
 %% Humidification and water-management interfaces
 % These platform-default L2 interface values make equipment explicit without
 % binding the platform to bench or vehicle hardware.
+% Intercooler_L2_Interface and separator blocks represent pressure-drop and
+% KPI interfaces. SeparatorOrCondensation estimates separated/condensed water
+% for audit only and does not rewrite gas composition in the physical network.
 separator_condensation_enabled = true; % [-] A8 outlet water-management interface flag
 separator_l2_efficiency = 0.5; % [-] First-version separated-water KPI efficiency
 separator_l2_source = "l2_saturation_excess_estimator";
@@ -123,6 +165,9 @@ routeA_cathode_humidifier_gain = double(routeA_cathode_humidifier_enabled); % [-
 humidifier_bypass_mode = "command_gain";
 
 %% Anode and hydrogen supply
+% Profile: platform_default / simplified relative to cathode-cEGR work.
+% The official anode supply and recycle structure is retained for system
+% consistency; anode lambda and purge control are deferred beyond A10.1.
 tank_p = 70; % [MPa] Fuel tank pressure
 tank_yH2 = 1 - 3e-4; % [-] Hydrogen mole fraction
 tank_V = 120; % [l] Fuel tank volume
@@ -140,6 +185,9 @@ anode_separator_mdot_nominal = 0.01; % [kg/s] L2 anode separator nominal gas flo
 anode_separator_laminar_fraction = 1e-3; % [-] L2 anode separator smoothing fraction
 
 %% Cooling system
+% Profile: platform_default / simplified thermal support.
+% routeA_stack_temperature_set_C exposes the existing coolant controller
+% setpoint. Full thermal-management FCU logic is deferred beyond A10.1.
 routeA_stack_temperature_set_C = 80; % [degC] Existing coolant controller setpoint interface
 coolant_w_channels = 1; % [cm] Coolant channel width/height
 coolant_num_passes = 12; % [-] Number of coolant channel passes per layer
@@ -163,6 +211,7 @@ radiator_air_area_fins = 2 * radiator_N_fins * radiator_W * radiator_gap_H; % [m
 radiator_tube_Leq = 2*(radiator_H + 20*radiator_tube_H*radiator_N_tubes); % [m]
 
 %% FCU-BoP control interfaces
+% Profile: platform_default operational interface.
 % Mode ids are used inside Simulink blocks because block parameters should
 % not depend on string comparison at run time.
 routeA_control_mode_air = "target_mdot";

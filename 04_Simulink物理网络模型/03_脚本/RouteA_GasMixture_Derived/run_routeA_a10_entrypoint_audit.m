@@ -3,24 +3,25 @@
 % interfaces, and a compact regression path without moving legacy audits.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
-oldDir = pwd;
 scriptDir = fileparts(mfilename('fullpath'));
-if ~isempty(scriptDir)
-    cd(scriptDir);
-end
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
+oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a10_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
 
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 mw = get_param(model, 'ModelWorkspace');
+paths = routeA_block_paths(model);
 
 a10Audit = struct();
 a10Audit.model = model;
 a10Audit.phase = "A10";
 a10Audit.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 a10Audit.scope = "main model and reusable entrypoint closure";
-a10Audit.preflight = runPreflight(model, mw);
+a10Audit.preflight = runPreflight(model, mw, scriptDir, paths);
 a10Audit.demo = runDemoEntry();
 a10Audit.a98 = runA98MinimalRegression();
 a10Audit.a99 = runA99MinimalRegression();
@@ -31,7 +32,7 @@ a10Audit.passed = a10Audit.generated;
 assignin('base', 'routeA_a10_entrypoint_audit', a10Audit);
 dispAudit(a10Audit);
 
-function result = runPreflight(model, mw)
+function result = runPreflight(model, mw, scriptDir, paths)
 result = struct('passed', false, 'layerOk', false, ...
     'externalCaseDisabled', false, 'fcuExists', false, ...
     'airControlExists', false, 'backpressureTargeted', false, ...
@@ -52,15 +53,15 @@ try
     end
     result.layerOk = layer == "platform_default";
     result.externalCaseDisabled = ~externalEnabled;
-    result.fcuExists = getSimulinkBlockHandle([model '/FCU_BoP_Control']) ~= -1;
-    result.airControlExists = getSimulinkBlockHandle([model ...
-        '/Oxygen Source/Compressor Control/A98_CompressorCmd_ModeSwitch']) ~= -1;
-    result.backpressureTargeted = contains(string(get_param([model ...
-        '/Cathode Exhaust/Stack Pressure'], 'Value')), ...
+    result.fcuExists = getSimulinkBlockHandle(paths.fcu) ~= -1;
+    result.airControlExists = getSimulinkBlockHandle( ...
+        paths.compressorCommandSwitch) ~= -1;
+    result.backpressureTargeted = contains(string(get_param( ...
+        [paths.cathodeExhaustBlock '/Stack Pressure'], 'Value')), ...
         "routeA_target_p_ca_out_MPa");
-    result.operatorAnnotations = hasOperatorVisuals(model);
-    result.demoScriptExists = isfile('run_routeA_platform_demo.m');
-    result.docExists = isfile('RouteA_A10_主模型与复用入口收口_v01.md');
+    result.operatorAnnotations = hasOperatorVisuals(model, paths);
+    result.demoScriptExists = isfile(fullfile(scriptDir, 'run_routeA_platform_demo.m'));
+    result.docExists = isfile(fullfile(scriptDir, '..', '..', '04_说明', 'RouteA_GasMixture_Derived', 'RouteA_A10_主模型与复用入口收口_v01.md'));
     result.requiredVariablesOk = all(varOk);
     result.passed = result.layerOk && result.externalCaseDisabled && ...
         result.fcuExists && result.airControlExists && ...
@@ -73,7 +74,7 @@ catch ME
 end
 end
 
-function tf = hasOperatorVisuals(model)
+function tf = hasOperatorVisuals(model, paths)
 tf = false;
 try
     anns = find_system(model, 'FindAll', 'on', 'Type', 'annotation');
@@ -92,7 +93,7 @@ try
         "RouteA_Display_Water_Sep"];
     displayOk = true(size(requiredDisplays));
     for idx = 1:numel(requiredDisplays)
-        displayOk(idx) = getSimulinkBlockHandle([model '/' ...
+        displayOk(idx) = getSimulinkBlockHandle([paths.control '/' ...
             char(requiredDisplays(idx))]) ~= -1;
     end
     tf = all(displayOk);

@@ -6,11 +6,13 @@
 % No external bench data, no figures, no CSV/XLSX, and no model copies.
 
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = [model '.slx'];
 scriptDir = fileparts(mfilename('fullpath'));
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
+modelFile = fullfile(modelDir, [model '.slx']);
 oldDir = pwd;
+addpath(scriptDir);
+cd(modelDir);
 routeA_a8_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
-cd(scriptDir);
 
 if bdIsLoaded(model) && strcmp(get_param(model, 'Dirty'), 'on')
     error('RouteA:A8:DirtyModel', ...
@@ -20,13 +22,14 @@ end
 
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
+paths = routeA_block_paths(model);
 
 audit = struct();
 audit.model = string(model);
 audit.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
-audit.parameterIsolation = auditParameterIsolation(model, scriptDir);
+audit.parameterIsolation = auditParameterIsolation(model, modelDir);
 audit.externalCaseGuard = auditExternalCaseGuard(model);
-audit.structure = auditA8Structure(model);
+audit.structure = auditA8Structure(model, paths);
 audit.parameters = auditA8Parameters(model);
 
 cases = [ ...
@@ -55,9 +58,9 @@ c.humidifierGain = humidifierGain;
 c.stopTime = "30";
 end
 
-function result = auditParameterIsolation(model, scriptDir)
+function result = auditParameterIsolation(model, modelDir)
 mw = get_param(model, 'ModelWorkspace');
-parameterFile = fullfile(scriptDir, 'PEMFuelCellSystemWithACustomLibraryParameters.m');
+parameterFile = fullfile(modelDir, 'PEMFuelCellSystemWithACustomLibraryParameters.m');
 txt = string(fileread(parameterFile));
 result = struct();
 result.layer = string(getWorkspaceValue(mw, 'routeA_parameter_layer', ""));
@@ -91,7 +94,7 @@ refreshModelWorkspace(model);
 result.passed = result.disabledByDefault;
 end
 
-function result = auditA8Structure(model)
+function result = auditA8Structure(model, paths)
 result = struct();
 result.requiredBlocks = [ ...
     "Intercooler_L2_Interface", ...
@@ -122,10 +125,10 @@ for k = 1:numel(result.requiredSignals)
     result.signalPresent(k) = hasAnySignal(model, result.requiredSignals(k));
 end
 
-result.cegrConnectionsOk = hasRequiredCegrConnections(model);
-result.waterSeparatorConnectionsOk = hasWaterSeparatorConnections(model);
-result.intercoolerConnectionsOk = hasIntercoolerConnections(model);
-result.humidifierBypassConnectionOk = hasHumidifierBypassConnection(model);
+result.cegrConnectionsOk = hasRequiredCegrConnections(paths);
+result.waterSeparatorConnectionsOk = hasWaterSeparatorConnections(paths);
+result.intercoolerConnectionsOk = hasIntercoolerConnections(paths);
+result.humidifierBypassConnectionOk = hasHumidifierBypassConnection(paths);
 result.passed = all(result.blockPresent) && all(result.signalPresent) && ...
     result.cegrConnectionsOk && result.waterSeparatorConnectionsOk && ...
     result.intercoolerConnectionsOk && result.humidifierBypassConnectionOk;
@@ -215,7 +218,8 @@ fprintf('\nRoute A A8 smoke: %s area_frac=%.6g humidifier_gain=%.3g\n', ...
 try
     resetModelFromDisk(model, modelFile);
     refreshModelWorkspace(model);
-    markAuditSignals(model);
+    paths = routeA_block_paths(model);
+    markAuditSignals(paths);
     simIn = Simulink.SimulationInput(model);
     simIn = simIn.setModelParameter( ...
         'StopTime', char(c.stopTime), ...
@@ -223,7 +227,7 @@ try
         'SignalLoggingName', 'logsout', ...
         'ReturnWorkspaceOutputs', 'on', ...
         'SimscapeLogType', 'none');
-    simIn = simIn.setBlockParameter([model '/EGRValveRestriction'], ...
+    simIn = simIn.setBlockParameter(paths.egrValve, ...
         'restriction_area', sprintf('%.16g*cegr_pipe_area', c.areaFraction));
     simIn = simIn.setVariable('routeA_cathode_humidifier_gain', ...
         c.humidifierGain);
@@ -247,16 +251,16 @@ end
 resetModelFromDisk(model, modelFile);
 end
 
-function markAuditSignals(model)
-nameLineFromBlockOut([model '/Oxygen Source/PS-Simulink Converter'], ...
+function markAuditSignals(paths)
+nameLineFromBlockOut(paths.compressorFlowConverter, ...
     'routeA_mdot_comp_inlet');
-nameLineFromBlockOut([model '/Exhaust_mdot_Converter'], ...
+nameLineFromBlockOut(paths.exhaustMassFlowConverter, ...
     'routeA_exhaust_mdot');
-nameLineFromBlockOut([model '/Cathode Humidifier/PS-Simulink Converter2'], ...
+nameLineFromBlockOut(paths.cathodeHumidifierConverter, ...
     'routeA_RH_ca_in');
-nameLineFromBlockOut([model '/OutletRH_Converter'], ...
+nameLineFromBlockOut(paths.outletRHConverter, ...
     'routeA_RH_ca_out');
-nameLineFromBlockOut([model '/SeparatorOrCondensation'], ...
+nameLineFromBlockOut(paths.separatorObserver, ...
     'routeA_m_water_sep');
 end
 
@@ -302,12 +306,12 @@ ok = isfinite(result.pOutlet) && isfinite(result.pEgrValveUp) && ...
     result.pEgrValveDown + tol >= result.pCompInlet;
 end
 
-function tf = hasIntercoolerConnections(model)
+function tf = hasIntercoolerConnections(paths)
 tf = false;
 try
-    pipe = [model '/Oxygen Source/Intercooler_L2_Interface'];
-    compVolume = [model '/Oxygen Source/Compressor Volume'];
-    massSensor = [model '/Oxygen Source/Mass Flow Rate Sensor (FC)'];
+    pipe = paths.intercooler;
+    compVolume = paths.compressorVolume;
+    massSensor = paths.oxygenMassFlowSensor;
     phPipe = get_param(pipe, 'PortHandles');
     phComp = get_param(compVolume, 'PortHandles');
     phSensor = get_param(massSensor, 'PortHandles');
@@ -317,27 +321,27 @@ catch
 end
 end
 
-function tf = hasHumidifierBypassConnection(model)
+function tf = hasHumidifierBypassConnection(paths)
 tf = false;
 try
-    bypass = [model '/Cathode Humidifier/CathodeHumidifierBypass'];
+    bypass = paths.cathodeHumidifierBypass;
     ph = get_param(bypass, 'PortHandles');
     tf = allPortsConnected([ph.Inport(1), ph.Outport(1)]);
 catch
 end
 end
 
-function tf = hasRequiredCegrConnections(model)
+function tf = hasRequiredCegrConnections(paths)
 tf = false;
 try
-    chamber = [model '/CathodeOutletChamber'];
-    resistance = [model '/CathodeOutletResistance'];
-    exhaustSensor = [model '/ExhaustMassFlowSensor'];
-    egrSensor = [model '/EGRMassFlowSensor'];
-    cathodeSeparator = [model '/CathodeWaterSeparator_FC'];
-    egrValve = [model '/EGRValveRestriction'];
-    egrPipe = [model '/EGRPipe'];
-    oxygen = [model '/Oxygen Source'];
+    chamber = paths.outletChamber;
+    resistance = paths.outletResistance;
+    exhaustSensor = paths.exhaustMassFlowSensor;
+    egrSensor = paths.egrMassFlowSensor;
+    cathodeSeparator = [paths.cathodeExhaust '/CathodeWaterSeparator_FC'];
+    egrValve = paths.egrValve;
+    egrPipe = paths.egrPipe;
+    oxygen = paths.oxygen;
     phChamber = get_param(chamber, 'PortHandles');
     phResistance = get_param(resistance, 'PortHandles');
     phExhaustSensor = get_param(exhaustSensor, 'PortHandles');
@@ -358,13 +362,13 @@ catch
 end
 end
 
-function tf = hasWaterSeparatorConnections(model)
+function tf = hasWaterSeparatorConnections(paths)
 tf = false;
 try
-    cathodeSeparator = [model '/CathodeWaterSeparator_FC'];
-    anodeSeparator = [model '/AnodeWaterSeparator_FC'];
-    anodeGas = [model '/Anode Gas Channels'];
-    recirculation = [model '/Recirculation'];
+    cathodeSeparator = [paths.cathodeExhaust '/CathodeWaterSeparator_FC'];
+    anodeSeparator = paths.anodeWaterSeparator;
+    anodeGas = paths.anodeGas;
+    recirculation = paths.recirculation;
     phCathodeSeparator = get_param(cathodeSeparator, 'PortHandles');
     phAnodeSeparator = get_param(anodeSeparator, 'PortHandles');
     phAnodeGas = get_param(anodeGas, 'PortHandles');
