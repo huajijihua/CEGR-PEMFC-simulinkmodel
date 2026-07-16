@@ -232,6 +232,10 @@ routeA_control_mode_egr = "target_ratio";
 routeA_cegr_enabled = true;
 routeA_egr_control_mode_id = 1; % 1 target_ratio, 2 direct_area
 routeA_target_egr_ratio_comp_in = 0.02; % [-] abs(cEGR mdot)/abs(compressor inlet mdot)
+routeA_egr_target_input_mode_id = 0; % 0 scalar target, 1 workspace profile
+routeA_target_egr_ratio_comp_in_profile = [ ...
+    0, routeA_target_egr_ratio_comp_in; ...
+    2501, routeA_target_egr_ratio_comp_in]; % [s, -] held over platform model horizon
 routeA_egr_valve_area_direct = 2e-3 * cegr_pipe_area; % [m^2] Open-loop cEGR valve area
 routeA_egr_control_Kp_area = 0.1 * cegr_pipe_area; % [m^2] Area command per ratio error
 routeA_egr_control_Ki_area = 0.02 * cegr_pipe_area; % [m^2/s] Area integral gain per ratio error
