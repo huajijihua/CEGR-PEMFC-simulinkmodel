@@ -5,7 +5,10 @@
 % transition and the zero-recirculation reference begin from that exact
 % operating point.  The saved Simulink operating point retains its model
 % time, so cfg research times are translated to absolute model times here.
-% The physical Variant is never switched while a simulation is running.
+% The transition stays in mode 1 throughout. Its zero-target intervals are
+% near-zero cEGR control references; the strict mode-0 isolation baseline is
+% compiled and run separately. The physical Variant is never switched while
+% a simulation is running.
 
 scriptDir = fileparts(mfilename('fullpath'));
 modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');

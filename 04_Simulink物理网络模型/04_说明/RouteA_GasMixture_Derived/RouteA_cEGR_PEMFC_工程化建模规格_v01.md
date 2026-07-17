@@ -64,7 +64,7 @@ cEGR 是供氧/阴极排气水管理域的一条可切换物理支路，不是�
 
 控制命令不能代替物理验收。特别是 OER 命令不能代替实际氧供给，cEGR 评价必须以混合气组分、实际氧计量比和压力链为准。
 
-`routeA_cegr_enabled` 是根部拓扑的编译期变体；`routeA_cegr_valve_mode_id` 是 `EGRValveRestriction` 的编译期本构选择，二者均仅在独立仿真前 `update diagram` 生效，禁止在单次连续仿真中切换。无 cEGR case 要求 `mode_id=0` 且目标回流比为零；正 cEGR case 要求 `mode_id=1` 且目标比大于零。关闭态的 AR 物理信号由 `PS Terminator` 接收，并由只服务该信号网络的官方 `Solver Configuration` 提供求解配置；该配置不连接 A/B 气体网络。`cegr_valve_open_min_area` 仅约束打开态限制阀，零 cEGR 的验收量是严格零回流和完整排气流，而不是极小面积。连续 Simscape 物理量按 variable-step 处理。
+`routeA_cegr_valve_mode_id` 是正常研究工况唯一的编译期物理开关：`0` 为 `EGRValveRestriction` 的官方无限流阻隔离，`1` 为官方局部限制连通；二者均只在独立仿真前 `update diagram` 生效，禁止在单次连续仿真中切换。正常 runner 固定根部 `routeA_cegr_enabled=true`；根部关闭加内部关闭会使 EGR 管段双重隔离并欠定，因此该根部 Variant 只用于结构回归。`mode=0` 是独立仿真的严格无 cEGR 参考；后续技术研究默认 `mode=1`，通过目标循环比在同一仿真内实现零目标、正循环比和回零。`mode=1` 的零目标只能称为近似零 cEGR 或零目标参考，不能替代 `mode=0` 的严格隔离验收。关闭态的 AR 物理信号由 `PS Terminator` 接收，并由只服务该信号网络的官方 `Solver Configuration` 提供求解配置；该配置不连接 A/B 气体网络。`cegr_valve_open_min_area` 仅约束打开态限制阀，零 cEGR 的严格验收量是零回流和完整排气流，而不是极小面积。连续 Simscape 物理量按 variable-step 处理。
 
 ### 4.1 第 3 批已对齐：`u/w/y/z` 接口契约
 
@@ -178,7 +178,7 @@ Stage 1 已在唯一正常运行 `Simulink.op.ModelOperatingPoint` 下完成恒 
 
 ### 7.3 第 5 批已对齐：统一模型、参数与分级验证协议
 
-无 cEGR、有 cEGR 和代表性目标比瞬态统一使用同一个 `PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`、同一个 `platform_default` 参数源和同一套参数装配/runner 逻辑。`routeA_cegr_enabled` 保留为根部拓扑隔离与结构验证手段；`routeA_cegr_valve_mode_id` 则在同一模型内明确阀关闭/打开的编译期本构。无需独立模型、独立参数副本或隐藏的模式专用调参链。
+无 cEGR、有 cEGR 和代表性目标比瞬态统一使用同一个 `PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`、同一个 `platform_default` 参数源和同一套参数装配/runner 逻辑。正常工况固定根部 `routeA_cegr_enabled=true`，仅由 `routeA_cegr_valve_mode_id` 在同一模型内选择阀关闭/打开的编译期本构；根部隔离只保留为结构验证手段。严格 no-cEGR 与同拓扑零目标参考分别标为 `mode0` 和 `mode1-zero-target`，不混用其物理结论。无需独立模型、独立参数副本或隐藏的模式专用调参链。
 
 验证顺序冻结为：结构/接口预检；中负载 `noCEGR/mode0/target0`、`withCEGR/mode1/0.10`、`withCEGR/mode1/0.30`；通过后扩展低/高负载稳态矩阵；最后仅在打开态 `mode1` 下运行目标回流比 `0 -> 0.10 -> 0` 的控制响应研究。`0.30` 作为稳态压力工况，本轮不验收运行时阀关闭/打开切换。
 

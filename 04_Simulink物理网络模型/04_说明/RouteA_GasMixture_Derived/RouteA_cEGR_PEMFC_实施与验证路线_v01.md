@@ -11,11 +11,14 @@
 - 关闭态为理想隔离：A/B 间无质量流、能量流或组分流，`AR` 由官方 `PS Terminator` 承接；不建立泄漏模型，A/B 两侧压力仍可独立存在。
 - `AR` 的 Simulink-PS Converter 与 PS Terminator 本身构成独立物理信号网络。因此关闭 Variant 仅在该 AR 信号线上增加官方 `Solver Configuration`；它不接入 A/B FuelCell 网络，不改变理想隔离本构或阀前后气路关系。
 - 正面积约束仅属于打开态限制阀。`cegr_valve_open_min_area` 只作为 `Local Restriction (FC)` 的正面积下限，不再承担 no-cEGR 物理依据。
-- no-cEGR runner 必须显式设 `routeA_cegr_valve_mode_id=0` 且目标回流比为零；验收量是 `routeA_egr_mdot=0` 和完整有限的排气支路流量，而不是读取或验收 `1e-10 m^2` 阀面积。正 cEGR runner 显式设 `mode_id=1`。
-- 本轮不处理泄漏、初始值、根部 ZT/Z0 选择或运行时阀切换；`0 -> 0.10 -> 0` 目标比瞬态只保留为打开态控制响应研究，不能作为关闭/打开物理隔离的验收。
+- 正常 runner 固定根部 `routeA_cegr_enabled=true`，仅以 `routeA_cegr_valve_mode_id` 作为物理 cEGR 开关。`mode_id=0` 是独立编译的严格无 cEGR 参考，验收量是 `routeA_egr_mdot=0` 和完整有限的排气支路流量，而不是读取或验收 `1e-10 m^2` 阀面积。
+- `mode_id=1` 是后续 cEGR 技术研究的标准入口：目标循环比可以在同一仿真内从零目标到正值再回零，系统性能比较据此开展。打开态零目标因正面积下限和控制器状态只能作为近似零 cEGR 或零目标参考，不作严格隔离验收。
+- 根部 `routeA_cegr_enabled=false` 与关闭态 `mode_id=0` 同时选择会使 EGR 管段双重隔离并欠定；该根部 Variant 仅保留为拓扑回归，不作为正常运行入口。`0 -> 0.10 -> 0` 目标比瞬态只保留为打开态控制响应研究，不能作为关闭/打开物理隔离的验收。
 - 已完成的最小验证为：mode 0/1 update diagram、Closed/Open 子系统结构检查、官方双储罐构成本构测试，以及无旧工作点的 10 s 完整模型 smoke。依赖 `RouteA_platform_default_initial_state.mat` 的 600 s cEGR 矩阵和 `WM-L1+` 回归尚未重跑；旧工作点不会以部分加载方式降级使用。
 
-下文中凡以目标零回流和极小阀面积解释“无 cEGR”的数值，均为重构前历史记录，不再构成当前 no-cEGR 结论。
+本轮 cEGR 切换工作到此冻结：不再尝试在单次仿真内切换物理 Variant，也不再引入自定义动态关断阀。Stage 1 的下一具体任务是刷新与 `mode=1` 研究链兼容的 `platform_default` 全状态 operating point，并从该状态重跑 600 s cEGR 矩阵及 `WM-L1+` 回归。
+
+下文中凡以目标零回流和极小阀面积解释“无 cEGR”的数值，均为重构前历史记录，不再构成严格 no-cEGR 结论；它们仍可作为 `mode=1` 零目标近似参考的历史数值背景。
 
 ## 0. 顶层规划总览
 
@@ -261,7 +264,7 @@ Stage 0 已由 Phase 1-4 完成；以下 Stage 1-5 是后续系统模型演进�
 
 - `routeA_egr_target_input_mode_id=0` 保持原有标量 `routeA_target_egr_ratio_comp_in`；`=1` 选择 `routeA_target_egr_ratio_comp_in_profile`，profile 格式为 `[time_s, target_ratio]`。
 - 新增的 `From Workspace`、模式 Constant 和 Switch 均位于 `FCU_BoP_Control` 内，Switch 输出接入原 `EGR Ratio Error`；公共 `u/w/y/z`、PI 增益、PI 误差方向和直接面积模式保持不变。
-- 重构前的切换仿真把 `routeA_cegr_enabled=true` 固定在 update-diagram/编译阶段，目标 0 依赖 PI 将限制阀面积压到极小值。该历史实现不再用于 no-cEGR 验收。当前关闭态由独立 `routeA_cegr_valve_mode_id=0` 在 update-diagram 时选择；同一运行内不切换该 Variant，目标比瞬态固定使用 `mode_id=1`。
+- 重构前的切换仿真把 `routeA_cegr_enabled=true` 固定在 update-diagram/编译阶段，目标 0 依赖 PI 将限制阀面积压到极小值。该实现不再用于严格 no-cEGR 验收，但可作为 `mode=1` 零目标近似参考。当前关闭态由独立 `routeA_cegr_valve_mode_id=0` 在 update-diagram 时选择；同一运行内不切换该 Variant，目标比瞬态固定使用 `mode_id=1`。
 - profile 使用 `Interpolate=off`、`OutputAfterFinalValue=Holding final value`；默认 held profile 覆盖模型 2500 s 时域，正常运行审计 profile 覆盖逻辑 600 s。当前 `SampleTime=-1` 继承模型步长，运行时产生“source specifies -1 sample time”非阻断性诊断；独立控制采样周期待后续接口契约冻结后再显式设置。
 - 首次时变运行暴露了 `Abs egr mdot` 和 `EGR Ratio PI` 的零交叉失败；在保持控制律和信号语义不变的前提下，将这两个局部数值诊断设为 `ZeroCross=off`，随后通过结构检查、瞬态和稳态回归。
 - `FCU_BoP_Control` 的 `model_read` 读回显示 profile、mode、static fallback 三路均连接到目标选择器；scoped `model_check` 为 `healthy`。同时使用 MATLAB 图形化模型截图进行视觉复核，未发现新增悬空线、错误端口或层级遮挡；原有阀面积输出附近日志标签较密，但未由本次接口引入且不造成语义歧义，留作独立布局整理项。视觉检查作为布局/连线辅助证据，不替代 API 读回和结构检查。
@@ -301,14 +304,14 @@ noCEGR 独立编译隔离基线的 late 窗口为：电流 `124.840 A`、电压 
 - pre 到 mid 中，O2 质量分数由 `0.220141` 降至 `0.206259`，cEGR 增加，但堆温也由 `36.86` 升至 `71.41 °C`，且恒功率边界下电流由 `127.490` 降至 `125.385 A`。降低电流会降低极化损失，升温会改善当前堆模型中的反应/欧姆项；这两个作用在本次运行中超过了 O2 降低的负作用，所以电压由 `399.722` 升至 `406.430 V`。由 `P=VI`，电压升高必然伴随电流降低；不能把该结果解释为 cEGR 单独提高了电压。
 - 当前模型已有 `Ramp Current Demand` 和 `Step Current Demand` 两个电流需求变体，可以开展给定电流轨迹下的试验；但 Stage 1 尚未建立与 cEGR 事件联动的恒流审计入口。恒流下应直接读回 `P=VI`，若同热状态下 cEGR 使电压降低，功率将随之降低。
 - 当前模型没有恒压闭环。`Voltage Sensor` 的读数用于功率需求的 `P/v` 换算和观测，没有电压误差控制器；恒压研究需要单独授权增加电压控制接口。若同热状态下保持电压而 cEGR 使可维持电流降低，功率才会相应降低，方向不能由本次恒功率结果直接代替。
-- 此处记录的是重构前打开态目标回零的残余流量，不再作为 no-cEGR 结论。当前 no-cEGR 通过 `routeA_cegr_valve_mode_id=0` 选择 `Infinite Flow Resistance (FC)`，要求主 cEGR 流严格为零；打开态目标回零仍可能保留管路/控制器状态记忆，但不属于关闭态验收。
+- 此处记录的是重构前打开态目标回零的残余流量，不再作为严格 no-cEGR 结论。当前严格 no-cEGR 通过 `routeA_cegr_valve_mode_id=0` 选择 `Infinite Flow Resistance (FC)`，要求主 cEGR 流严格为零；打开态目标回零仍可能保留管路/控制器状态记忆，但可作为 `mode=1` 零目标近似参考，不属于关闭态验收。
 - post 继续出现电压升高、电流降低，主要是堆从初始冷态继续升温和状态演化，而不是“无 cEGR 后没有回到 pre”。transition post 的堆温为 `80.135 °C`、电压 `408.172 V`；独立 noCEGR baseline 的 post 为 `80.136 °C`、`408.202 V`，两者已接近。真正的 noCEGR 因果对照应在相同热/压力/湿度/控制器状态下进行，不能拿早期冷态 pre 窗口作为回归目标。
 
 #### 正常运行态初值与恒流切换复验（2026-07-16）
 
 本阶段不以冷启动作为性能研究起点。唯一的 `platform_default` 初值保存在 `01_模型/RouteA_GasMixture_Derived/RouteA_platform_default_initial_state.mat`：它是完整的 `Simulink.op.ModelOperatingPoint`，而非只写入几个温度或压力标量；因此同时携带堆温、气体库存、湿度、压力、流量、组分和控制器内部状态。生成工况为 `j=0.1 A/cm^2`、`A=280 cm^2`、恒 `I=28 A`、`routeA_cegr_enabled=true` 且目标回流为零，实际回流约为零。状态快照模型时间为 `4823.57193 s`，取阳极最近一次吹扫后 `100 s` 的相位；该运行点的阳极吹扫周期约 `789.807 s`。后续每个正常运行研究都从这同一状态重新起算，不以某一试验的结束状态作为下一试验初值。
 
-全状态初值要求保持 cEGR 物理拓扑开启，故零回流参考不再编译成 `routeA_cegr_enabled=false` 的另一拓扑，而是在同一拓扑下将目标回流保持为零。审计以保存快照为逻辑 `t=0`，模型绝对时间仅用于承接 operating point；研究 profile 为逻辑 `0--60 s` 零回流、`60.01--240 s` 目标 `0.10`、`240.01--600 s` 回零。pre/mid/post 分别为逻辑 `[30,59] s`、`[210,239] s`、`[540,599] s`，600 s 窗口短于下一次吹扫，避免吹扫事件直接落入 CEGR 切换段。
+全状态初值要求保持 cEGR 物理拓扑开启，故零目标参考不再编译成 `routeA_cegr_enabled=false` 的另一拓扑，而是在同一拓扑、`mode=1` 下将目标回流保持为零。该参考是近似零 cEGR，不与 `mode=0` 严格隔离混用。审计以保存快照为逻辑 `t=0`，模型绝对时间仅用于承接 operating point；研究 profile 为逻辑 `0--60 s` 零目标、`60.01--240 s` 目标 `0.10`、`240.01--600 s` 回零。pre/mid/post 分别为逻辑 `[30,59] s`、`[210,239] s`、`[540,599] s`，600 s 窗口短于下一次吹扫，避免吹扫事件直接落入 CEGR 切换段。
 
 | 窗口 | 电流 (A) | 电压 (V) | 功率 (kW) | 堆温 (°C) | 实际 cEGR (kg/s) | 阴极入口 O2 质量分数 |
 |---|---:|---:|---:|---:|---:|---:|
