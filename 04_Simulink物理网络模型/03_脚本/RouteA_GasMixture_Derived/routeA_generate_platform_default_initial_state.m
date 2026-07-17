@@ -1,6 +1,7 @@
 % Generate the sole Route A platform_default normal-operation state.
 %
-% The reference condition is no cEGR at j = 0.1 A/cm^2. The anode purge
+% The reference condition is zero physical cEGR with the closed valve Variant
+% at j = 0.1 A/cm^2. The anode purge
 % controller creates a periodic normal operating cycle, so this script
 % saves one reproducible phase: 100 s after a purge event. The cEGR branch
 % stays in the enabled topology with a zero target for compatibility with
@@ -25,6 +26,7 @@ resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 mw = get_param(model, 'ModelWorkspace');
 mw.assignin('routeA_cegr_enabled', true);
+mw.assignin('routeA_cegr_valve_mode_id', 0);
 stackAreaCm2 = mw.getVariable('stack_area');
 cfg.targetCurrentA = cfg.currentDensity_A_cm2 * stackAreaCm2;
 cfg.initialCurrentA = 1e-6 * mw.getVariable('stack_iL') * stackAreaCm2;
@@ -131,6 +133,7 @@ in = in.setVariable('routeA_target_oer', cfg.targetOer, ...
     'Workspace', model);
 in = in.setVariable('routeA_egr_control_mode_id', 1, ...
     'Workspace', model);
+in = in.setVariable('routeA_cegr_valve_mode_id', 0, 'Workspace', model);
 in = in.setVariable('routeA_target_egr_ratio_comp_in', 0, ...
     'Workspace', model);
 in = in.setVariable('routeA_egr_target_input_mode_id', 1, ...

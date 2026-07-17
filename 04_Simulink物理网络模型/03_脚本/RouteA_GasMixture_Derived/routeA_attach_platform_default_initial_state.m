@@ -34,6 +34,7 @@ if ~bdIsLoaded(model)
 end
 mw = get_param(model, 'ModelWorkspace');
 mw.assignin('routeA_cegr_enabled', true);
+mw.assignin('routeA_cegr_valve_mode_id', 0);
 stackAreaCm2 = mw.getVariable('stack_area');
 initialCurrentA = 1e-6 * mw.getVariable('stack_iL') * stackAreaCm2;
 loadPath = Simulink.ID.getFullName([model ':368']);

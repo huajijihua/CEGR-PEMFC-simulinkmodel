@@ -4,7 +4,8 @@
 % selected before each independent simulation at update-diagram time:
 %   routeA_cegr_enabled = true  -> physical cEGR connection
 %   routeA_cegr_enabled = false -> Infinite Flow Resistance (FC) isolation
-% No-cEGR cases therefore do not depend on a numerically near-zero valve.
+% No-cEGR cases also select the EGRValveRestriction closed Variant at
+% update-diagram time, so they do not depend on a numerically near-zero valve.
 
 scriptDir = fileparts(mfilename('fullpath'));
 modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
@@ -168,6 +169,7 @@ try
         mw.reload;
     end
     mw.assignin('routeA_cegr_enabled', c.cegrEnabled);
+    mw.assignin('routeA_cegr_valve_mode_id', double(c.targetEgrRatio > 0));
     set_param(model, 'SimulationCommand', 'update');
 
     in = simulationInput(c, cfg, model);
@@ -192,6 +194,8 @@ in = in.setVariable('drive_cycle_power', ...
 in = in.setVariable('routeA_air_control_mode_id', 2, 'Workspace', model);
 in = in.setVariable('routeA_target_oer', c.targetOer, 'Workspace', model);
 in = in.setVariable('routeA_egr_control_mode_id', 1, 'Workspace', model);
+in = in.setVariable('routeA_cegr_valve_mode_id', ...
+    double(c.targetEgrRatio > 0), 'Workspace', model);
 in = in.setVariable('routeA_target_egr_ratio_comp_in', ...
     c.targetEgrRatio, 'Workspace', model);
 end

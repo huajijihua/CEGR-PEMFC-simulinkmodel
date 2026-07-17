@@ -56,6 +56,8 @@ paths.cathodeRHInWorkspace = [paths.cathodeHumidifier ...
     '/RH_ca_in_ToWorkspace'];
 
 paths.egrValve = [paths.cathodeAir '/EGRValveRestriction'];
+paths.egrValveClosed = [paths.egrValve '/Closed'];
+paths.egrValveOpen = [paths.egrValve '/Open'];
 paths.egrPipe = [paths.cathodeAir '/EGRPipe'];
 paths.egrValveUpSensor = [paths.cathodeAir '/EGRValveUpPTSensor'];
 paths.egrValveUpReference = [paths.cathodeAir '/EGRValveUpPTRef'];
