@@ -17,16 +17,22 @@ routeA_matrix_cleanup = onCleanup(@() routeA_restore_model_and_folder( ...
     model, modelFile, oldDir));
 
 cfg = matrixConfig(modelDir);
-cases = runMatrixCase(model, modelFile, modelDir, cfg, ...
+[cases, caseOutputs] = runMatrixCase(model, modelFile, modelDir, cfg, ...
     cfg.targetRatios(1));
 for idx = 2:numel(cfg.targetRatios)
-    cases(idx) = runMatrixCase(model, modelFile, modelDir, cfg, ...
+    [cases(idx), caseOutputs(idx)] = runMatrixCase(model, modelFile, modelDir, cfg, ...
         cfg.targetRatios(idx));
 end
 
 matrix = summarizeMatrix(cases, cfg);
+matrix.waterLedger = routeA_stage1_water_ledger_from_outputs( ...
+    caseOutputs, waterLedgerConfig(cfg, model));
+matrix.waterLedgerPassed = matrix.waterLedger.auditPassed;
+matrix.passed = matrix.allCasesPassed && matrix.waterLedgerPassed;
 assignin('base', 'routeA_stage1_cegr_ratio_matrix', matrix);
+assignin('base', 'routeA_stage1_water_ledger', matrix.waterLedger);
 displayMatrix(matrix);
+clear caseOutputs;
 clear routeA_matrix_cleanup;
 
 function cfg = matrixConfig(modelDir)
@@ -40,7 +46,8 @@ end
 
 metadata = loaded.routeA_initial_metadata;
 requiredFields = {'snapshotTimeS', 'targetCurrentA', ...
-    'currentDensity_A_cm2', 'purgePeriodS', 'cegrTopologyEnabled'};
+    'currentDensity_A_cm2', 'purgePeriodS', 'cegrTopologyEnabled', ...
+    'cegrValveModeId', 'egrReferenceKind'};
 if ~builtin('all', isfield(metadata, requiredFields))
     error('RouteA:InvalidPlatformDefaultInitialStateMetadata', ...
         'The platform_default initial-state metadata is incomplete.');
@@ -49,9 +56,15 @@ if ~metadata.cegrTopologyEnabled
     error('RouteA:InitialStateTopologyMismatch', ...
         'The saved state must retain the CEGR-enabled topology.');
 end
+if metadata.cegrValveModeId ~= 1 || ...
+        string(metadata.egrReferenceKind) ~= "mode1_zero_target_near_zero"
+    error('RouteA:InitialStateModeMismatch', ...
+        'The matrix requires a mode-1 zero-target formal initial state.');
+end
 
 cfg = struct();
 cfg.initialStateMetadata = metadata;
+cfg.initialStateFile = initialStateFile;
 cfg.researchStartTime_s = metadata.snapshotTimeS;
 cfg.researchDuration_s = 600;
 cfg.modelStopTime_s = cfg.researchStartTime_s + cfg.researchDuration_s;
@@ -82,13 +95,13 @@ cfg.tailSpan = struct( ...
     'inletO2MassFraction', 0.002);
 end
 
-function result = runMatrixCase(model, modelFile, modelDir, cfg, targetRatio)
+function [result, caseOutput] = runMatrixCase(model, modelFile, modelDir, cfg, targetRatio)
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 
 in = Simulink.SimulationInput(model);
 [in, initialStateMetadata] = routeA_attach_platform_default_initial_state( ...
-    in, model, modelDir);
+    in, model, modelDir, cfg.initialStateFile);
 routeA_mark_observability_signals(model);
 in = in.setModelParameter( ...
     'StopTime', sprintf('%.16g', cfg.modelStopTime_s), ...
@@ -99,8 +112,7 @@ in = in.setModelParameter( ...
 in = in.setVariable('routeA_air_control_mode_id', 2, 'Workspace', model);
 in = in.setVariable('routeA_target_oer', cfg.targetOer, 'Workspace', model);
 in = in.setVariable('routeA_egr_control_mode_id', 1, 'Workspace', model);
-in = in.setVariable('routeA_cegr_valve_mode_id', double(targetRatio > 0), ...
-    'Workspace', model);
+in = in.setVariable('routeA_cegr_valve_mode_id', 1, 'Workspace', model);
 in = in.setVariable('routeA_egr_target_input_mode_id', 0, ...
     'Workspace', model);
 in = in.setVariable('routeA_target_egr_ratio_comp_in', targetRatio, ...
@@ -112,7 +124,9 @@ in = in.setVariable('routeA_target_egr_ratio_comp_in_profile', ...
 out = sim(in);
 result = collectCaseResult(out, model, cfg, targetRatio);
 result.initialState = initialStateMetadata;
-clear out;
+result.modeId = 1;
+caseOutput = struct('targetRatio', targetRatio, 'out', out, ...
+    'initialState', initialStateMetadata, 'modeId', 1);
 end
 
 function result = collectCaseResult(out, model, cfg, targetRatio)
@@ -186,6 +200,7 @@ currentError = max(abs(windowData(stackCurrent, operationalWindow) - ...
 lambdaOperational = windowData(lambdaCaIn, operationalWindow);
 result = struct();
 result.targetRatio = targetRatio;
+result.modeId = 1;
 result.researchStartModelTime_s = cfg.researchStartTime_s;
 result.researchDuration_s = cfg.researchDuration_s;
 result.tailLogicalWindow_s = cfg.tailLogicalWindow_s;
@@ -218,11 +233,12 @@ matrix.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 matrix.model = string(cfg.initialStateMetadata.model);
 matrix.initialState = cfg.initialStateMetadata;
 matrix.targetRatios = cfg.targetRatios;
+matrix.modeId = 1;
 matrix.researchDuration_s = cfg.researchDuration_s;
 matrix.tailLogicalWindow_s = cfg.tailLogicalWindow_s;
 matrix.tailDefinition = 'mean/std/span over [540,600) s after saved operating point';
 matrix.referenceDefinition = ...
-    'same initial operating point, same topology, target cEGR ratio zero';
+    'same mode-1 initial operating point, same topology, zero-target near-zero cEGR';
 matrix.cases = cases;
 referenceMeans = cases(1).tailMeans;
 for idx = 1:numel(cases)
@@ -231,6 +247,27 @@ for idx = 1:numel(cases)
 end
 matrix.allCasesPassed = builtin('all', [matrix.cases.passed]);
 matrix.passed = matrix.allCasesPassed;
+end
+
+function cfg = waterLedgerConfig(matrixCfg, model)
+cfg = struct();
+cfg.model = model;
+cfg.initialStateMetadata = matrixCfg.initialStateMetadata;
+cfg.researchStartTime_s = matrixCfg.researchStartTime_s;
+cfg.researchDuration_s = matrixCfg.researchDuration_s;
+cfg.modelStopTime_s = matrixCfg.modelStopTime_s;
+cfg.tailLogicalWindow_s = matrixCfg.tailLogicalWindow_s;
+cfg.tailWindow_s = matrixCfg.tailWindow_s;
+cfg.targetCurrentA = matrixCfg.targetCurrentA;
+cfg.currentTrackingTolerance_A = matrixCfg.currentTrackingTolerance_A;
+cfg.targetOer = matrixCfg.targetOer;
+cfg.targetRatios = [0, 0.30];
+cfg.meaClosureTolerance_kg_s = 1e-6;
+cfg.localGasBalanceAbsTolerance_kg = 1e-6;
+cfg.localGasBalanceRelativeTolerance = 1e-3;
+cfg.systemGasBalanceAbsTolerance_kg = 5e-6;
+cfg.systemGasBalanceRelativeTolerance = 5e-5;
+cfg.species = struct('n2', 1, 'o2', 2, 'h2', 3, 'h2o', 4);
 end
 
 function displayMatrix(matrix)
@@ -266,7 +303,8 @@ for idx = 1:numel(cases)
         value.pressureDirectionPassed, value.areaPassed, value.finiteTail, ...
         value.tail.stackVoltage_V.span, value.tail.stackVoltage_V.std);
 end
-fprintf('  matrix passed=%d\n', matrix.passed);
+fprintf('  water-ledger passed=%d | matrix passed=%d\n', ...
+    matrix.waterLedgerPassed, matrix.passed);
 end
 
 function passed = tailStabilityPassed(tail, cfg)

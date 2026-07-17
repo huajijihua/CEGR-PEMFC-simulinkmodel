@@ -1,0 +1,66 @@
+function metadata = routeA_promote_platform_default_initial_state(modelDir)
+% Promote a validated mode-1 candidate to the sole formal initial-state file.
+
+candidateFile = fullfile(modelDir, ...
+    'RouteA_platform_default_initial_state_candidate_mode1.mat');
+formalFile = fullfile(modelDir, ...
+    'RouteA_platform_default_initial_state.mat');
+backupFile = fullfile(modelDir, ...
+    'RouteA_platform_default_initial_state_pre_promotion_backup.mat');
+
+if ~isfile(candidateFile)
+    error('RouteA:MissingInitialStateCandidate', ...
+        'The validated mode-1 candidate file is missing: %s.', candidateFile);
+end
+if isfile(backupFile)
+    error('RouteA:InitialStatePromotionRecoveryRequired', ...
+        ['A prior promotion backup exists. Resolve it before promoting a ', ...
+        'new initial state: %s.'], backupFile);
+end
+
+loaded = load(candidateFile, 'routeA_initial_state', ...
+    'routeA_initial_metadata');
+if ~isfield(loaded, 'routeA_initial_state') || ...
+        ~isfield(loaded, 'routeA_initial_metadata') || ...
+        ~isa(loaded.routeA_initial_state, 'Simulink.op.ModelOperatingPoint')
+    error('RouteA:InvalidInitialStateCandidate', ...
+        'The candidate file does not contain a valid ModelOperatingPoint.');
+end
+metadata = loaded.routeA_initial_metadata;
+if ~isfield(metadata, 'cegrTopologyEnabled') || ...
+        ~metadata.cegrTopologyEnabled || ...
+        ~isfield(metadata, 'cegrValveModeId') || ...
+        metadata.cegrValveModeId ~= 1 || ...
+        ~isfield(metadata, 'egrReferenceKind') || ...
+        string(metadata.egrReferenceKind) ~= "mode1_zero_target_near_zero"
+    error('RouteA:InitialStateCandidateModeMismatch', ...
+        'The candidate is not a validated mode-1 zero-target initial state.');
+end
+
+hadFormal = isfile(formalFile);
+if hadFormal
+    [movedOld, oldMessage] = movefile(formalFile, backupFile, 'f');
+    if ~movedOld
+        error('RouteA:InitialStatePromotionBackupFailed', ...
+            'Could not stage the current formal initial state: %s.', oldMessage);
+    end
+end
+
+[movedCandidate, candidateMessage] = movefile(candidateFile, formalFile, 'f');
+if ~movedCandidate
+    if hadFormal && isfile(backupFile)
+        movefile(backupFile, formalFile, 'f');
+    end
+    error('RouteA:InitialStatePromotionFailed', ...
+        'Could not promote the mode-1 candidate: %s.', candidateMessage);
+end
+
+if hadFormal && isfile(backupFile)
+    delete(backupFile);
+end
+metadata.promotedAt = string(datetime('now', ...
+    'Format', 'yyyy-MM-dd HH:mm:ss'));
+assignin('base', 'routeA_platform_default_initial_metadata', metadata);
+fprintf('Promoted Route A mode-1 platform_default initial state: %s\n', ...
+    formalFile);
+end

@@ -1,11 +1,10 @@
-% Generate the sole Route A platform_default normal-operation state.
+function metadata = routeA_generate_platform_default_initial_state()
+% Generate a mode-1 candidate Route A platform_default operating point.
 %
-% The reference condition is zero physical cEGR with the closed valve Variant
-% at j = 0.1 A/cm^2. The anode purge
-% controller creates a periodic normal operating cycle, so this script
-% saves one reproducible phase: 100 s after a purge event. The cEGR branch
-% stays in the enabled topology with a zero target for compatibility with
-% later cEGR transient studies.
+% The candidate is generated at j = 0.1 A/cm^2 with the cEGR topology
+% enabled, the Local Restriction Variant selected, and a zero cEGR target.
+% It is deliberately written to a temporary candidate file. Promotion to the
+% sole formal platform_default file is handled only after full regression.
 
 scriptDir = fileparts(mfilename('fullpath'));
 modelDir = fullfile(scriptDir, '..', '..', '01_模型', ...
@@ -13,7 +12,7 @@ modelDir = fullfile(scriptDir, '..', '..', '01_模型', ...
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
 modelFile = fullfile(modelDir, [model '.slx']);
 initialStateFile = fullfile(modelDir, ...
-    'RouteA_platform_default_initial_state.mat');
+    'RouteA_platform_default_initial_state_candidate_mode1.mat');
 oldDir = pwd;
 addpath(scriptDir);
 addpath(modelDir);
@@ -26,7 +25,7 @@ resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 mw = get_param(model, 'ModelWorkspace');
 mw.assignin('routeA_cegr_enabled', true);
-mw.assignin('routeA_cegr_valve_mode_id', 0);
+mw.assignin('routeA_cegr_valve_mode_id', 1);
 stackAreaCm2 = mw.getVariable('stack_area');
 cfg.targetCurrentA = cfg.currentDensity_A_cm2 * stackAreaCm2;
 cfg.initialCurrentA = 1e-6 * mw.getVariable('stack_iL') * stackAreaCm2;
@@ -47,8 +46,8 @@ periodic = assessPeriodicState(outProbe, model, cfg);
 displayPeriodicState(periodic, cfg);
 if ~periodic.passed
     error('RouteA:PeriodicOperatingStateNotConverged', ...
-        ['The no-cEGR j=0.1 A/cm^2 purge cycle has not converged. ', ...
-        'The existing initial-state file was not changed.']);
+        ['The mode-1 zero-target j=0.1 A/cm^2 purge cycle has not ', ...
+        'converged. The formal initial-state file was not changed.']);
 end
 
 outFinal = runCondition(model, cfg, periodic.phaseStopTimeS, ...
@@ -61,15 +60,22 @@ end
 summary = physicalSummary(outFinal, model);
 if abs(summary.egrRatio) > cfg.maxEgrRatio
     error('RouteA:InitialStateHasRecirculation', ...
-        'The selected normal-operation state has nonzero cEGR ratio.');
+        ['The selected mode-1 normal-operation state exceeds the ', ...
+        'zero-target near-zero cEGR gate.']);
 end
 
 routeA_initial_metadata = struct();
-routeA_initial_metadata.schema = 'RouteA_platform_default_initial_state_v02';
+routeA_initial_metadata.schema = ...
+    'RouteA_platform_default_initial_state_v03_mode1';
 routeA_initial_metadata.model = string(model);
 routeA_initial_metadata.generatedAt = ...
     string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 routeA_initial_metadata.cegrTopologyEnabled = true;
+routeA_initial_metadata.cegrValveModeId = 1;
+routeA_initial_metadata.egrReferenceKind = ...
+    "mode1_zero_target_near_zero";
+routeA_initial_metadata.candidateSource = ...
+    "routeA_generate_platform_default_initial_state";
 routeA_initial_metadata.egrTargetRatio = 0;
 routeA_initial_metadata.currentDensity_A_cm2 = cfg.currentDensity_A_cm2;
 routeA_initial_metadata.targetCurrentA = cfg.targetCurrentA;
@@ -85,10 +91,12 @@ save(initialStateFile, 'routeA_initial_state', ...
     'routeA_initial_metadata', '-v7.3');
 assignin('base', 'routeA_platform_default_initial_metadata', ...
     routeA_initial_metadata);
-fprintf('Saved Route A platform_default initial state: %s\n', ...
+metadata = routeA_initial_metadata;
+fprintf('Saved Route A mode-1 candidate initial state: %s\n', ...
     initialStateFile);
 clear outCheckpoint outProbe outFinal;
 clear routeA_initial_state_cleanup;
+end
 
 function cfg = initializationConfig()
 cfg = struct();
@@ -133,7 +141,7 @@ in = in.setVariable('routeA_target_oer', cfg.targetOer, ...
     'Workspace', model);
 in = in.setVariable('routeA_egr_control_mode_id', 1, ...
     'Workspace', model);
-in = in.setVariable('routeA_cegr_valve_mode_id', 0, 'Workspace', model);
+in = in.setVariable('routeA_cegr_valve_mode_id', 1, 'Workspace', model);
 in = in.setVariable('routeA_target_egr_ratio_comp_in', 0, ...
     'Workspace', model);
 in = in.setVariable('routeA_egr_target_input_mode_id', 1, ...

@@ -1,9 +1,11 @@
 function [in, metadata] = routeA_attach_platform_default_initial_state( ...
-    in, model, modelDir)
-% Attach the validated platform_default operating point to a simulation.
+    in, model, modelDir, initialStateFile)
+% Attach a validated mode-1 platform_default operating point to a simulation.
 
-initialStateFile = fullfile(modelDir, ...
-    'RouteA_platform_default_initial_state.mat');
+if nargin < 4 || strlength(string(initialStateFile)) == 0
+    initialStateFile = fullfile(modelDir, ...
+        'RouteA_platform_default_initial_state.mat');
+end
 if ~isfile(initialStateFile)
     error('RouteA:MissingPlatformDefaultInitialState', ...
         ['The required platform_default initial state is missing: %s. ', ...
@@ -18,6 +20,10 @@ if ~isfield(loaded, 'routeA_initial_state') || ...
         'The initial-state file does not contain the required variables.');
 end
 metadata = loaded.routeA_initial_metadata;
+if ~isa(loaded.routeA_initial_state, 'Simulink.op.ModelOperatingPoint')
+    error('RouteA:InitialStateClassMismatch', ...
+        'The platform_default initial state must be a ModelOperatingPoint.');
+end
 if ~isfield(metadata, 'model') || string(metadata.model) ~= string(model)
     error('RouteA:InitialStateModelMismatch', ...
         'The saved platform_default state belongs to another model.');
@@ -28,13 +34,21 @@ if ~isfield(metadata, 'cegrTopologyEnabled') || ...
         ['The saved state is not for the CEGR-enabled zero-recirculation ', ...
         'topology required by Route A dynamic studies.']);
 end
+requiredModeFields = {'cegrValveModeId', 'egrReferenceKind'};
+if ~builtin('all', isfield(metadata, requiredModeFields)) || ...
+        metadata.cegrValveModeId ~= 1 || ...
+        string(metadata.egrReferenceKind) ~= "mode1_zero_target_near_zero"
+    error('RouteA:InitialStateModeMismatch', ...
+        ['The saved state is not a mode-1 zero-target near-zero cEGR ', ...
+        'platform_default operating point.']);
+end
 if ~bdIsLoaded(model)
     error('RouteA:ModelNotLoaded', ...
         'Load the Route A model before attaching its initial state.');
 end
 mw = get_param(model, 'ModelWorkspace');
 mw.assignin('routeA_cegr_enabled', true);
-mw.assignin('routeA_cegr_valve_mode_id', 0);
+mw.assignin('routeA_cegr_valve_mode_id', 1);
 stackAreaCm2 = mw.getVariable('stack_area');
 initialCurrentA = 1e-6 * mw.getVariable('stack_iL') * stackAreaCm2;
 loadPath = Simulink.ID.getFullName([model ':368']);
