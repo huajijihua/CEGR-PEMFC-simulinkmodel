@@ -311,6 +311,8 @@ noCEGR 独立编译隔离基线的 late 窗口为：电流 `124.840 A`、电压 
 
 本阶段不以冷启动作为性能研究起点。唯一的 `platform_default` 初值保存在 `01_模型/RouteA_GasMixture_Derived/RouteA_platform_default_initial_state.mat`：它是完整的 `Simulink.op.ModelOperatingPoint`，而非只写入几个温度或压力标量；因此同时携带堆温、气体库存、湿度、压力、流量、组分和控制器内部状态。当前正式文件的 metadata 为 `RouteA_platform_default_initial_state_v03_mode1`、`cegrValveModeId=1`、`egrReferenceKind=mode1_zero_target_near_zero`；它由零目标预热候选在短兼容和完整 600 s 回归均通过后原子提升。生成工况为 `j=0.1 A/cm^2`、`A=280 cm^2`、恒 `I=28 A`、`routeA_cegr_enabled=true`、`mode=1` 且目标回流为零，实际回流为近似零。状态快照模型时间为 `4823.57193 s`，取阳极最近一次吹扫后 `100 s` 的相位；该运行点的阳极吹扫周期约 `789.807 s`。后续每个正常性能研究都从这同一状态重新起算，不以某一试验的结束状态作为下一试验初值。
 
+上述生成工况是初值来源和已验证基线，不是复用限制。该 operating point 的作用是提供正常温度、压力、湿度、气体库存、流量和控制器状态，从而替代冷态环境起算；同一 model/mode=1 拓扑下，runner 负责显式施加全部新工况命令，包括电流/电压/功率、空气与 OER、cEGR、背压/压力、加湿/RH 和热管理/温度控制，并等待系统过渡。挂载函数不再隐式采用 metadata 的 `28 A` 作为研究目标；现行恒流 runner 仅在 `0.5 s` 前保持来源电流以避免突变，随后明确写入自己的目标电流。只有模型/编译拓扑不兼容，或新工况在合理过渡后仍不能形成有限、可解释的运行态时，才重新评估初值，而不是因普通工况扫掠更换初值。
+
 全状态初值要求保持 cEGR 物理拓扑开启，故零目标参考不再编译成 `routeA_cegr_enabled=false` 的另一拓扑，而是在同一拓扑、`mode=1` 下将目标回流保持为零。该参考是近似零 cEGR，不与 `mode=0` 严格隔离混用。审计以保存快照为逻辑 `t=0`，模型绝对时间仅用于承接 operating point；研究 profile 为逻辑 `0--60 s` 零目标、`60.01--240 s` 目标 `0.10`、`240.01--600 s` 回零。pre/mid/post 分别为逻辑 `[30,59] s`、`[210,239] s`、`[540,599] s`，600 s 窗口短于下一次吹扫，避免吹扫事件直接落入 CEGR 切换段。
 
 | 窗口 | 电流 (A) | 电压 (V) | 功率 (kW) | 堆温 (°C) | 实际 cEGR (kg/s) | 阴极入口 O2 质量分数 |

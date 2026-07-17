@@ -1,6 +1,12 @@
 function [in, metadata] = routeA_attach_platform_default_initial_state( ...
     in, model, modelDir, initialStateFile)
 % Attach a validated mode-1 platform_default operating point to a simulation.
+%
+% This function restores only the saved physical/controller state and checks
+% model/topology compatibility. Metadata records the state provenance; it
+% does not prescribe any study command. The caller owns current/power,
+% air/OER, cEGR, pressure/backpressure, humidity, and thermal-control
+% commands after choosing the initial state.
 
 if nargin < 4 || strlength(string(initialStateFile)) == 0
     initialStateFile = fullfile(modelDir, ...
@@ -49,15 +55,6 @@ end
 mw = get_param(model, 'ModelWorkspace');
 mw.assignin('routeA_cegr_enabled', true);
 mw.assignin('routeA_cegr_valve_mode_id', 1);
-stackAreaCm2 = mw.getVariable('stack_area');
-initialCurrentA = 1e-6 * mw.getVariable('stack_iL') * stackAreaCm2;
-loadPath = Simulink.ID.getFullName([model ':368']);
-stepPath = Simulink.ID.getFullName([model ':878']);
-set_param(loadPath, 'input_type', 'Step');
-set_param(stepPath, ...
-    'Time', '0.5', ...
-    'Before', sprintf('%.16g', initialCurrentA), ...
-    'After', sprintf('%.16g', metadata.targetCurrentA));
 set_param(model, 'SimulationCommand', 'update');
 in = in.setInitialState(loaded.routeA_initial_state);
 end

@@ -26,6 +26,7 @@ loaded = load(initialStateFile, 'routeA_initial_metadata');
 metadata = loaded.routeA_initial_metadata;
 cfg = struct();
 cfg.initialStateFile = initialStateFile;
+cfg.initialStateMetadata = metadata;
 cfg.researchStartTime_s = metadata.snapshotTimeS;
 cfg.stopTime_s = cfg.researchStartTime_s + 30;
 cfg.targetCurrentA = metadata.targetCurrentA;
@@ -65,6 +66,8 @@ end
 function result = runCase(model, modelFile, modelDir, cfg, targetRatio)
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
+routeA_apply_constant_current_step(model, ...
+    cfg.initialStateMetadata.targetCurrentA, cfg.targetCurrentA);
 
 in = Simulink.SimulationInput(model);
 [in, ~] = routeA_attach_platform_default_initial_state( ...

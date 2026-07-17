@@ -24,6 +24,8 @@ cfg = transitionConfig(modelDir);
 baselineAudit = runZeroTargetBaseline(model, modelFile, modelDir, cfg);
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
+routeA_apply_constant_current_step(model, ...
+    cfg.initialStateMetadata.targetCurrentA, cfg.targetCurrentA);
 
 in = Simulink.SimulationInput(model);
 [in, initialStateMetadata] = routeA_attach_platform_default_initial_state( ...
@@ -87,6 +89,7 @@ end
 
 cfg = struct();
 cfg.initialStateFile = initialStateFile;
+cfg.initialStateMetadata = metadata;
 cfg.researchStartTime_s = metadata.snapshotTimeS;
 cfg.researchDuration_s = 600;
 cfg.modelStopTime_s = cfg.researchStartTime_s + cfg.researchDuration_s;
@@ -813,6 +816,8 @@ end
 function baseline = runZeroTargetBaseline(model, modelFile, modelDir, cfg)
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
+routeA_apply_constant_current_step(model, ...
+    cfg.initialStateMetadata.targetCurrentA, cfg.targetCurrentA);
 
 in = Simulink.SimulationInput(model);
 [in, baselineInitialStateMetadata] = routeA_attach_platform_default_initial_state( ...

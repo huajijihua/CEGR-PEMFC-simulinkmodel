@@ -2,7 +2,7 @@
 
 状态更新：2026-07-17
 
-本目录只存放 Route A 官方 Gas Mixture PEMFC 派生平台的当前 Simulink 资产。唯一当前模型是 `01_模型/RouteA_GasMixture_Derived/PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`。正常研究工况由 `EGRValveRestriction` 的编译期 `routeA_cegr_valve_mode_id` 选择官方无限流阻断路（0）或官方局部限制连通（1）。`mode=1` 是 cEGR 性能研究的标准入口，可在同一仿真内用目标循环比实现零目标到正循环比再回零；零目标只表示近似零 cEGR。唯一正式 `RouteA_platform_default_initial_state.mat` 已刷新为 `v03/mode=1`，只用于此同拓扑性能链。`mode=0` 是独立编译的严格无 cEGR 验证，不加载该性能初值。根层 `cEGR_Mode_Selector` 仅保留作拓扑回归，不作为正常工况开关。
+本目录只存放 Route A 官方 Gas Mixture PEMFC 派生平台的当前 Simulink 资产。唯一当前模型是 `01_模型/RouteA_GasMixture_Derived/PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`。正常研究工况由 `EGRValveRestriction` 的编译期 `routeA_cegr_valve_mode_id` 选择官方无限流阻断路（0）或官方局部限制连通（1）。`mode=1` 是 cEGR 性能研究的标准入口，可在同一仿真内用目标循环比实现零目标到正循环比再回零；零目标只表示近似零 cEGR。唯一正式 `RouteA_platform_default_initial_state.mat` 已刷新为 `v03/mode=1`；它是同一 mode=1 拓扑下可跨研究工况复用的正常运行 warm start，生成时的 `28 A/OER=3` 仅为来源 metadata，不限制后续 runner 的场景命令。`mode=0` 是独立编译的严格无 cEGR 验证，不加载该性能初值。根层 `cEGR_Mode_Selector` 仅保留作拓扑回归，不作为正常工况开关。
 
 | 目录 | 角色 | 说明 |
 |---|---|---|

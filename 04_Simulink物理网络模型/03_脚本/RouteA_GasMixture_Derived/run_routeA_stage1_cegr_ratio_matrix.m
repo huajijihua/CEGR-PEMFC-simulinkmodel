@@ -98,6 +98,8 @@ end
 function [result, caseOutput] = runMatrixCase(model, modelFile, modelDir, cfg, targetRatio)
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
+routeA_apply_constant_current_step(model, ...
+    cfg.initialStateMetadata.targetCurrentA, cfg.targetCurrentA);
 
 in = Simulink.SimulationInput(model);
 [in, initialStateMetadata] = routeA_attach_platform_default_initial_state( ...
