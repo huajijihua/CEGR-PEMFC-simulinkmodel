@@ -2,7 +2,10 @@ function audit = routeA_stage1_water_ledger_from_outputs(caseOutputs, cfg)
 % Audit WM-L1+ directly from already-completed mode-1 SimulationOutputs.
 %
 % caseOutputs must contain one struct per matrix case with targetRatio, out,
-% initialState, and modeId fields. This helper deliberately never calls sim.
+% initialState, and modeId fields. Multi-load callers additionally provide
+% loadId, currentDensity_A_cm2, targetCurrentA, and targetOer. targetOer is
+% retained as a legacy field for the fresh-air-equivalent OER command; this
+% helper deliberately never calls sim.
 
 requiredCfg = {'model', 'targetRatios', 'initialStateMetadata', ...
     'researchStartTime_s', 'researchDuration_s', 'modelStopTime_s', ...
@@ -16,6 +19,11 @@ if ~isstruct(cfg) || ~builtin('all', isfield(cfg, requiredCfg))
         'The shared-output water-ledger configuration is incomplete.');
 end
 requiredCaseFields = {'targetRatio', 'out', 'initialState', 'modeId'};
+multiLoad = isfield(cfg, 'loadIds');
+if multiLoad
+    requiredCaseFields = [requiredCaseFields, {'loadId', ...
+        'currentDensity_A_cm2', 'targetCurrentA', 'targetOer'}];
+end
 if ~isstruct(caseOutputs) || ...
         ~builtin('all', isfield(caseOutputs, requiredCaseFields))
     error('RouteA:WaterLedgerCaseOutputs', ...
@@ -27,31 +35,71 @@ if any([caseOutputs.modeId] ~= 1)
 end
 
 cases = [];
-for idx = 1:numel(cfg.targetRatios)
-    targetRatio = cfg.targetRatios(idx);
-    match = find(abs([caseOutputs.targetRatio] - targetRatio) < eps, 1);
-    if isempty(match)
-        error('RouteA:WaterLedgerMissingCase', ...
-            'Missing SimulationOutput for water-ledger target %.16g.', ...
-            targetRatio);
+if multiLoad
+    loadIds = string(cfg.loadIds);
+    outputLoadIds = string({caseOutputs.loadId});
+    for loadIdx = 1:numel(loadIds)
+        loadId = loadIds(loadIdx);
+        for ratioIdx = 1:numel(cfg.targetRatios)
+            targetRatio = cfg.targetRatios(ratioIdx);
+            matches = find(outputLoadIds == loadId & ...
+                abs([caseOutputs.targetRatio] - targetRatio) < eps);
+            if numel(matches) ~= 1
+                error('RouteA:WaterLedgerMissingMultiLoadCase', ...
+                    ['Expected exactly one shared SimulationOutput for load %s ', ...
+                    'and target %.16g; found %d.'], ...
+                    loadId, targetRatio, numel(matches));
+            end
+            source = caseOutputs(matches);
+            result = collectSelectedCase(source, cfg, targetRatio);
+            result.loadId = source.loadId;
+            result.currentDensity_A_cm2 = source.currentDensity_A_cm2;
+            result.targetCurrentA = source.targetCurrentA;
+            result.targetOer = source.targetOer;
+            if isempty(cases)
+                cases = result;
+            else
+                cases(end + 1) = result; %#ok<AGROW>
+            end
+        end
     end
-    source = caseOutputs(match);
-    if ~isa(source.out, 'Simulink.SimulationOutput')
-        error('RouteA:WaterLedgerOutputType', ...
-            'The shared water-ledger case output is not a SimulationOutput.');
-    end
-    result = collectWaterCase(source.out, cfg.model, cfg, targetRatio);
-    result.initialState = source.initialState;
-    result.modeId = source.modeId;
-    if isempty(cases)
-        cases = result;
-    else
-        cases(end + 1) = result; %#ok<AGROW>
+else
+    for idx = 1:numel(cfg.targetRatios)
+        targetRatio = cfg.targetRatios(idx);
+        matches = find(abs([caseOutputs.targetRatio] - targetRatio) < eps);
+        if numel(matches) ~= 1
+            error('RouteA:WaterLedgerMissingCase', ...
+                'Expected exactly one shared SimulationOutput for target %.16g.', ...
+                targetRatio);
+        end
+        result = collectSelectedCase(caseOutputs(matches), cfg, targetRatio);
+        if isempty(cases)
+            cases = result;
+        else
+            cases(end + 1) = result; %#ok<AGROW>
+        end
     end
 end
 
 audit = summarizeWaterAudit(cases, cfg);
 displayWaterAudit(audit);
+end
+
+function result = collectSelectedCase(source, cfg, targetRatio)
+if ~isa(source.out, 'Simulink.SimulationOutput')
+    error('RouteA:WaterLedgerOutputType', ...
+        'The shared water-ledger case output is not a SimulationOutput.');
+end
+caseCfg = cfg;
+if isfield(source, 'targetCurrentA')
+    caseCfg.targetCurrentA = source.targetCurrentA;
+end
+if isfield(source, 'targetOer')
+    caseCfg.targetOer = source.targetOer;
+end
+result = collectWaterCase(source.out, cfg.model, caseCfg, targetRatio);
+result.initialState = source.initialState;
+result.modeId = source.modeId;
 end
 
 function result = collectWaterCase(out, model, cfg, targetRatio)
@@ -225,8 +273,12 @@ saturation = struct( ...
     'egrPipe', saturationRatioStats(egrPipe, cfg, 'EGR Pipe'), ...
     'exhaustPipe', saturationRatioStats(exhaustPipe, cfg, ...
         'Cathode Exhaust Pipe'));
+currentTrackingWindow = [cfg.researchStartTime_s, cfg.modelStopTime_s];
+if isfield(cfg, 'currentTrackingWindow_s')
+    currentTrackingWindow = cfg.currentTrackingWindow_s;
+end
 currentData = windowData(stackCurrent.Time, stackCurrent.Data, ...
-    [cfg.researchStartTime_s, cfg.modelStopTime_s]);
+    currentTrackingWindow);
 currentTrackingError = max(abs(currentData - cfg.targetCurrentA));
 
 result = struct();
@@ -235,6 +287,7 @@ result.researchStartModelTime_s = cfg.researchStartTime_s;
 result.researchDuration_s = cfg.researchDuration_s;
 result.tailLogicalWindow_s = cfg.tailLogicalWindow_s;
 result.tailModelWindow_s = cfg.tailWindow_s;
+result.currentTrackingWindow_s = currentTrackingWindow;
 result.tail = tail;
 result.meaWaterClosure_kg_s = meaClosure;
 result.meaWaterClosurePassed = abs(meaClosure) <= ...
@@ -265,6 +318,11 @@ audit.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 audit.model = string(cfg.initialStateMetadata.model);
 audit.initialState = cfg.initialStateMetadata;
 audit.targetRatios = cfg.targetRatios;
+if isfield(cases, 'loadId')
+    audit.loadIds = unique(string({cases.loadId}), 'stable');
+else
+    audit.loadIds = string.empty(1, 0);
+end
 audit.researchDuration_s = cfg.researchDuration_s;
 audit.tailLogicalWindow_s = cfg.tailLogicalWindow_s;
 audit.scope = 'cathode-cEGR water side only';
@@ -324,7 +382,7 @@ end
 
 function displayWaterAudit(audit)
 fprintf('\nRoute A Stage 1 cathode-cEGR water capability audit\n');
-fprintf('  initial phase: %s | t0=%.6f s | I=%.6g A | tail=[%.0f,%.0f) s\n', ...
+fprintf('  initial phase: %s | t0=%.6f s | warm-state I=%.6g A | tail=[%.0f,%.0f) s\n', ...
     audit.initialState.normalOperationPhase, ...
     audit.initialState.snapshotTimeS, ...
     audit.initialState.targetCurrentA, ...
@@ -332,7 +390,14 @@ fprintf('  initial phase: %s | t0=%.6f s | I=%.6g A | tail=[%.0f,%.0f) s\n', ...
 for idx = 1:numel(audit.cases)
     value = audit.cases(idx);
     h2o = 4;
-    fprintf('\n  target=%.2f actual=%.9g evidencePassed=%d\n', ...
+    if isfield(value, 'loadId')
+        fprintf('\n  load=%s j=%.6g A/cm^2 I=%.6g A OER=%.6g ', ...
+            string(value.loadId), value.currentDensity_A_cm2, ...
+            value.targetCurrentA, value.targetOer);
+    else
+        fprintf('\n  ');
+    end
+    fprintf('target=%.2f actual=%.9g evidencePassed=%d\n', ...
         value.targetRatio, value.tail.actualEgrRatio.mean, ...
         value.evidencePassed);
     fprintf(['    MEA H2O: produced=%.9g kg/s cathode=%.9g anode=%.9g ', ...

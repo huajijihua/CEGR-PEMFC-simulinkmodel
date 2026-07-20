@@ -216,9 +216,12 @@ radiator_tube_Leq = 2*(radiator_H + 20*radiator_tube_H*radiator_N_tubes); % [m]
 % Mode ids are used inside Simulink blocks because block parameters should
 % not depend on string comparison at run time.
 routeA_control_mode_air = "target_mdot";
-routeA_air_control_mode_id = 1; % 1 target_mdot, 2 target_oer, 3 direct_cmd
-routeA_target_mdot_comp_inlet = 0.045; % [kg/s] Compressor inlet mass-flow target
-routeA_target_oer = 2.5; % [-] Cathode oxygen excess ratio target
+% Mode 2 derives a total compressor-flow target from current and a
+% fresh-air-equivalent OER. With cEGR enabled it does not control the
+% actual stack-inlet lambda, which remains a measured/audited quantity.
+routeA_air_control_mode_id = 1; % 1 target_total_mdot, 2 target_total_mdot_from_air_equiv_oer, 3 direct_cmd
+routeA_target_mdot_comp_inlet = 0.045; % [kg/s] Total compressor-flow target
+routeA_target_oer = 2.5; % [-] Legacy model input: fresh-air-equivalent OER for mode 2, not actual lambda_ca_in under cEGR
 routeA_compressor_cmd_direct = 0.5; % [-] Open-loop compressor command fraction
 routeA_air_pid_Kp = 5; % [-/(kg/s)] First-version mass-flow PI proportional gain
 routeA_air_pid_Ki = 0.5; % [-/(kg/s*s)] First-version mass-flow PI integral gain

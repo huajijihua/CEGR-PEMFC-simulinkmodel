@@ -79,7 +79,10 @@ routeA_initial_metadata.candidateSource = ...
 routeA_initial_metadata.egrTargetRatio = 0;
 routeA_initial_metadata.currentDensity_A_cm2 = cfg.currentDensity_A_cm2;
 routeA_initial_metadata.targetCurrentA = cfg.targetCurrentA;
-routeA_initial_metadata.targetOer = cfg.targetOer;
+routeA_initial_metadata.airControlBasis = ...
+    "target_total_compressor_mdot_from_fresh_air_equivalent_oer";
+routeA_initial_metadata.targetAirEquivalentOer = cfg.targetOer;
+routeA_initial_metadata.targetOer = cfg.targetOer; % Legacy metadata field.
 routeA_initial_metadata.normalOperationPhase = ...
     'post_anode_purge_100_s';
 routeA_initial_metadata.purgePeriodS = periodic.periodS;
@@ -101,7 +104,7 @@ end
 function cfg = initializationConfig()
 cfg = struct();
 cfg.currentDensity_A_cm2 = 0.1;
-cfg.targetOer = 3;
+cfg.targetOer = 3; % Fresh-air-equivalent OER for mode-2 total-flow control.
 cfg.loadStepTimeS = 0.5;
 cfg.checkpointStopTimeS = 3600;
 cfg.probeStopTimeS = 5200;
