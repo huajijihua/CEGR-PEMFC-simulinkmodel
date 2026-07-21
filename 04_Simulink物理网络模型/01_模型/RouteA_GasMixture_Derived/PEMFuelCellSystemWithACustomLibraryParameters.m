@@ -218,6 +218,20 @@ routeA_compressor_cmd_direct = 0.5; % [-] Open-loop compressor command fraction
 routeA_air_pid_Kp = 5; % [-/(kg/s)] First-version mass-flow PI proportional gain
 routeA_air_pid_Ki = 0.5; % [-/(kg/s*s)] First-version mass-flow PI integral gain
 
+% Stack-terminal voltage control uses the same current-driven air path as
+% the existing Step and Drive cycle load modes. The runner supplies the
+% time-aligned drive_cycle_time and drive_cycle_voltage reference profile.
+routeA_voltage_default_ref_V = 394.9; % [V] First nominal stack-voltage study target
+routeA_voltage_pi_Kp = 1; % [A/V] Frozen after mode-1 zero-cEGR 600 s PI scan
+routeA_voltage_pi_Ki = 0.05; % [A/(V*s)] Frozen after mode-1 zero-cEGR 600 s PI scan
+routeA_voltage_current_min_A = 0; % [A] Fuel-cell load current lower bound
+routeA_voltage_current_max_A = stack_iL * stack_area; % [A] Current model limiting-current bound
+if ~exist('drive_cycle_time', 'var') || isempty(drive_cycle_time)
+    drive_cycle_time = [0; 2500]; % [s] Fallback only when no existing cycle is loaded
+end
+drive_cycle_voltage = routeA_voltage_default_ref_V * ...
+    ones(size(drive_cycle_time)); % [V] Default profile; runners override it
+
 % cEGR topology is selected at update-diagram time by cEGR_Mode_Selector.
 % Keep the full recirculation network installed as the platform default.
 % routeA_cegr_enabled=false remains the ZT topology-only regression.

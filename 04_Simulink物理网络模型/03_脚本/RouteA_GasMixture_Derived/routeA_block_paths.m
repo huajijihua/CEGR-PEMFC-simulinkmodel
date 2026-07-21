@@ -13,6 +13,17 @@ paths.thermal = [model '/Thermal_Management_BOP'];
 paths.control = [model '/System_Control_Observability'];
 paths.fcu = [paths.control '/FCU_BoP_Control'];
 paths.measurements = [paths.control '/Measurements'];
+paths.electricalLoad = [paths.control '/Electrical Load'];
+paths.voltageDemand = [paths.electricalLoad '/Inputs/Voltage Demand'];
+paths.voltageReference = [paths.voltageDemand '/Voltage Reference'];
+paths.voltageMeasurement = [paths.voltageDemand '/Voltage Measurement'];
+paths.voltageError = [paths.voltageDemand '/Voltage Error'];
+paths.voltagePI = [paths.voltageDemand '/Voltage PI'];
+paths.voltageRawPID = [paths.voltageDemand '/Raw PI Diagnostic'];
+paths.voltageSaturationStatus = [paths.voltageDemand '/Saturation Status'];
+paths.voltageCurrentDynamics = [paths.voltageDemand ...
+    '/Current Command Dynamics'];
+paths.voltageCurrentCommand = [paths.voltageDemand '/Current Command'];
 
 paths.anodeGas = [paths.stack '/Anode Gas Channels'];
 paths.cathodeGas = [paths.stack '/Cathode Gas Channels'];

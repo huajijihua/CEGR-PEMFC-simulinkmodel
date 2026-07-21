@@ -31,6 +31,12 @@ exhaustMdot = magnitudeTimeseries(outputTimeseries(out, logsout, ...
 outletYi = loggedTimeseries(logsout, 'routeA_yi_outlet');
 stackCurrent = loggedTimeseries(logsout, 'routeA_stack_current_A');
 speciesMdot = out.get('routeA_mdot_species_ca_in_ts');
+if numel(stackCurrent.Time) < 2
+    simlog = out.get(get_param(model, 'SimscapeLogName'));
+    mea = routeA_simscape_log_mea(simlog);
+    stackCurrent = timeseries(mea.Icell.series.values('A'), ...
+        mea.Icell.series.time);
+end
 
 species = abs(compositionMatrix(speciesMdot, ...
     'routeA_mdot_species_ca_in'));

@@ -76,6 +76,7 @@ metadata.targetAirEquivalentOer = cfg.targetAirEquivalentOer;
 metadata.solverMaxStep_s = cfg.maxStep_s;
 metadata.loadInputType = cfg.loadInputType;
 metadata.targetPower_kW = cfg.targetPower_kW;
+metadata.targetVoltage_V = cfg.targetVoltage_V;
 metadata.egrTargetRatio = 0;
 metadata.cegrTopologyEnabled = true;
 metadata.cegrValveModeId = 1;
@@ -102,6 +103,7 @@ cfg.currentDensity_A_cm2 = 0.1;
 cfg.targetAirEquivalentOer = 3; % Fresh-air-equivalent OER for total compressor-flow mode.
 cfg.loadInputType = "Step";
 cfg.targetPower_kW = NaN;
+cfg.targetVoltage_V = NaN;
 cfg.loadStepTime_s = 0.5;
 cfg.maxStep_s = [];
 cfg.checkpointStopTime_s = 3600;
@@ -137,12 +139,15 @@ validateattributes(cfg.targetAirEquivalentOer, {'numeric'}, ...
     {'scalar', 'positive', 'finite'});
 cfg.loadInputType = string(cfg.loadInputType);
 if ~isscalar(cfg.loadInputType) || ...
-        ~any(cfg.loadInputType == ["Step", "Drive cycle"])
+        ~any(cfg.loadInputType == ["Step", "Drive cycle", "Voltage"])
     error('RouteA:ParameterPreconditionLoadInputType', ...
-        'loadInputType must be Step or Drive cycle.');
+        'loadInputType must be Step, Drive cycle, or Voltage.');
 end
 if cfg.loadInputType == "Drive cycle"
     validateattributes(cfg.targetPower_kW, {'numeric'}, ...
+        {'scalar', 'positive', 'finite'});
+elseif cfg.loadInputType == "Voltage"
+    validateattributes(cfg.targetVoltage_V, {'numeric'}, ...
         {'scalar', 'positive', 'finite'});
 elseif ~isnan(cfg.targetPower_kW)
     validateattributes(cfg.targetPower_kW, {'numeric'}, ...
@@ -201,6 +206,10 @@ if cfg.loadInputType == "Drive cycle"
     set_param(loadPath, 'input_type', 'Drive cycle');
     return;
 end
+if cfg.loadInputType == "Voltage"
+    set_param(loadPath, 'input_type', 'Voltage');
+    return;
+end
 stepPath = Simulink.ID.getFullName([model ':878']);
 set_param(loadPath, 'input_type', 'Step');
 set_param(stepPath, ...
@@ -241,6 +250,12 @@ if cfg.loadInputType == "Drive cycle"
         [0; cfg.loadStepTime_s; stopTime_s], 'Workspace', model);
     in = in.setVariable('drive_cycle_power', ...
         [0; cfg.targetPower_kW; cfg.targetPower_kW], 'Workspace', model);
+elseif cfg.loadInputType == "Voltage"
+    in = in.setVariable('drive_cycle_time', ...
+        [0; cfg.loadStepTime_s; stopTime_s], 'Workspace', model);
+    in = in.setVariable('drive_cycle_voltage', ...
+        [cfg.targetVoltage_V; cfg.targetVoltage_V; cfg.targetVoltage_V], ...
+        'Workspace', model);
 end
 if ~isempty(initialState)
     in = in.setInitialState(initialState);

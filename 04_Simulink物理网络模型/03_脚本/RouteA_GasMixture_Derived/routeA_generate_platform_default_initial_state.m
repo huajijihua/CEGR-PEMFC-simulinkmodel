@@ -71,6 +71,7 @@ routeA_initial_metadata = struct();
 routeA_initial_metadata.schema = ...
     'RouteA_platform_default_initial_state_v03_mode1';
 routeA_initial_metadata.model = string(model);
+routeA_initial_metadata.loadInputType = "Step";
 routeA_initial_metadata.generatedAt = ...
     string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 routeA_initial_metadata.cegrTopologyEnabled = true;

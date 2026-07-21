@@ -17,9 +17,9 @@ if nargin < 5 || strlength(string(loadInputType)) == 0
 end
 loadInputType = string(loadInputType);
 if ~isscalar(loadInputType) || ...
-        ~any(loadInputType == ["Step", "Drive cycle"])
+        ~any(loadInputType == ["Step", "Drive cycle", "Voltage"])
     error('RouteA:InitialStateLoadInputType', ...
-        'loadInputType must be Step or Drive cycle.');
+        'loadInputType must be Step, Drive cycle, or Voltage.');
 end
 if ~isfile(initialStateFile)
     error('RouteA:MissingPlatformDefaultInitialState', ...
@@ -78,6 +78,10 @@ mw.assignin('routeA_cegr_valve_mode_id', 1);
 loadPath = Simulink.ID.getFullName([model ':368']);
 set_param(loadPath, 'input_type', char(loadInputType));
 set_param(model, 'SimulationCommand', 'update');
+% The ModelOperatingPoint was created through SimulationInput with this
+% variant mask override. Preserve that override on the caller's input so
+% the operating-point checksum is evaluated against the same active branch.
+in = in.setBlockParameter(loadPath, 'input_type', char(loadInputType));
 in = in.setInitialState(initialState);
 end
 
@@ -85,21 +89,34 @@ function [initialState, metadata] = selectLoadVariant(loaded, loadInputType)
 if loadInputType == "Step"
     stateField = 'routeA_initial_state';
     metadataField = 'routeA_initial_metadata';
-else
+elseif loadInputType == "Drive cycle"
     stateField = 'routeA_initial_state_drive_cycle';
     metadataField = 'routeA_initial_metadata_drive_cycle';
+else
+    stateField = 'routeA_initial_state_voltage';
+    metadataField = 'routeA_initial_metadata_voltage';
 end
-if ~isfield(loaded, stateField) || ~isfield(loaded, metadataField)
+isStandaloneCandidate = false;
+if isfield(loaded, stateField) && isfield(loaded, metadataField)
+    initialState = loaded.(stateField);
+    metadata = loaded.(metadataField);
+elseif isfield(loaded, 'routeA_initial_state') && ...
+        isfield(loaded, 'routeA_initial_metadata')
+    % Generators write a single generic pair before the atomic bundle
+    % promotion. Accept it only when its explicit mode matches the caller.
+    initialState = loaded.routeA_initial_state;
+    metadata = loaded.routeA_initial_metadata;
+    isStandaloneCandidate = true;
+else
     error('RouteA:MissingPlatformDefaultLoadVariant', ...
         ['The platform_default initial-state file does not contain the ', ...
         'required %s operating point.'], loadInputType);
 end
-initialState = loaded.(stateField);
-metadata = loaded.(metadataField);
-if loadInputType == "Drive cycle" && ...
+if (loadInputType ~= "Step" || isStandaloneCandidate) && ...
         (~isfield(metadata, 'loadInputType') || ...
-        string(metadata.loadInputType) ~= "Drive cycle")
+        string(metadata.loadInputType) ~= loadInputType)
     error('RouteA:PlatformDefaultLoadVariantMetadata', ...
-        'The selected operating point is not marked as Drive cycle compatible.');
+        'The selected operating point is not marked as %s compatible.', ...
+        loadInputType);
 end
 end

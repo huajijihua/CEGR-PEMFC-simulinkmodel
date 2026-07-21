@@ -131,7 +131,9 @@ Stage 1 已进一步完成 low/nominal/high `j=0.2/0.7/1.2 A/cm^2`、目标 cEGR
 
 Stage 1 现已补充 nominal `P_ref=77.408 kW` 的正式恒功率专题：`Drive cycle` / `P/v` 负载在逻辑 `600 s`、尾窗 `[540,600)`、`MaxStep=5 s` 下，对 cEGR `0/0.10/0.30` 同时完成电流联动总压缩机流量和固定总流量诊断。六例功率、cEGR、气体闭合、尾窗供氧与选定 `0/0.30` `WM-L1+` 水账本均通过。电流联动分支中，cEGR `0 -> 0.30` 的总压缩机流量由 `0.08334` 增至 `0.08412 kg/s`，但新鲜空气近似流量由 `0.08334` 降至 `0.05889 kg/s`、入堆 O2 质量分数由 `0.2158` 降至 `0.1720`；电堆电流由 `196.0` 增至 `197.8 A`、电压由 `394.9` 降至 `391.3 V`，以维持负载命令的 `77.41 kW`。这证明当前系统模型的恒功率输入接口和气路在该点闭合，不证明真实产品压缩机、轴功率、辅电、压比或喘振能力已经闭合。
 
-当前可作出的结论仅限系统级工程量级闭合和控制/物理网络行为。压缩机仍是流量源/地图接口，不代表效率、轴功率或喘振裕度已经验证；阳极 lambda、purge、循环器能力，水分离效率，冷却泵的流量能力/功率，以及散热器 UA/风量仍是明确的 L2 待证能力。恒电压也尚无闭环接口，必须作为单独专题建立后才可将 cEGR 增加后的电流响应作为正式证据。
+Stage 1 还完成 nominal `V_ref=394.9 V` 的正式堆端恒电压专题。`Electrical Load/Voltage` 以堆端 `V_meas-V_ref` 的连续 PI 驱动受控电流源，采用 clamping anti-windup 和硬限幅 `0<=I_cmd<=392 A`；冻结参数为 `Kp=1 A/V`、`Ki=0.05 A/(V*s)`。在同一 mode-1、`OER=3`、`0/0.10/0.30` cEGR、逻辑 `600 s`、尾窗 `[540,600)` 和 `MaxStep=5 s` 下，三例电压跟踪、cEGR、气体闭合、尾窗供氧、阀压差/面积、转速范围和选定 `0/0.30` 的同次 `WM-L1+` 水账本均通过，且尾窗电流饱和占比均为零。电流命令仍通过既有 `i_stack ->` 新鲜空气等效 OER `->` 压缩机入口混合总流量链路作用于气路；未新增固定新鲜空气、固定总流量或固定实际 `lambda_ca_in` 分支。cEGR `0 -> 0.30` 时，尾窗电流由 `195.38` 降至 `171.90 A`，总压缩机入口流量由 `0.08307` 降至 `0.07309 kg/s`，实际 `lambda_ca_in` 由 `2.998` 降至 `2.491`，符合氧稀释下恒电压负载的模型级联动。
+
+当前可作出的结论仅限系统级工程量级闭合和控制/物理网络行为。压缩机仍是流量源/地图接口，不代表效率、轴功率或喘振裕度已经验证；阳极 lambda、purge、循环器能力，水分离效率，冷却泵的流量能力/功率，以及散热器 UA/风量仍是明确的 L2 待证能力。恒电压结论是堆端电压曲线接口在该 nominal 点的闭合，不是 DCDC/母线稳压、真实产品压缩机、轴功率、辅电、压比或喘振匹配证明。
 
 当前尚未完成：真实空压机效率/轴系与喘振边界、真实中冷/加湿/水分离能力、氢循环器或引射器、阳极 purge/lambda 闭环、完整热管理控制、DCDC/辅电架构、参数标定和独立验证。
 
@@ -196,7 +198,7 @@ Stage 1 现已补充 nominal `P_ref=77.408 kW` 的正式恒功率专题：`Drive
 
 当前系统包含阳极氮气累积、吹扫阀逻辑、气体/水/热库存和控制器内部状态，正常工作点不应被表述为所有状态严格不变的数学静态点。对本平台，“稳态性能”定义为：在明确边界、固定初始运行相位和固定研究时长下，系统进入可解释的周期/缓慢演化运行区间后，末段统计量所代表的系统性能；吹扫导致的周期电压变化是需要记录和对齐的物理/控制事件，不是自动判定为模型失效。
 
-1. 正常性能研究统一从保存的完整 `Simulink.op.ModelOperatingPoint` 启动，而不是从环境温度、环境压力和干空气等冷启动标量状态启动。当前唯一正式 `platform_default` 文件保存同源近似零 cEGR、`j=0.1 A/cm^2`、`I=28 A` 正常运行条件的两个 Electrical Load 兼容变体：`routeA_initial_state` / `routeA_initial_metadata` 对应 `Step`，`routeA_initial_state_drive_cycle` / `routeA_initial_metadata_drive_cycle` 对应 `Drive cycle`。这不是两套平台参数或研究基准；runner 必须按负载分支选择匹配变体，随后仍由 runner 施加当前研究的电流、功率、空气、cEGR、压力、湿度与热命令。两个 metadata 均须核验 `cegrValveModeId=1` 和 `egrReferenceKind=mode1_zero_target_near_zero`。
+1. 正常性能研究统一从保存的完整 `Simulink.op.ModelOperatingPoint` 启动，而不是从环境温度、环境压力和干空气等冷启动标量状态启动。当前唯一正式 `platform_default` 文件保存同源近似零 cEGR、`j=0.1 A/cm^2`、`I=28 A` 正常运行条件的三个 Electrical Load 兼容变体：`routeA_initial_state` / `routeA_initial_metadata` 对应 `Step`，`routeA_initial_state_drive_cycle` / `routeA_initial_metadata_drive_cycle` 对应 `Drive cycle`，`routeA_initial_state_voltage` / `routeA_initial_metadata_voltage` 对应 `Voltage`。Voltage 初态保留低负载源电压约 `428.06 V`，研究 runner 在 `0.5 s` 与 cEGR 目标同步切换到当前 `V_ref`；这不是三套平台参数或研究基准。runner 必须按负载分支选择匹配变体，随后仍由 runner 施加当前研究的电流、功率或电压、空气、cEGR、压力、湿度与热命令。各 metadata 均须核验 `cegrValveModeId=1` 和 `egrReferenceKind=mode1_zero_target_near_zero`。
 2. 对同一研究矩阵，所有 cEGR、气体、热、湿度和压力边界案例必须使用同一初始状态、相同 `T_study`、相同末段窗口 `W_tail` 和相同统计方式。一个案例的终态不得作为下一个案例的初值。
 3. 当前 Stage 1 的恒流多工况正式协议采用逻辑 `T_study=600 s`、`W_tail=[540,600) s` 和运行时 `MaxStep=5 s`。步长由 runner 的 `SimulationInput` 传入预运行与各工况，不写入通用 `.slx` solver 默认值。该时长位于当前约 `789.731 s` 的阳极吹扫周期内，且尾窗不包含下一次吹扫；变更负载或阳极控制后，必须先验证尾窗未被未对齐的吹扫事件污染，才可复用该时长。
 4. `MaxStep=5 s` 的选择不以缩短研究时长换取：已完成的直接 `cegr_valve_max_area=1.96349540849e-4 m^2` 九例 `MaxStep=1 s` 结果保留为严格数值参考，九例 `5 s` 复现矩阵均通过相同控制、气体和水账本门。两批同 caseId 的最大 `|Delta P_bar|=0.00181 kW`、相对功率差 `0.00778%`，实际 cEGR、总流量和供氧结论一致。对 high 的 `0/0.10` 两例，`300/420/480 s` 均未达到相对 `600 s` 的 `0.1%` 功率等价判据，因此 `600 s` 仍是当前默认而非冷启动的替代物。
