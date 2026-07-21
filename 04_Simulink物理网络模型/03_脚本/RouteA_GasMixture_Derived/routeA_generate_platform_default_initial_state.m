@@ -27,6 +27,9 @@ mw = get_param(model, 'ModelWorkspace');
 mw.assignin('routeA_cegr_enabled', true);
 mw.assignin('routeA_cegr_valve_mode_id', 1);
 stackAreaCm2 = mw.getVariable('stack_area');
+cegrValveMaxArea_m2 = mw.getVariable('cegr_valve_max_area');
+validateattributes(cegrValveMaxArea_m2, {'numeric'}, ...
+    {'scalar', 'positive', 'finite'});
 cfg.targetCurrentA = cfg.currentDensity_A_cm2 * stackAreaCm2;
 cfg.initialCurrentA = 1e-6 * mw.getVariable('stack_iL') * stackAreaCm2;
 cfg.loadPath = Simulink.ID.getFullName([model ':368']);
@@ -79,10 +82,10 @@ routeA_initial_metadata.candidateSource = ...
 routeA_initial_metadata.egrTargetRatio = 0;
 routeA_initial_metadata.currentDensity_A_cm2 = cfg.currentDensity_A_cm2;
 routeA_initial_metadata.targetCurrentA = cfg.targetCurrentA;
+routeA_initial_metadata.cegrValveMaxArea_m2 = cegrValveMaxArea_m2;
 routeA_initial_metadata.airControlBasis = ...
     "target_total_compressor_mdot_from_fresh_air_equivalent_oer";
-routeA_initial_metadata.targetAirEquivalentOer = cfg.targetOer;
-routeA_initial_metadata.targetOer = cfg.targetOer; % Legacy metadata field.
+routeA_initial_metadata.targetAirEquivalentOer = cfg.targetAirEquivalentOer;
 routeA_initial_metadata.normalOperationPhase = ...
     'post_anode_purge_100_s';
 routeA_initial_metadata.purgePeriodS = periodic.periodS;
@@ -104,7 +107,7 @@ end
 function cfg = initializationConfig()
 cfg = struct();
 cfg.currentDensity_A_cm2 = 0.1;
-cfg.targetOer = 3; % Fresh-air-equivalent OER for mode-2 total-flow control.
+cfg.targetAirEquivalentOer = 3; % Fresh-air-equivalent OER for mode-2 total-flow control.
 cfg.loadStepTimeS = 0.5;
 cfg.checkpointStopTimeS = 3600;
 cfg.probeStopTimeS = 5200;
@@ -140,7 +143,7 @@ in = in.setBlockParameter(cfg.stepPath, 'Before', ...
 in = in.setBlockParameter(cfg.stepPath, 'After', ...
     sprintf('%.16g', cfg.targetCurrentA));
 in = in.setVariable('routeA_air_control_mode_id', 2, 'Workspace', model);
-in = in.setVariable('routeA_target_oer', cfg.targetOer, ...
+in = in.setVariable('routeA_target_oer', cfg.targetAirEquivalentOer, ...
     'Workspace', model);
 in = in.setVariable('routeA_egr_control_mode_id', 1, ...
     'Workspace', model);

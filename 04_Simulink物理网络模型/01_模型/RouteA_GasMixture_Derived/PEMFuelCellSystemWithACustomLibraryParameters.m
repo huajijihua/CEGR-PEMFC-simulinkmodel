@@ -122,13 +122,10 @@ cegr_cond_tau = 1; % [s] First-order condensation time constant
 cegr_outlet_chamber_p0 = env_p; % [MPa] Initial cathode outlet pressure target
 cegr_pipe_p0 = env_p; % [MPa] Initial cEGR pipe pressure target
 cegr_inlet_mixer_p0 = env_p; % [MPa] Initial compressor inlet mixer pressure target
-cegr_valve_area_frac_low = 5e-4; % [-] A6 low-EGR smoke valve area fraction
-% The 0.30 cEGR target requires more than the former 2 percent limit at the
-% 50 kW platform point. This remains an upper physical opening bound, not a
-% no-cEGR numerical workaround; no-cEGR selects the closed valve Variant.
-cegr_valve_area_frac_max = 0.05; % [-] Platform cEGR upper opening fraction
-cegr_valve_area_low = cegr_valve_area_frac_low * cegr_pipe_area; % [m^2]
-cegr_valve_max_area = cegr_valve_area_frac_max * cegr_pipe_area; % [m^2]
+% Direct physical upper opening area for the active platform configuration.
+% No-cEGR selects the closed valve Variant; studies that assess capacity set
+% this one parameter to an explicit alternative area in m^2.
+cegr_valve_max_area = 1.96349540849e-4; % [m^2]
 cegr_valve_open_min_area = 1e-10; % [m^2] Positive lower bound for the open Local Restriction only
 
 %% Backpressure and cathode exhaust
@@ -136,7 +133,6 @@ cegr_valve_open_min_area = 1e-10; % [m^2] Positive lower bound for the open Loca
 % The current backpressure regulator reuses the official Pressure Relief
 % Valve as a target outlet-pressure interface; it is not yet a valve-opening
 % PI controller or product-calibrated exhaust valve model.
-routeA_control_mode_backpressure = "target_p_ca_out";
 routeA_backpressure_control_mode_id = 1; % 1 target_p_ca_out through pressure relief valve
 routeA_target_p_ca_out_MPa = env_p + 0.06; % [MPa] Cathode outlet pressure target
 
@@ -161,8 +157,7 @@ cathode_separator_dp_nominal = 0.0005; % [MPa] L2 cathode separator nominal pres
 cathode_separator_mdot_nominal = 0.10; % [kg/s] L2 cathode separator nominal gas flow
 cathode_separator_laminar_fraction = 1e-3; % [-] L2 cathode separator smoothing fraction
 
-routeA_cathode_humidifier_enabled = true; % [-] Default platform keeps cathode humidifier active
-routeA_cathode_humidifier_gain = double(routeA_cathode_humidifier_enabled); % [-] 1 active, 0 bypass
+routeA_cathode_humidifier_gain = 1; % [-] 1 active, 0 bypass
 humidifier_bypass_mode = "command_gain";
 
 %% Anode and hydrogen supply
@@ -213,20 +208,16 @@ radiator_tube_Leq = 2*(radiator_H + 20*radiator_tube_H*radiator_N_tubes); % [m]
 
 %% FCU-BoP control interfaces
 % Profile: platform_default operational interface.
-% Mode ids are used inside Simulink blocks because block parameters should
-% not depend on string comparison at run time.
-routeA_control_mode_air = "target_mdot";
 % Mode 2 derives a total compressor-flow target from current and a
 % fresh-air-equivalent OER. With cEGR enabled it does not control the
 % actual stack-inlet lambda, which remains a measured/audited quantity.
 routeA_air_control_mode_id = 1; % 1 target_total_mdot, 2 target_total_mdot_from_air_equiv_oer, 3 direct_cmd
 routeA_target_mdot_comp_inlet = 0.045; % [kg/s] Total compressor-flow target
-routeA_target_oer = 2.5; % [-] Legacy model input: fresh-air-equivalent OER for mode 2, not actual lambda_ca_in under cEGR
+routeA_target_oer = 2.5; % [-] Model input: fresh-air-equivalent OER for mode 2, not actual lambda_ca_in under cEGR
 routeA_compressor_cmd_direct = 0.5; % [-] Open-loop compressor command fraction
 routeA_air_pid_Kp = 5; % [-/(kg/s)] First-version mass-flow PI proportional gain
 routeA_air_pid_Ki = 0.5; % [-/(kg/s*s)] First-version mass-flow PI integral gain
 
-routeA_control_mode_egr = "target_ratio";
 % cEGR topology is selected at update-diagram time by cEGR_Mode_Selector.
 % Keep the full recirculation network installed as the platform default.
 % routeA_cegr_enabled=false remains the ZT topology-only regression.

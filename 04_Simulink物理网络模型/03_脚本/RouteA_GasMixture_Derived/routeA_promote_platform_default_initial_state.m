@@ -5,6 +5,8 @@ candidateFile = fullfile(modelDir, ...
     'RouteA_platform_default_initial_state_candidate_mode1.mat');
 formalFile = fullfile(modelDir, ...
     'RouteA_platform_default_initial_state.mat');
+nextFile = fullfile(modelDir, ...
+    'RouteA_platform_default_initial_state_next.mat');
 backupFile = fullfile(modelDir, ...
     'RouteA_platform_default_initial_state_pre_promotion_backup.mat');
 
@@ -12,10 +14,10 @@ if ~isfile(candidateFile)
     error('RouteA:MissingInitialStateCandidate', ...
         'The validated mode-1 candidate file is missing: %s.', candidateFile);
 end
-if isfile(backupFile)
+if isfile(nextFile) || isfile(backupFile)
     error('RouteA:InitialStatePromotionRecoveryRequired', ...
-        ['A prior promotion backup exists. Resolve it before promoting a ', ...
-        'new initial state: %s.'], backupFile);
+        ['A prior promotion recovery file exists. Resolve it before ', ...
+        'promoting a new initial state.']);
 end
 
 loaded = load(candidateFile, 'routeA_initial_state', ...
@@ -38,29 +40,102 @@ if ~isfield(metadata, 'cegrTopologyEnabled') || ...
 end
 
 hadFormal = isfile(formalFile);
+hasDriveCycleVariant = false;
+if hadFormal
+    previous = load(formalFile, 'routeA_initial_state_drive_cycle', ...
+        'routeA_initial_metadata_drive_cycle');
+    hasDriveCycleVariant = isfield(previous, ...
+        'routeA_initial_state_drive_cycle') && isfield(previous, ...
+        'routeA_initial_metadata_drive_cycle');
+    if hasDriveCycleVariant
+        validateDriveCycleVariant(previous);
+        driveMetadata = previous.routeA_initial_metadata_drive_cycle;
+        if abs(metadata.cegrValveMaxArea_m2 - ...
+                driveMetadata.cegrValveMaxArea_m2) > ...
+                1e-12 * max(1, abs(metadata.cegrValveMaxArea_m2))
+            error('RouteA:InitialStatePromotionParameterMismatch', ...
+                ['The Step candidate and preserved Drive cycle state ', ...
+                'use different valve areas.']);
+        end
+    end
+end
+
+routeA_initial_state = loaded.routeA_initial_state;
+routeA_initial_metadata = metadata;
+routeA_initial_metadata.loadInputType = "Step";
+if hasDriveCycleVariant
+    routeA_initial_metadata.availableLoadInputTypes = ["Step", "Drive cycle"];
+    routeA_initial_state_drive_cycle = previous.routeA_initial_state_drive_cycle;
+    routeA_initial_metadata_drive_cycle = ...
+        previous.routeA_initial_metadata_drive_cycle;
+    routeA_initial_metadata_drive_cycle.availableLoadInputTypes = ...
+        routeA_initial_metadata.availableLoadInputTypes;
+    save(nextFile, 'routeA_initial_state', 'routeA_initial_metadata', ...
+        'routeA_initial_state_drive_cycle', ...
+        'routeA_initial_metadata_drive_cycle', '-v7.3');
+else
+    routeA_initial_metadata.availableLoadInputTypes = "Step";
+    save(nextFile, 'routeA_initial_state', 'routeA_initial_metadata', '-v7.3');
+end
+
+roundTrip = load(nextFile, 'routeA_initial_state', 'routeA_initial_metadata');
+if ~isa(roundTrip.routeA_initial_state, 'Simulink.op.ModelOperatingPoint') || ...
+        string(roundTrip.routeA_initial_metadata.loadInputType) ~= "Step"
+    error('RouteA:InitialStatePromotionWrite', ...
+        'The composed Step operating point did not round-trip correctly.');
+end
+if hasDriveCycleVariant
+    roundTrip = load(nextFile, 'routeA_initial_state_drive_cycle', ...
+        'routeA_initial_metadata_drive_cycle');
+    validateDriveCycleVariant(roundTrip);
+end
+
 if hadFormal
     [movedOld, oldMessage] = movefile(formalFile, backupFile, 'f');
     if ~movedOld
+        delete(nextFile);
         error('RouteA:InitialStatePromotionBackupFailed', ...
             'Could not stage the current formal initial state: %s.', oldMessage);
     end
 end
 
-[movedCandidate, candidateMessage] = movefile(candidateFile, formalFile, 'f');
-if ~movedCandidate
+[movedNext, nextMessage] = movefile(nextFile, formalFile, 'f');
+if ~movedNext
     if hadFormal && isfile(backupFile)
         movefile(backupFile, formalFile, 'f');
     end
     error('RouteA:InitialStatePromotionFailed', ...
-        'Could not promote the mode-1 candidate: %s.', candidateMessage);
+        'Could not promote the composed mode-1 state: %s.', nextMessage);
 end
 
 if hadFormal && isfile(backupFile)
     delete(backupFile);
 end
+delete(candidateFile);
 metadata.promotedAt = string(datetime('now', ...
     'Format', 'yyyy-MM-dd HH:mm:ss'));
 assignin('base', 'routeA_platform_default_initial_metadata', metadata);
 fprintf('Promoted Route A mode-1 platform_default initial state: %s\n', ...
     formalFile);
+end
+
+function validateDriveCycleVariant(loaded)
+required = {'routeA_initial_state_drive_cycle', ...
+    'routeA_initial_metadata_drive_cycle'};
+if ~builtin('all', isfield(loaded, required)) || ...
+        ~isa(loaded.routeA_initial_state_drive_cycle, ...
+        'Simulink.op.ModelOperatingPoint')
+    error('RouteA:InitialStatePromotionDriveCycleState', ...
+        'The preserved Drive cycle operating point is unavailable or invalid.');
+end
+metadata = loaded.routeA_initial_metadata_drive_cycle;
+requiredMetadata = {'cegrTopologyEnabled', 'cegrValveModeId', ...
+    'egrReferenceKind', 'cegrValveMaxArea_m2', 'loadInputType'};
+if ~builtin('all', isfield(metadata, requiredMetadata)) || ...
+        ~metadata.cegrTopologyEnabled || metadata.cegrValveModeId ~= 1 || ...
+        string(metadata.egrReferenceKind) ~= "mode1_zero_target_near_zero" || ...
+        string(metadata.loadInputType) ~= "Drive cycle"
+    error('RouteA:InitialStatePromotionDriveCycleMetadata', ...
+        'The preserved operating point is not a valid Drive cycle mode-1 state.');
+end
 end

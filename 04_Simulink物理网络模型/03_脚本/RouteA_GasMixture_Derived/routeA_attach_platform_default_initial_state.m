@@ -1,5 +1,5 @@
 function [in, metadata] = routeA_attach_platform_default_initial_state( ...
-    in, model, modelDir, initialStateFile)
+    in, model, modelDir, initialStateFile, loadInputType)
 % Attach a validated mode-1 platform_default operating point to a simulation.
 %
 % This function restores only the saved physical/controller state and checks
@@ -12,21 +12,24 @@ if nargin < 4 || strlength(string(initialStateFile)) == 0
     initialStateFile = fullfile(modelDir, ...
         'RouteA_platform_default_initial_state.mat');
 end
+if nargin < 5 || strlength(string(loadInputType)) == 0
+    loadInputType = "Step";
+end
+loadInputType = string(loadInputType);
+if ~isscalar(loadInputType) || ...
+        ~any(loadInputType == ["Step", "Drive cycle"])
+    error('RouteA:InitialStateLoadInputType', ...
+        'loadInputType must be Step or Drive cycle.');
+end
 if ~isfile(initialStateFile)
     error('RouteA:MissingPlatformDefaultInitialState', ...
         ['The required platform_default initial state is missing: %s. ', ...
         'Run routeA_generate_platform_default_initial_state first.'], ...
         initialStateFile);
 end
-loaded = load(initialStateFile, 'routeA_initial_state', ...
-    'routeA_initial_metadata');
-if ~isfield(loaded, 'routeA_initial_state') || ...
-        ~isfield(loaded, 'routeA_initial_metadata')
-    error('RouteA:InvalidPlatformDefaultInitialState', ...
-        'The initial-state file does not contain the required variables.');
-end
-metadata = loaded.routeA_initial_metadata;
-if ~isa(loaded.routeA_initial_state, 'Simulink.op.ModelOperatingPoint')
+loaded = load(initialStateFile);
+[initialState, metadata] = selectLoadVariant(loaded, loadInputType);
+if ~isa(initialState, 'Simulink.op.ModelOperatingPoint')
     error('RouteA:InitialStateClassMismatch', ...
         'The platform_default initial state must be a ModelOperatingPoint.');
 end
@@ -53,8 +56,50 @@ if ~bdIsLoaded(model)
         'Load the Route A model before attaching its initial state.');
 end
 mw = get_param(model, 'ModelWorkspace');
+if ~isfield(metadata, 'cegrValveMaxArea_m2')
+    error('RouteA:InitialStateParameterMetadata', ...
+        ['The platform_default initial state does not record ', ...
+        'cegrValveMaxArea_m2. Regenerate the formal initial state.']);
+end
+stateValveArea_m2 = metadata.cegrValveMaxArea_m2;
+currentValveArea_m2 = mw.getVariable('cegr_valve_max_area');
+validateattributes(stateValveArea_m2, {'numeric'}, ...
+    {'scalar', 'positive', 'finite'});
+validateattributes(currentValveArea_m2, {'numeric'}, ...
+    {'scalar', 'positive', 'finite'});
+if abs(stateValveArea_m2 - currentValveArea_m2) > ...
+        1e-12 * max(1, abs(currentValveArea_m2))
+    error('RouteA:InitialStateParameterMismatch', ...
+        ['The platform_default initial state and model workspace disagree ', ...
+        'on cegr_valve_max_area. Regenerate the formal initial state.']);
+end
 mw.assignin('routeA_cegr_enabled', true);
 mw.assignin('routeA_cegr_valve_mode_id', 1);
+loadPath = Simulink.ID.getFullName([model ':368']);
+set_param(loadPath, 'input_type', char(loadInputType));
 set_param(model, 'SimulationCommand', 'update');
-in = in.setInitialState(loaded.routeA_initial_state);
+in = in.setInitialState(initialState);
+end
+
+function [initialState, metadata] = selectLoadVariant(loaded, loadInputType)
+if loadInputType == "Step"
+    stateField = 'routeA_initial_state';
+    metadataField = 'routeA_initial_metadata';
+else
+    stateField = 'routeA_initial_state_drive_cycle';
+    metadataField = 'routeA_initial_metadata_drive_cycle';
+end
+if ~isfield(loaded, stateField) || ~isfield(loaded, metadataField)
+    error('RouteA:MissingPlatformDefaultLoadVariant', ...
+        ['The platform_default initial-state file does not contain the ', ...
+        'required %s operating point.'], loadInputType);
+end
+initialState = loaded.(stateField);
+metadata = loaded.(metadataField);
+if loadInputType == "Drive cycle" && ...
+        (~isfield(metadata, 'loadInputType') || ...
+        string(metadata.loadInputType) ~= "Drive cycle")
+    error('RouteA:PlatformDefaultLoadVariantMetadata', ...
+        'The selected operating point is not marked as Drive cycle compatible.');
+end
 end

@@ -1,15 +1,18 @@
-function summary = run_routeA_stage1_high_cegr_valve_area_sensitivity(areaFactors)
+function summary = run_routeA_stage1_high_cegr_valve_area_sensitivity( ...
+    cegrValveMaxAreas_m2)
 % Study high-load cEGR valve-area capacity with compatible temporary states.
 %
-% Each factor changes only cegr_valve_max_area. A reusable normal-operation
+% Each case assigns one explicit cegr_valve_max_area value. A reusable normal-operation
 % precondition is generated under that compiled parameter configuration, then
 % the high-load target is applied from the resulting temporary operating point.
 % The formal platform_default state file and model file are never overwritten.
 
-if nargin < 1 || isempty(areaFactors)
-    areaFactors = [1, 2, 5, 10];
+if nargin < 1 || isempty(cegrValveMaxAreas_m2)
+    cegrValveMaxAreas_m2 = [ ...
+        9.81747704245e-5, 1.96349540849e-4, ...
+        4.90873852123e-4, 9.81747704245e-4];
 end
-validateattributes(areaFactors, {'numeric'}, ...
+validateattributes(cegrValveMaxAreas_m2, {'numeric'}, ...
     {'vector', 'real', 'positive', 'finite'});
 
 scriptDir = fileparts(mfilename('fullpath'));
@@ -27,9 +30,10 @@ cleanup = onCleanup(@() routeA_restore_model_and_folder( ...
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 baseCfg = studyConfig(model);
-results = repmat(emptyResult(), numel(areaFactors), 1);
-for idx = 1:numel(areaFactors)
-    results(idx) = runAreaFactor(model, modelFile, baseCfg, areaFactors(idx));
+results = repmat(emptyResult(), numel(cegrValveMaxAreas_m2), 1);
+for idx = 1:numel(cegrValveMaxAreas_m2)
+    results(idx) = runAreaValue( ...
+        model, modelFile, baseCfg, cegrValveMaxAreas_m2(idx));
 end
 
 summary = struct();
@@ -38,8 +42,7 @@ summary.timestamp = string(datetime('now', 'Format', ...
 summary.model = string(model);
 summary.studyKind = "parameter-consistent high-load cEGR capacity sensitivity";
 summary.parameterName = "cegr_valve_max_area";
-summary.baseValveMaxArea_m2 = baseCfg.baseValveMaxArea_m2;
-summary.areaFactors = areaFactors(:).';
+summary.cegrValveMaxAreas_m2 = cegrValveMaxAreas_m2(:).';
 summary.currentDensity_A_cm2 = baseCfg.currentDensity_A_cm2;
 summary.targetCurrentA = baseCfg.targetCurrentA;
 summary.airControlBasis = ...
@@ -76,17 +79,14 @@ if parameterLayer ~= "platform_default" || externalCaseEnabled
 end
 stackArea = mw.getVariable('stack_area');
 stackCells = mw.getVariable('stack_num_cells');
-baseArea = mw.getVariable('cegr_valve_max_area');
 validateattributes(stackArea, {'numeric'}, {'scalar', 'positive', 'finite'});
 validateattributes(stackCells, {'numeric'}, {'scalar', 'positive', 'finite'});
-validateattributes(baseArea, {'numeric'}, {'scalar', 'positive', 'finite'});
 
 cfg = struct();
 cfg.currentDensity_A_cm2 = 1.2;
 cfg.targetCurrentA = cfg.currentDensity_A_cm2 * stackArea;
 cfg.targetAirEquivalentOer = 2;
 cfg.targetRatio = 0.30;
-cfg.baseValveMaxArea_m2 = baseArea;
 cfg.stackCells = stackCells;
 cfg.researchDuration_s = 600;
 cfg.tailLogicalWindow_s = [540, 600];
@@ -101,16 +101,14 @@ cfg.gas = struct( ...
     'relativeResidualTolerance', 0.05);
 end
 
-function result = runAreaFactor(model, modelFile, cfg, areaFactor)
+function result = runAreaValue(model, modelFile, cfg, cegrValveMaxArea_m2)
 result = emptyResult();
-result.areaFactor = areaFactor;
-result.requestedValveMaxArea_m2 = cfg.baseValveMaxArea_m2 * areaFactor;
-overrides = struct('cegr_valve_max_area', ...
-    result.requestedValveMaxArea_m2);
+result.cegrValveMaxArea_m2 = cegrValveMaxArea_m2;
+parameterValues = struct('cegr_valve_max_area', cegrValveMaxArea_m2);
 try
     [initialState, initialMetadata, preconditionAudit] = ...
         routeA_prepare_parameter_consistent_initial_state( ...
-        model, modelFile, overrides, struct());
+        model, modelFile, parameterValues, struct());
     result.precondition = preconditionAudit;
     result.initialState = initialMetadata;
     result.preconditionPassed = true;
@@ -128,10 +126,10 @@ end
 function result = runHighCase(model, cfg, initialState, initialMetadata, result)
 mw = get_param(model, 'ModelWorkspace');
 effectiveMaxArea = mw.getVariable('cegr_valve_max_area');
-if abs(effectiveMaxArea - result.requestedValveMaxArea_m2) > ...
-        1e-12 * max(1, abs(result.requestedValveMaxArea_m2))
-    error('RouteA:HighValveSensitivityOverrideLost', ...
-        'The intended valve-area override is no longer active.');
+if abs(effectiveMaxArea - result.cegrValveMaxArea_m2) > ...
+        1e-12 * max(1, abs(result.cegrValveMaxArea_m2))
+    error('RouteA:HighValveSensitivityValueLost', ...
+        'The intended cEGR valve maximum area is no longer active.');
 end
 
 researchStartTime_s = initialMetadata.snapshotTimeS;
@@ -187,7 +185,7 @@ speciesMdot = out.get('routeA_mdot_species_ca_in_ts');
 lambda = inletOxygenStoich(speciesMdot, stackCurrent, cfg.stackCells, ...
     cfg.faradayConstant_C_mol);
 
-areaFraction = timeseries(area.Data(:) / result.requestedValveMaxArea_m2, ...
+areaFraction = timeseries(area.Data(:) / result.cegrValveMaxArea_m2, ...
     area.Time);
 pDownAtUp = interp1(pDown.Time, pDown.Data(:), pUp.Time, ...
     'linear', 'extrap');
@@ -237,8 +235,7 @@ end
 
 function tableOut = buildSummaryTable(results)
 count = numel(results);
-factor = NaN(count, 1);
-requestedArea = NaN(count, 1);
+cegrValveMaxArea = NaN(count, 1);
 snapshotTime = NaN(count, 1);
 actualRatio = NaN(count, 1);
 targetError = NaN(count, 1);
@@ -253,8 +250,7 @@ passed = false(count, 1);
 errorId = strings(count, 1);
 for idx = 1:count
     item = results(idx);
-    factor(idx) = item.areaFactor;
-    requestedArea(idx) = item.requestedValveMaxArea_m2;
+    cegrValveMaxArea(idx) = item.cegrValveMaxArea_m2;
     if isstruct(item.initialState) && isfield(item.initialState, 'snapshotTimeS')
         snapshotTime(idx) = item.initialState.snapshotTimeS;
     end
@@ -270,10 +266,10 @@ for idx = 1:count
     passed(idx) = item.passed;
     errorId(idx) = item.errorId;
 end
-tableOut = table(factor, requestedArea, snapshotTime, actualRatio, ...
+tableOut = table(cegrValveMaxArea, snapshotTime, actualRatio, ...
     targetError, areaFractionMax, deltaP, lambdaTailMean, currentError, ...
     preconditionPassed, gasClosurePassed, simCompleted, passed, errorId, ...
-    'VariableNames', {'areaFactor', 'requestedMaxArea_m2', ...
+    'VariableNames', {'cegrValveMaxArea_m2', ...
     'temporaryStateTime_s', 'actualRatio', 'targetError', ...
     'areaFractionMax', 'valveDeltaP_MPa', 'lambdaTailMean', ...
     'currentTrackingMaxError_A', 'preconditionPassed', ...
@@ -290,7 +286,7 @@ disp(summary.summaryTable);
 end
 
 function result = emptyResult()
-result = struct('areaFactor', NaN, 'requestedValveMaxArea_m2', NaN, ...
+result = struct('cegrValveMaxArea_m2', NaN, ...
     'initialState', struct(), 'precondition', struct(), ...
     'preconditionPassed', false, 'simCompleted', false, 'errorId', "", ...
     'errorMessage', "", 'errorLocation', "", 'tailWindow_s', NaN(1, 2), ...

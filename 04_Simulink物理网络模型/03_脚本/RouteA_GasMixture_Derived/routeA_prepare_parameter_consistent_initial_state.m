@@ -1,10 +1,11 @@
 function [initialState, metadata, audit] = ...
     routeA_prepare_parameter_consistent_initial_state( ...
-    model, modelFile, parameterOverrides, userCfg)
+    model, modelFile, parameterValues, userCfg)
 % Create a temporary, parameter-compatible Route A normal-operation state.
 %
-% This helper is for studies that change compile-time physical parameters.
-% It applies the overrides before model update, then follows the established
+% This helper is for studies that change compile-time physical parameters or
+% select a load branch that requires a matching operating-point checksum. It
+% applies the requested parameter values before model update, then follows the established
 % low-load, zero-cEGR periodic conditioning protocol. Mode 2 uses a
 % fresh-air-equivalent OER to set total compressor flow; actual lambda_ca_in
 % remains an audited result. If userCfg.maxStep_s is supplied, conditioning
@@ -15,24 +16,27 @@ if nargin < 4 || isempty(userCfg)
     userCfg = struct();
 end
 cfg = preconditionConfig(userCfg);
-validateOverrides(parameterOverrides);
+validateParameterValues(parameterValues);
 
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 mw = get_param(model, 'ModelWorkspace');
-appliedOverrides = applyOverrides(mw, parameterOverrides);
+appliedParameterValues = applyParameterValues(mw, parameterValues);
 mw.assignin('routeA_cegr_enabled', true);
 mw.assignin('routeA_cegr_valve_mode_id', 1);
-set_param(model, 'SimulationCommand', 'update');
 
 stackAreaCm2 = mw.getVariable('stack_area');
 stackIL = mw.getVariable('stack_iL');
+cegrValveMaxArea_m2 = mw.getVariable('cegr_valve_max_area');
 validateattributes(stackAreaCm2, {'numeric'}, {'scalar', 'positive', 'finite'});
 validateattributes(stackIL, {'numeric'}, {'scalar', 'positive', 'finite'});
+validateattributes(cegrValveMaxArea_m2, {'numeric'}, ...
+    {'scalar', 'positive', 'finite'});
 targetCurrentA = cfg.currentDensity_A_cm2 * stackAreaCm2;
 initialCurrentA = 1e-6 * stackIL * stackAreaCm2;
-configureLowLoadStep(model, initialCurrentA, targetCurrentA, ...
-    cfg.loadStepTime_s);
+cfg.loadPath = Simulink.ID.getFullName([model ':368']);
+configureLowLoadCommand(model, cfg, initialCurrentA, targetCurrentA);
+set_param(model, 'SimulationCommand', 'update');
 
 outCheckpoint = runCondition(model, cfg, cfg.checkpointStopTime_s, []);
 checkpointState = outCheckpoint.get(cfg.finalStateName);
@@ -58,23 +62,25 @@ if ~isfinite(egrRatio) || abs(egrRatio) > cfg.maxEgrRatio
 end
 
 metadata = struct();
-metadata.schema = 'RouteA_parameter_consistent_initial_state_v01';
+metadata.schema = 'RouteA_parameter_consistent_initial_state_v02';
 metadata.model = string(model);
 metadata.generatedAt = string(datetime('now', ...
     'Format', 'yyyy-MM-dd HH:mm:ss'));
 metadata.temporary = true;
-metadata.parameterOverrides = appliedOverrides;
+metadata.parameterValues = appliedParameterValues;
 metadata.currentDensity_A_cm2 = cfg.currentDensity_A_cm2;
 metadata.targetCurrentA = targetCurrentA;
 metadata.airControlBasis = ...
     "target_total_compressor_mdot_from_fresh_air_equivalent_oer";
-metadata.targetAirEquivalentOer = cfg.targetOer;
-metadata.targetOer = cfg.targetOer; % Legacy metadata field for compatibility.
+metadata.targetAirEquivalentOer = cfg.targetAirEquivalentOer;
 metadata.solverMaxStep_s = cfg.maxStep_s;
+metadata.loadInputType = cfg.loadInputType;
+metadata.targetPower_kW = cfg.targetPower_kW;
 metadata.egrTargetRatio = 0;
 metadata.cegrTopologyEnabled = true;
 metadata.cegrValveModeId = 1;
 metadata.egrReferenceKind = "mode1_zero_target_near_zero";
+metadata.cegrValveMaxArea_m2 = cegrValveMaxArea_m2;
 metadata.snapshotTimeS = periodic.phaseStopTime_s;
 metadata.normalOperationPhase = 'post_anode_purge_100_s';
 metadata.purgePeriodS = periodic.period_s;
@@ -86,14 +92,16 @@ audit.periodic = periodic;
 audit.zeroEgrRatio = egrRatio;
 audit.checkpointStateClass = string(class(checkpointState));
 audit.finalStateClass = string(class(initialState));
-audit.appliedOverrides = appliedOverrides;
+audit.appliedParameterValues = appliedParameterValues;
 clear outCheckpoint outProbe outFinal checkpointState;
 end
 
 function cfg = preconditionConfig(userCfg)
 cfg = struct();
 cfg.currentDensity_A_cm2 = 0.1;
-cfg.targetOer = 3; % Fresh-air-equivalent OER for total compressor-flow mode.
+cfg.targetAirEquivalentOer = 3; % Fresh-air-equivalent OER for total compressor-flow mode.
+cfg.loadInputType = "Step";
+cfg.targetPower_kW = NaN;
 cfg.loadStepTime_s = 0.5;
 cfg.maxStep_s = [];
 cfg.checkpointStopTime_s = 3600;
@@ -125,7 +133,21 @@ for idx = 1:numel(names)
 end
 validateattributes(cfg.currentDensity_A_cm2, {'numeric'}, ...
     {'scalar', 'positive', 'finite'});
-validateattributes(cfg.targetOer, {'numeric'}, {'scalar', 'positive', 'finite'});
+validateattributes(cfg.targetAirEquivalentOer, {'numeric'}, ...
+    {'scalar', 'positive', 'finite'});
+cfg.loadInputType = string(cfg.loadInputType);
+if ~isscalar(cfg.loadInputType) || ...
+        ~any(cfg.loadInputType == ["Step", "Drive cycle"])
+    error('RouteA:ParameterPreconditionLoadInputType', ...
+        'loadInputType must be Step or Drive cycle.');
+end
+if cfg.loadInputType == "Drive cycle"
+    validateattributes(cfg.targetPower_kW, {'numeric'}, ...
+        {'scalar', 'positive', 'finite'});
+elseif ~isnan(cfg.targetPower_kW)
+    validateattributes(cfg.targetPower_kW, {'numeric'}, ...
+        {'scalar', 'positive', 'finite'});
+end
 validateattributes(cfg.loadStepTime_s, {'numeric'}, ...
     {'scalar', 'nonnegative', 'finite'});
 if ~isempty(cfg.maxStep_s)
@@ -138,51 +160,51 @@ validateattributes(cfg.probeStopTime_s, {'numeric'}, ...
     {'scalar', '>', cfg.checkpointStopTime_s, 'finite'});
 end
 
-function validateOverrides(overrides)
-if ~isstruct(overrides) || numel(overrides) ~= 1
-    error('RouteA:ParameterPreconditionOverrides', ...
-        'Parameter overrides must be a scalar struct.');
+function validateParameterValues(parameterValues)
+if ~isstruct(parameterValues) || numel(parameterValues) ~= 1
+    error('RouteA:ParameterPreconditionValues', ...
+        'Parameter values must be a scalar struct.');
 end
-names = fieldnames(overrides);
-if isempty(names)
-    error('RouteA:ParameterPreconditionNoOverrides', ...
-        'At least one physical parameter override is required.');
-end
+names = fieldnames(parameterValues);
 for idx = 1:numel(names)
     if ~isvarname(names{idx})
-        error('RouteA:ParameterPreconditionOverrideName', ...
+        error('RouteA:ParameterPreconditionValueName', ...
             'Invalid model-workspace variable name: %s.', names{idx});
     end
 end
 end
 
-function applied = applyOverrides(mw, overrides)
-names = fieldnames(overrides);
+function applied = applyParameterValues(mw, parameterValues)
+names = fieldnames(parameterValues);
 applied = struct();
 for idx = 1:numel(names)
     name = names{idx};
     try
         mw.getVariable(name);
     catch
-        error('RouteA:ParameterPreconditionUnknownOverride', ...
+        error('RouteA:ParameterPreconditionUnknownValue', ...
             'The model workspace does not define: %s.', name);
     end
-    value = overrides.(name);
+    value = parameterValues.(name);
     if isnumeric(value) && any(~isfinite(value(:)))
-        error('RouteA:ParameterPreconditionNonfiniteOverride', ...
-            'Override %s contains a nonfinite value.', name);
+        error('RouteA:ParameterPreconditionNonfiniteValue', ...
+            'Parameter value %s contains a nonfinite value.', name);
     end
     mw.assignin(name, value);
     applied.(name) = value;
 end
 end
 
-function configureLowLoadStep(model, initialCurrentA, targetCurrentA, stepTime_s)
-loadPath = Simulink.ID.getFullName([model ':368']);
+function configureLowLoadCommand(model, cfg, initialCurrentA, targetCurrentA)
+loadPath = cfg.loadPath;
+if cfg.loadInputType == "Drive cycle"
+    set_param(loadPath, 'input_type', 'Drive cycle');
+    return;
+end
 stepPath = Simulink.ID.getFullName([model ':878']);
 set_param(loadPath, 'input_type', 'Step');
 set_param(stepPath, ...
-    'Time', sprintf('%.16g', stepTime_s), ...
+    'Time', sprintf('%.16g', cfg.loadStepTime_s), ...
     'Before', sprintf('%.16g', initialCurrentA), ...
     'After', sprintf('%.16g', targetCurrentA));
 end
@@ -198,11 +220,13 @@ in = in.setModelParameter( ...
     'SaveFinalState', 'on', ...
     'FinalStateName', cfg.finalStateName, ...
     'SaveOperatingPoint', 'on');
+in = in.setBlockParameter(cfg.loadPath, 'input_type', ...
+    char(cfg.loadInputType));
 if ~isempty(cfg.maxStep_s)
     in = in.setModelParameter('MaxStep', sprintf('%.16g', cfg.maxStep_s));
 end
 in = in.setVariable('routeA_air_control_mode_id', 2, 'Workspace', model);
-in = in.setVariable('routeA_target_oer', cfg.targetOer, ...
+in = in.setVariable('routeA_target_oer', cfg.targetAirEquivalentOer, ...
     'Workspace', model);
 in = in.setVariable('routeA_egr_control_mode_id', 1, 'Workspace', model);
 in = in.setVariable('routeA_cegr_valve_mode_id', 1, 'Workspace', model);
@@ -212,6 +236,12 @@ in = in.setVariable('routeA_target_egr_ratio_comp_in', 0, ...
     'Workspace', model);
 in = in.setVariable('routeA_target_egr_ratio_comp_in_profile', ...
     [0, 0; stopTime_s, 0], 'Workspace', model);
+if cfg.loadInputType == "Drive cycle"
+    in = in.setVariable('drive_cycle_time', ...
+        [0; cfg.loadStepTime_s; stopTime_s], 'Workspace', model);
+    in = in.setVariable('drive_cycle_power', ...
+        [0; cfg.targetPower_kW; cfg.targetPower_kW], 'Workspace', model);
+end
 if ~isempty(initialState)
     in = in.setInitialState(initialState);
 end

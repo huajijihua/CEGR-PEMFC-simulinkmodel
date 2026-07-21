@@ -71,7 +71,7 @@ cfg.modelStopTime_s = cfg.researchStartTime_s + cfg.researchDuration_s;
 cfg.tailLogicalWindow_s = [540, 600];
 cfg.tailWindow_s = cfg.researchStartTime_s + cfg.tailLogicalWindow_s;
 cfg.targetCurrentA = metadata.targetCurrentA;
-cfg.targetOer = 3;
+cfg.targetAirEquivalentOer = 3;
 cfg.targetRatios = [0, 0.10, 0.30];
 cfg.currentTrackingTolerance_A = 5e-3;
 cfg.lambdaLowerBound = 1;
@@ -112,7 +112,8 @@ in = in.setModelParameter( ...
     'ReturnWorkspaceOutputs', 'on', ...
     'SimscapeLogType', 'all');
 in = in.setVariable('routeA_air_control_mode_id', 2, 'Workspace', model);
-in = in.setVariable('routeA_target_oer', cfg.targetOer, 'Workspace', model);
+in = in.setVariable('routeA_target_oer', cfg.targetAirEquivalentOer, ...
+    'Workspace', model);
 in = in.setVariable('routeA_egr_control_mode_id', 1, 'Workspace', model);
 in = in.setVariable('routeA_cegr_valve_mode_id', 1, 'Workspace', model);
 in = in.setVariable('routeA_egr_target_input_mode_id', 0, ...
@@ -128,7 +129,8 @@ result = collectCaseResult(out, model, cfg, targetRatio);
 result.initialState = initialStateMetadata;
 result.modeId = 1;
 caseOutput = struct('targetRatio', targetRatio, 'out', out, ...
-    'initialState', initialStateMetadata, 'modeId', 1);
+    'initialState', initialStateMetadata, 'modeId', 1, ...
+    'targetAirEquivalentOer', cfg.targetAirEquivalentOer);
 end
 
 function result = collectCaseResult(out, model, cfg, targetRatio)
@@ -262,7 +264,7 @@ cfg.tailLogicalWindow_s = matrixCfg.tailLogicalWindow_s;
 cfg.tailWindow_s = matrixCfg.tailWindow_s;
 cfg.targetCurrentA = matrixCfg.targetCurrentA;
 cfg.currentTrackingTolerance_A = matrixCfg.currentTrackingTolerance_A;
-cfg.targetOer = matrixCfg.targetOer;
+cfg.targetAirEquivalentOer = matrixCfg.targetAirEquivalentOer;
 cfg.targetRatios = [0, 0.30];
 cfg.meaClosureTolerance_kg_s = 1e-6;
 cfg.localGasBalanceAbsTolerance_kg = 1e-6;

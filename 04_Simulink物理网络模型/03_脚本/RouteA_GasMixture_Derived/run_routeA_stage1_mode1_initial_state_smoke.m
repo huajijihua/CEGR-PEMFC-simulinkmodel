@@ -30,7 +30,7 @@ cfg.initialStateMetadata = metadata;
 cfg.researchStartTime_s = metadata.snapshotTimeS;
 cfg.stopTime_s = cfg.researchStartTime_s + 30;
 cfg.targetCurrentA = metadata.targetCurrentA;
-cfg.targetOer = 3;
+cfg.targetAirEquivalentOer = 3;
 cfg.zeroTargetTolerance = 1e-4;
 cfg.positiveResponseLowerBound = 0.01;
 targets = [0, 0.10];
@@ -80,7 +80,8 @@ in = in.setModelParameter( ...
     'ReturnWorkspaceOutputs', 'on', ...
     'SimscapeLogType', 'all');
 in = in.setVariable('routeA_air_control_mode_id', 2, 'Workspace', model);
-in = in.setVariable('routeA_target_oer', cfg.targetOer, 'Workspace', model);
+in = in.setVariable('routeA_target_oer', cfg.targetAirEquivalentOer, ...
+    'Workspace', model);
 in = in.setVariable('routeA_egr_control_mode_id', 1, 'Workspace', model);
 in = in.setVariable('routeA_cegr_valve_mode_id', 1, 'Workspace', model);
 in = in.setVariable('routeA_egr_target_input_mode_id', 0, ...

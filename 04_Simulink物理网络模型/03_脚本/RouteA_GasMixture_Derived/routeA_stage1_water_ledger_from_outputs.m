@@ -3,14 +3,12 @@ function audit = routeA_stage1_water_ledger_from_outputs(caseOutputs, cfg)
 %
 % caseOutputs must contain one struct per matrix case with targetRatio, out,
 % initialState, and modeId fields. Multi-load callers additionally provide
-% loadId, currentDensity_A_cm2, targetCurrentA, and targetOer. targetOer is
-% retained as a legacy field for the fresh-air-equivalent OER command; this
-% helper deliberately never calls sim.
+% loadId, currentDensity_A_cm2, targetCurrentA, and
+% targetAirEquivalentOer. This helper deliberately never calls sim.
 
 requiredCfg = {'model', 'targetRatios', 'initialStateMetadata', ...
     'researchStartTime_s', 'researchDuration_s', 'modelStopTime_s', ...
-    'tailLogicalWindow_s', 'tailWindow_s', 'targetCurrentA', ...
-    'currentTrackingTolerance_A', 'targetOer', ...
+    'tailLogicalWindow_s', 'tailWindow_s', 'targetAirEquivalentOer', ...
     'meaClosureTolerance_kg_s', 'localGasBalanceAbsTolerance_kg', ...
     'localGasBalanceRelativeTolerance', 'systemGasBalanceAbsTolerance_kg', ...
     'systemGasBalanceRelativeTolerance', 'species'};
@@ -18,11 +16,12 @@ if ~isstruct(cfg) || ~builtin('all', isfield(cfg, requiredCfg))
     error('RouteA:WaterLedgerConfig', ...
         'The shared-output water-ledger configuration is incomplete.');
 end
+cfg = normalizeLoadTrackingConfig(cfg);
 requiredCaseFields = {'targetRatio', 'out', 'initialState', 'modeId'};
 multiLoad = isfield(cfg, 'loadIds');
 if multiLoad
     requiredCaseFields = [requiredCaseFields, {'loadId', ...
-        'currentDensity_A_cm2', 'targetCurrentA', 'targetOer'}];
+        'currentDensity_A_cm2', 'targetCurrentA', 'targetAirEquivalentOer'}];
 end
 if ~isstruct(caseOutputs) || ...
         ~builtin('all', isfield(caseOutputs, requiredCaseFields))
@@ -55,7 +54,7 @@ if multiLoad
             result.loadId = source.loadId;
             result.currentDensity_A_cm2 = source.currentDensity_A_cm2;
             result.targetCurrentA = source.targetCurrentA;
-            result.targetOer = source.targetOer;
+            result.targetAirEquivalentOer = source.targetAirEquivalentOer;
             if isempty(cases)
                 cases = result;
             else
@@ -94,8 +93,8 @@ caseCfg = cfg;
 if isfield(source, 'targetCurrentA')
     caseCfg.targetCurrentA = source.targetCurrentA;
 end
-if isfield(source, 'targetOer')
-    caseCfg.targetOer = source.targetOer;
+if isfield(source, 'targetAirEquivalentOer')
+    caseCfg.targetAirEquivalentOer = source.targetAirEquivalentOer;
 end
 result = collectWaterCase(source.out, cfg.model, caseCfg, targetRatio);
 result.initialState = source.initialState;
@@ -106,6 +105,7 @@ function result = collectWaterCase(out, model, cfg, targetRatio)
 logsout = out.logsout;
 egrRatio = loggedTimeseries(logsout, 'routeA_egr_ratio_comp_in');
 stackCurrent = loggedTimeseries(logsout, 'routeA_stack_current_A');
+stackPower = routeA_stack_electrical_power_timeseries(logsout);
 waterSepL2 = outputTimeseries(out, logsout, 'routeA_m_water_sep', ...
     'routeA_m_water_sep_ts');
 
@@ -190,6 +190,8 @@ tail.actualEgrRatio = scalarStats(egrRatio.Time, egrRatio.Data, ...
     cfg.tailWindow_s);
 tail.stackCurrent_A = scalarStats(stackCurrent.Time, stackCurrent.Data, ...
     cfg.tailWindow_s);
+tail.stackPower_kW = scalarStats(stackPower.Time, stackPower.Data, ...
+    cfg.tailWindow_s);
 tail.meaH2OProduced_kg_s = scalarStats(meaWaterProduced.time, ...
     meaWaterProduced.data, cfg.tailWindow_s);
 tail.meaMdotCaSpecies_kg_s = vectorStats(meaMdotCa.time, meaMdotCa.data, ...
@@ -239,7 +241,7 @@ tail.preHumidifierSpecies_kg_s = vectorStats(preHumidifierSpecies.time, ...
     preHumidifierSpecies.data, cfg.tailWindow_s);
 tail.humidifierMInSpecies_kg_s = vectorStats(humidifierMIn.time, ...
     humidifierMIn.data, cfg.tailWindow_s);
-tail.waterSepL2Raw = scalarStats(waterSepL2.Time, waterSepL2.Data, ...
+tail.waterSepL2Raw = l2ObserverStats(waterSepL2.Time, waterSepL2.Data, ...
     cfg.tailWindow_s);
 
 h2o = cfg.species.h2o;
@@ -273,13 +275,7 @@ saturation = struct( ...
     'egrPipe', saturationRatioStats(egrPipe, cfg, 'EGR Pipe'), ...
     'exhaustPipe', saturationRatioStats(exhaustPipe, cfg, ...
         'Cathode Exhaust Pipe'));
-currentTrackingWindow = [cfg.researchStartTime_s, cfg.modelStopTime_s];
-if isfield(cfg, 'currentTrackingWindow_s')
-    currentTrackingWindow = cfg.currentTrackingWindow_s;
-end
-currentData = windowData(stackCurrent.Time, stackCurrent.Data, ...
-    currentTrackingWindow);
-currentTrackingError = max(abs(currentData - cfg.targetCurrentA));
+tracking = assessLoadTracking(stackCurrent, stackPower, cfg);
 
 result = struct();
 result.targetRatio = targetRatio;
@@ -287,7 +283,11 @@ result.researchStartModelTime_s = cfg.researchStartTime_s;
 result.researchDuration_s = cfg.researchDuration_s;
 result.tailLogicalWindow_s = cfg.tailLogicalWindow_s;
 result.tailModelWindow_s = cfg.tailWindow_s;
-result.currentTrackingWindow_s = currentTrackingWindow;
+result.loadTrackingMode = tracking.mode;
+result.loadTrackingWindow_s = tracking.window_s;
+result.loadTrackingPassed = tracking.passed;
+result.currentTrackingWindow_s = tracking.currentWindow_s;
+result.powerTrackingWindow_s = tracking.powerWindow_s;
 result.tail = tail;
 result.meaWaterClosure_kg_s = meaClosure;
 result.meaWaterClosurePassed = abs(meaClosure) <= ...
@@ -304,12 +304,104 @@ result.localGasPhaseBalancePassed = mixerGasPhaseBalance.passed && ...
 result.systemGasPhaseBalance = systemGasPhaseBalance;
 result.systemGasPhaseBalancePassed = systemGasPhaseBalance.passed;
 result.saturation = saturation;
-result.currentTrackingMaxError_A = currentTrackingError;
-result.currentPassed = currentTrackingError <= cfg.currentTrackingTolerance_A;
+result.currentTrackingMaxError_A = tracking.currentMaxError_A;
+result.currentPassed = tracking.currentPassed;
+result.powerTrackingMaxRelativeError = tracking.powerMaxRelativeError;
+result.powerTrackingPassed = tracking.powerPassed;
 result.finite = tailFinite(tail);
-result.evidencePassed = result.finite && result.currentPassed && ...
+result.evidencePassed = result.finite && result.loadTrackingPassed && ...
     result.meaWaterClosurePassed && result.localGasPhaseBalancePassed && ...
     result.systemGasPhaseBalancePassed;
+end
+
+function cfg = normalizeLoadTrackingConfig(cfg)
+if ~isfield(cfg, 'loadTrackingMode') || isempty(cfg.loadTrackingMode)
+    cfg.loadTrackingMode = "constant_current";
+end
+mode = string(cfg.loadTrackingMode);
+if ~isscalar(mode) || ~any(mode == ["constant_current", "constant_power"])
+    error('RouteA:WaterLedgerLoadTrackingMode', ...
+        'loadTrackingMode must be constant_current or constant_power.');
+end
+cfg.loadTrackingMode = mode;
+
+if mode == "constant_current"
+    required = {'targetCurrentA', 'currentTrackingTolerance_A'};
+    if ~builtin('all', isfield(cfg, required))
+        error('RouteA:WaterLedgerCurrentTrackingConfig', ...
+            'The constant-current tracking configuration is incomplete.');
+    end
+    validateattributes(cfg.targetCurrentA, {'numeric'}, ...
+        {'scalar', 'finite'});
+    validateattributes(cfg.currentTrackingTolerance_A, {'numeric'}, ...
+        {'scalar', 'nonnegative', 'finite'});
+    if ~isfield(cfg, 'currentTrackingWindow_s')
+        cfg.currentTrackingWindow_s = [cfg.researchStartTime_s, ...
+            cfg.modelStopTime_s];
+    end
+    validateTrackingWindow(cfg.currentTrackingWindow_s, ...
+        cfg.researchStartTime_s, cfg.modelStopTime_s, 'currentTrackingWindow_s');
+else
+    required = {'targetPower_kW', 'powerTrackingRelativeTolerance', ...
+        'powerTrackingWindow_s'};
+    if ~builtin('all', isfield(cfg, required))
+        error('RouteA:WaterLedgerPowerTrackingConfig', ...
+            'The constant-power tracking configuration is incomplete.');
+    end
+    validateattributes(cfg.targetPower_kW, {'numeric'}, ...
+        {'scalar', 'positive', 'finite'});
+    validateattributes(cfg.powerTrackingRelativeTolerance, {'numeric'}, ...
+        {'scalar', 'nonnegative', 'finite'});
+    validateTrackingWindow(cfg.powerTrackingWindow_s, ...
+        cfg.researchStartTime_s, cfg.modelStopTime_s, 'powerTrackingWindow_s');
+end
+end
+
+function validateTrackingWindow(window, lowerBound, upperBound, name)
+validateattributes(window, {'numeric'}, {'vector', 'numel', 2, 'finite'});
+window = window(:).';
+if window(1) < lowerBound || window(2) > upperBound || ...
+        window(2) <= window(1)
+    error('RouteA:WaterLedgerTrackingWindow', ...
+        '%s must be increasing and within the research window.', name);
+end
+end
+
+function tracking = assessLoadTracking(stackCurrent, stackPower, cfg)
+tracking = struct( ...
+    'mode', cfg.loadTrackingMode, ...
+    'window_s', NaN(1, 2), ...
+    'currentWindow_s', NaN(1, 2), ...
+    'powerWindow_s', NaN(1, 2), ...
+    'currentMaxError_A', NaN, ...
+    'currentPassed', NaN, ...
+    'powerMaxRelativeError', NaN, ...
+    'powerPassed', NaN, ...
+    'passed', false);
+if cfg.loadTrackingMode == "constant_current"
+    currentData = normalizeScalarData(stackCurrent.Time, stackCurrent.Data, ...
+        'stack current');
+    values = windowData(stackCurrent.Time, currentData, ...
+        cfg.currentTrackingWindow_s);
+    tracking.window_s = cfg.currentTrackingWindow_s;
+    tracking.currentWindow_s = cfg.currentTrackingWindow_s;
+    tracking.currentMaxError_A = max(abs(values - cfg.targetCurrentA));
+    tracking.currentPassed = tracking.currentMaxError_A <= ...
+        cfg.currentTrackingTolerance_A;
+    tracking.passed = tracking.currentPassed;
+else
+    powerData = normalizeScalarData(stackPower.Time, stackPower.Data, ...
+        'stack power');
+    values = windowData(stackPower.Time, powerData, ...
+        cfg.powerTrackingWindow_s);
+    tracking.window_s = cfg.powerTrackingWindow_s;
+    tracking.powerWindow_s = cfg.powerTrackingWindow_s;
+    tracking.powerMaxRelativeError = max(abs(values - cfg.targetPower_kW)) / ...
+        max(abs(cfg.targetPower_kW), 1e-6);
+    tracking.powerPassed = tracking.powerMaxRelativeError <= ...
+        cfg.powerTrackingRelativeTolerance;
+    tracking.passed = tracking.powerPassed;
+end
 end
 
 function audit = summarizeWaterAudit(cases, cfg)
@@ -393,7 +485,7 @@ for idx = 1:numel(audit.cases)
     if isfield(value, 'loadId')
         fprintf('\n  load=%s j=%.6g A/cm^2 I=%.6g A OER=%.6g ', ...
             string(value.loadId), value.currentDensity_A_cm2, ...
-            value.targetCurrentA, value.targetOer);
+            value.targetCurrentA, value.targetAirEquivalentOer);
     else
         fprintf('\n  ');
     end
@@ -422,13 +514,13 @@ for idx = 1:numel(audit.cases)
         value.tail.outletCondSpecies_kg_s.mean(h2o), ...
         value.outletGasPhaseBalance.residual_kg);
     fprintf(['    branch H2O: egr=%.9g pre-exhaust=%.9g final-exhaust=%.9g ', ...
-        'preHum=%.9g humidifier-gas-source=%.9g kg/s L2observer=%.9g\n'], ...
+        'preHum=%.9g humidifier-gas-source=%.9g kg/s %s\n'], ...
         value.tail.egrSpecies_kg_s.mean(h2o), ...
         value.tail.exhaustSpecies_kg_s.mean(h2o), ...
         -value.tail.finalExhaustSpecies_kg_s.mean(h2o), ...
         value.tail.preHumidifierSpecies_kg_s.mean(h2o), ...
         value.tail.humidifierMInSpecies_kg_s.mean(h2o), ...
-        value.tail.waterSepL2Raw.mean);
+        l2ObserverText(value.tail.waterSepL2Raw));
     fprintf(['    tail condensation H2O: humidifier-pipe=%.9g cathode-gas=%.9g ', ...
         'EGR-pipe=%.9g exhaust-pipe=%.9g kg/s\n'], ...
         value.tail.humidifierPipeCondSpecies_kg_s.mean(h2o), ...
@@ -519,8 +611,8 @@ present = any(strcmp(names, name));
 end
 
 function stats = scalarStats(time, data, window)
+data = normalizeScalarData(time, data, 'scalar statistic');
 values = windowData(time, data, window);
-values = values(:);
 stats = struct();
 stats.start_s = window(1);
 stats.end_s = window(2);
@@ -540,6 +632,56 @@ stats.std = std(finiteValues);
 stats.span = max(finiteValues) - min(finiteValues);
 stats.minimum = min(finiteValues);
 stats.maximum = max(finiteValues);
+end
+
+function data = normalizeScalarData(time, data, label)
+data = squeeze(data);
+if ~isvector(data)
+    error('RouteA:WaterAuditScalarSeriesShape', ...
+        'Expected a scalar timeseries for %s.', label);
+end
+data = data(:);
+if numel(data) ~= numel(time)
+    error('RouteA:WaterAuditScalarSeriesTime', ...
+        'The scalar timeseries time base is inconsistent for %s.', label);
+end
+end
+
+function stats = l2ObserverStats(time, data, window)
+data = squeeze(data);
+if isvector(data)
+    stats = scalarStats(time, data, window);
+    stats.kind = "scalar";
+    stats.componentCount = 1;
+    return;
+end
+if size(data, 1) ~= numel(time)
+    data = data.';
+end
+if size(data, 1) ~= numel(time)
+    error('RouteA:WaterAuditL2ObserverSeriesTime', ...
+        'The L2 observer time base is inconsistent.');
+end
+values = windowData(time, data, window);
+stats = struct( ...
+    'kind', "vector", ...
+    'componentCount', size(values, 2), ...
+    'componentMean', mean(values, 1), ...
+    'mean', NaN, ...
+    'std', NaN, ...
+    'span', NaN, ...
+    'minimum', NaN, ...
+    'maximum', NaN, ...
+    'sampleCount', size(values, 1), ...
+    'nonfiniteCount', sum(~isfinite(values), 'all'));
+end
+
+function text = l2ObserverText(stats)
+if stats.kind == "scalar"
+    text = sprintf('L2observer=%.9g', stats.mean);
+else
+    text = sprintf('L2observer=%d-component', stats.componentCount);
+end
 end
 
 function stats = vectorStats(time, data, window)
