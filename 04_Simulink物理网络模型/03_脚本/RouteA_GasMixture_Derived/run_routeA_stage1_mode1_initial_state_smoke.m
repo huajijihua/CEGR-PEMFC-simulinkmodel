@@ -12,14 +12,14 @@ if nargin < 1 || strlength(string(initialStateFile)) == 0
         'RouteA_platform_default_initial_state.mat');
 end
 if nargin < 2 || strlength(string(loadInputType)) == 0
-    loadInputType = "Step";
+    loadInputType = "Current";
 end
 initialStateFile = char(initialStateFile);
 loadInputType = string(loadInputType);
 if ~isscalar(loadInputType) || ...
-        ~any(loadInputType == ["Step", "Drive cycle", "Voltage"])
+        ~any(loadInputType == ["Current", "Power", "Voltage"])
     error('RouteA:InitialStateSmokeLoadInputType', ...
-        'loadInputType must be Step, Drive cycle, or Voltage.');
+        'loadInputType must be Current, Power, or Voltage.');
 end
 oldDir = pwd;
 addpath(scriptDir);
@@ -42,10 +42,10 @@ cfg.stopTime_s = cfg.researchStartTime_s + 30;
 cfg.targetAirEquivalentOer = 3;
 cfg.zeroTargetTolerance = 1e-4;
 cfg.positiveResponseLowerBound = 0.01;
-if loadInputType == "Step"
+if loadInputType == "Current"
     requireMetadataField(metadata, 'targetCurrentA', loadInputType);
     cfg.targetCurrentA = metadata.targetCurrentA;
-elseif loadInputType == "Drive cycle"
+elseif loadInputType == "Power"
     requireMetadataField(metadata, 'targetPower_kW', loadInputType);
     cfg.targetPower_kW = metadata.targetPower_kW;
 else
@@ -87,7 +87,7 @@ end
 function result = runCase(model, modelFile, modelDir, cfg, targetRatio)
 resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
-if cfg.loadInputType == "Step"
+if cfg.loadInputType == "Current"
     routeA_apply_constant_current_step(model, ...
         cfg.initialStateMetadata.targetCurrentA, cfg.targetCurrentA);
 end
@@ -119,7 +119,15 @@ in = in.setVariable('routeA_target_egr_ratio_comp_in', targetRatio, ...
 in = in.setVariable('routeA_target_egr_ratio_comp_in_profile', ...
     [cfg.researchStartTime_s, targetRatio; cfg.stopTime_s, targetRatio], ...
     'Workspace', model);
-if cfg.loadInputType == "Drive cycle"
+if cfg.loadInputType == "Current"
+    in = in.setVariable('drive_cycle_time', ...
+        [cfg.researchStartTime_s; cfg.researchStartTime_s + 0.5; ...
+        cfg.stopTime_s], 'Workspace', model);
+    in = in.setVariable('drive_cycle_current', ...
+        [cfg.initialStateMetadata.targetCurrentA; ...
+        cfg.initialStateMetadata.targetCurrentA; cfg.targetCurrentA], ...
+        'Workspace', model);
+elseif cfg.loadInputType == "Power"
     in = in.setVariable('drive_cycle_time', ...
         [cfg.researchStartTime_s; cfg.researchStartTime_s + 0.5; ...
         cfg.stopTime_s], 'Workspace', model);
@@ -173,10 +181,10 @@ validateattributes(metadata.(fieldName), {'numeric'}, ...
 end
 
 function metadata = loadVariantMetadata(initialStateFile, loadInputType)
-if loadInputType == "Step"
-    metadataField = 'routeA_initial_metadata';
-elseif loadInputType == "Drive cycle"
-    metadataField = 'routeA_initial_metadata_drive_cycle';
+if loadInputType == "Current"
+    metadataField = 'routeA_initial_metadata_current';
+elseif loadInputType == "Power"
+    metadataField = 'routeA_initial_metadata_power';
 else
     metadataField = 'routeA_initial_metadata_voltage';
 end

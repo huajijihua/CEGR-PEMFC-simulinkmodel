@@ -2,7 +2,7 @@ function metadata = routeA_generate_platform_default_voltage_initial_state(sourc
 % Generate a candidate normal-operation state for the Voltage load branch.
 %
 % A ModelOperatingPoint carries the active Electrical Load variant and the
-% PI integrator state. The source Step state is therefore conditioned again
+% PI integrator state. The source Current state is therefore conditioned again
 % under the Voltage variant at its own low-load stack-voltage reference.
 
 scriptDir = fileparts(mfilename('fullpath'));
@@ -10,12 +10,12 @@ modelDir = fullfile(scriptDir, '..', '..', '01_模型', ...
     'RouteA_GasMixture_Derived');
 model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
 modelFile = fullfile(modelDir, [model '.slx']);
-formalFile = fullfile(modelDir, ...
-    'RouteA_platform_default_initial_state.mat');
+currentCandidateFile = fullfile(modelDir, ...
+    'RouteA_platform_default_initial_state_candidate_mode1_current.mat');
 candidateFile = fullfile(modelDir, ...
     'RouteA_platform_default_initial_state_candidate_mode1_voltage.mat');
 if nargin < 1 || strlength(string(sourceInitialStateFile)) == 0
-    sourceInitialStateFile = formalFile;
+    sourceInitialStateFile = currentCandidateFile;
 end
 sourceInitialStateFile = char(sourceInitialStateFile);
 oldDir = pwd;
@@ -26,28 +26,37 @@ cleanup = onCleanup(@() routeA_restore_model_and_folder( ...
     model, modelFile, oldDir));
 
 if ~isfile(sourceInitialStateFile)
-    error('RouteA:MissingStepInitialState', ...
-        'The source Step initial state is required: %s.', sourceInitialStateFile);
+    error('RouteA:MissingCurrentInitialState', ...
+        'The source Current initial state is required: %s.', sourceInitialStateFile);
 end
 loaded = load(sourceInitialStateFile, 'routeA_initial_metadata');
-if ~isfield(loaded, 'routeA_initial_metadata')
-    error('RouteA:InvalidStepInitialState', ...
-        'The formal Step initial-state metadata is unavailable.');
+if isfield(loaded, 'routeA_initial_metadata')
+    source = loaded.routeA_initial_metadata;
+else
+    error('RouteA:InvalidCurrentInitialState', ...
+        'The formal Current initial-state metadata is unavailable.');
 end
-source = loaded.routeA_initial_metadata;
 required = {'model', 'physicalSummary', 'snapshotTimeS', ...
     'cegrTopologyEnabled', 'cegrValveModeId', 'egrReferenceKind', ...
     'cegrValveMaxArea_m2'};
 if ~builtin('all', isfield(source, required)) || ...
         ~isfield(source.physicalSummary, 'stackVoltage_V')
-    error('RouteA:InvalidStepInitialStateMetadata', ...
-        'The formal Step initial-state metadata is incomplete.');
+    error('RouteA:InvalidCurrentInitialStateMetadata', ...
+        'The formal Current initial-state metadata is incomplete.');
 end
 if string(source.model) ~= string(model) || ...
         ~source.cegrTopologyEnabled || source.cegrValveModeId ~= 1 || ...
         string(source.egrReferenceKind) ~= "mode1_zero_target_near_zero"
-    error('RouteA:StepInitialStateMode', ...
-        'The formal Step state is not the required mode-1 zero-cEGR state.');
+    error('RouteA:CurrentInitialStateMode', ...
+        'The formal Current state is not the required mode-1 zero-cEGR state.');
+end
+if ~isfield(source, 'loadInputType') || ...
+        string(source.loadInputType) ~= "Current" || ...
+        ~isfield(source, 'schema') || ...
+        ~contains(string(source.schema), "_v09_")
+    error('RouteA:CurrentInitialStateRefreshRequired', ...
+        ['The source must be a fresh v09 Current candidate; historical ', ...
+        'or other-branch states cannot seed a new I/P/V bundle.']);
 end
 sourceVoltage_V = source.physicalSummary.stackVoltage_V;
 validateattributes(sourceVoltage_V, {'numeric'}, ...
@@ -70,12 +79,13 @@ if abs(metadata.cegrValveMaxArea_m2 - source.cegrValveMaxArea_m2) > ...
         'The Voltage candidate does not match the formal valve area.');
 end
 
-metadata.schema = 'RouteA_platform_default_initial_state_v05_mode1';
+metadata.schema = 'RouteA_platform_default_initial_state_v09_mode1_voltage';
 metadata.candidateSource = ...
     "routeA_generate_platform_default_voltage_initial_state";
 metadata.loadInputType = "Voltage";
-metadata.sourceStepSnapshotTimeS = source.snapshotTimeS;
-metadata.sourceStepVoltage_V = sourceVoltage_V;
+metadata.sourceCurrentSnapshotTimeS = source.snapshotTimeS;
+metadata.sourceCurrentVoltage_V = sourceVoltage_V;
+metadata.sourceCurrentStateSchema = string(source.schema);
 metadata.stateClass = string(class(routeA_initial_state));
 routeA_initial_metadata = metadata;
 save(candidateFile, 'routeA_initial_state', ...

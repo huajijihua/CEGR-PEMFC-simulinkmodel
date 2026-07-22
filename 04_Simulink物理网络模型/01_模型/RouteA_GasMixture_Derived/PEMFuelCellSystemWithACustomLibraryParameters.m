@@ -159,6 +159,8 @@ cathode_separator_laminar_fraction = 1e-3; % [-] L2 cathode separator smoothing 
 
 routeA_cathode_humidifier_gain = 1; % [-] 1 active, 0 bypass
 humidifier_bypass_mode = "command_gain";
+routeA_cathode_rh_setpoint = 1; % [-] Cathode humidifier RH command
+routeA_anode_rh_setpoint = 1; % [-] Anode humidifier RH command
 
 %% Anode and hydrogen supply
 % Profile: platform_default / simplified relative to cathode-cEGR work.
@@ -166,8 +168,15 @@ humidifier_bypass_mode = "command_gain";
 % consistency; anode lambda and purge control are deferred beyond A10.1.
 tank_p = 70; % [MPa] Fuel tank pressure
 tank_yH2 = 1 - 3e-4; % [-] Hydrogen mole fraction
+tank_T = env_T; % [degC] Fuel-tank gas temperature boundary
 tank_V = 120; % [l] Fuel tank volume
 anode_tube_D = 0.02; % [m] Hydrogen tube diameter, A9 second-round 50 kW baseline
+routeA_anode_inlet_pressure_MPa_abs = env_p + 0.06; % [MPa] Pressure-reducing-valve outlet target
+routeA_anode_recirculation_base_command = 0.2; % [-] Feedforward recirculation command at zero stack current
+routeA_anode_recirculation_current_gain_A_inv = 0.8 / (stack_iL * stack_area); % [1/A] Feedforward current gain
+routeA_anode_purge_on_n2_mole_fraction = 0.5; % [-] Relay turn-on threshold
+routeA_anode_purge_off_n2_mole_fraction = 0.1; % [-] Relay turn-off threshold
+routeA_anode_purge_enable = 1; % [-] Normal-operation purge enable
 
 anode_separator_D = anode_tube_D; % [m] Anode recycle water separator hydraulic diameter
 anode_separator_area = pi*anode_separator_D^2/4; % [m^2] Anode separator flow area
@@ -219,8 +228,8 @@ routeA_air_pid_Kp = 5; % [-/(kg/s)] First-version mass-flow PI proportional gain
 routeA_air_pid_Ki = 0.5; % [-/(kg/s*s)] First-version mass-flow PI integral gain
 
 % Stack-terminal voltage control uses the same current-driven air path as
-% the existing Step and Drive cycle load modes. The runner supplies the
-% time-aligned drive_cycle_time and drive_cycle_voltage reference profile.
+% the Current and Power load modes. The runner supplies time-aligned
+% drive_cycle_* reference profiles for the active electrical boundary.
 routeA_voltage_default_ref_V = 394.9; % [V] First nominal stack-voltage study target
 routeA_voltage_pi_Kp = 1; % [A/V] Frozen after mode-1 zero-cEGR 600 s PI scan
 routeA_voltage_pi_Ki = 0.05; % [A/(V*s)] Frozen after mode-1 zero-cEGR 600 s PI scan
@@ -231,6 +240,9 @@ if ~exist('drive_cycle_time', 'var') || isempty(drive_cycle_time)
 end
 drive_cycle_voltage = routeA_voltage_default_ref_V * ...
     ones(size(drive_cycle_time)); % [V] Default profile; runners override it
+routeA_current_default_ref_A = 28; % [A] Source-compatible Current profile
+drive_cycle_current = routeA_current_default_ref_A * ...
+    ones(size(drive_cycle_time)); % [A] Default profile; runners override it
 
 % cEGR topology is selected at update-diagram time by cEGR_Mode_Selector.
 % Keep the full recirculation network installed as the platform default.

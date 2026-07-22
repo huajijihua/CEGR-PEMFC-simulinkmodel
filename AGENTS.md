@@ -75,6 +75,8 @@
 5. Codex 和 Claude 使用不同 MCP session 根目录，因为 `shareMATLABSession()` 会在根目录下写单个 `sessionDetails.json`。Codex 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Codex`，Claude 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Claude`；`startup.m` 通过 `register_agent_matlab_mcp_session.m` 写入对应根目录，不修改 MATLAB 的 `APPDATA`。
 6. 客户端配置或启动脚本更新后，应重启或刷新 agent 客户端/session，让正式 MCP 工具重新加载。不要把临时 MCP 探针脚本当作常规工作流。
 7. MATLAB MCP 默认采用 existing session attach；若工具未暴露或 attach 失败，先修复会话/配置，不用 `matlab.exe -batch` 冒充 MCP 交互链路。batch 只用于可脱离 agent 的长时间脚本任务，结束后再由 agent 读取结果并审计。
+8. 预计可能超过 agent 交互超时的 MATLAB/Simulink 计算，默认由用户在已打开的 MATLAB GUI 命令窗口执行。agent 必须先提供可直接粘贴的命令、输入输出契约、预期结果变量或文件、完成判据，以及简短的事后读取或审计命令；不得通过 MCP 启动后阻塞等待、轮询，或因工具超时而中断计算。
+9. 用户确认长计算完成后，agent 只读取约定的结果摘要、KPI、失败栈或输出文件继续审计。除非用户明确要求，不得重复运行同一长计算，也不得以缩短正式工况、减少案例或降低精度替代正式结果。
 
 ## 工作流选择规则
 

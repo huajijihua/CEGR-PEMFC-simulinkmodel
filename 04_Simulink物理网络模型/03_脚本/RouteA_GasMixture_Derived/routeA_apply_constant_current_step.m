@@ -1,6 +1,6 @@
 function routeA_apply_constant_current_step( ...
     model, initialCurrentA, targetCurrentA, stepTime_s)
-% Apply an explicit constant-current scenario after selecting an operating point.
+% Apply a legacy constant-current step through the Current profile branch.
 %
 % initialCurrentA holds the command compatible with the saved state until the
 % 0.5 s step. targetCurrentA is a study input and may differ from the saved
@@ -17,11 +17,19 @@ validateattributes(targetCurrentA, {'numeric'}, {'scalar', 'real', ...
 validateattributes(stepTime_s, {'numeric'}, {'scalar', 'real', ...
     'finite', 'nonnegative'}, mfilename, 'stepTime_s');
 
-loadPath = Simulink.ID.getFullName([model ':368']);
-stepPath = Simulink.ID.getFullName([model ':878']);
-set_param(loadPath, 'input_type', 'Step');
-set_param(stepPath, ...
-    'Time', sprintf('%.16g', stepTime_s), ...
-    'Before', sprintf('%.16g', initialCurrentA), ...
-    'After', sprintf('%.16g', targetCurrentA));
+paths = routeA_block_paths(model);
+set_param(paths.electricalLoad, 'input_type', 'Current');
+currentPath = paths.currentDemand;
+set_param([currentPath '/Current Demand'], 'VariableName', ...
+    '[drive_cycle_time, drive_cycle_current]');
+mw = get_param(model, 'ModelWorkspace');
+finalTime_s = max(stepTime_s, 1);
+if stepTime_s == finalTime_s
+    mw.assignin('drive_cycle_time', [0; finalTime_s]);
+    mw.assignin('drive_cycle_current', [initialCurrentA; targetCurrentA]);
+    return;
+end
+mw.assignin('drive_cycle_time', [0; stepTime_s; finalTime_s]);
+mw.assignin('drive_cycle_current', ...
+    [initialCurrentA; initialCurrentA; targetCurrentA]);
 end

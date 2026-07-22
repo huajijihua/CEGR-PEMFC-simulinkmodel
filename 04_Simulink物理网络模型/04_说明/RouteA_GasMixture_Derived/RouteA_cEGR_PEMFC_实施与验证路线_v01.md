@@ -1,9 +1,33 @@
-# RouteA cEGR-PEMFC 实施与验证路线 v01
+# RouteA cEGR-PEMFC 实施记录 v01
 
-状态：Phase 1-3 的工作树盘点、规格草案和资产归档已完成；Phase 4 六批顶层规划已与用户共同对齐；Stage 1 控制接口和九工况稳态基线已完成。原 120 s 和冷态起算的 600 s 运行仅保留为暖机/架构 smoke 证据。2026-07-21 已将唯一正式 `RouteA_platform_default_initial_state.mat` 刷新为完整 `mode=1` 三变体包（Step `v03`、Drive cycle `v04`、Voltage `v05`），并绑定直接 `cegr_valve_max_area=1.96349540849e-4 m^2`；历史恒流矩阵使用相同数值，无需重跑。水账本仍直接复用矩阵的内存 `SimulationOutput`，不再重复启动仿真。后续稳态性能统一使用固定研究时长的末段均值和时间对齐的 mode=1 零目标近似参考，不将周期运行系统误写为严格静态点。`mode=0` 仅保留为独立严格隔离验证；堆端恒压接口已完成 nominal 首轮闭合，`WM-L2` 液水管理仍未纳入本轮范围。
-原则：本路线的 Phase 1-4 不修改 `.slx`、不调整 `platform_default`、不新增物理部件或控制律。它们的目的，是把当前 Route A 从“可运行的官方派生模型”明确为“面向工程化系统模型的受控起点”；Phase 4 的产物是与用户共同确认的后续建模顶层规划，不自动触发任何 Simulink 改动。
+文件类型：实施记录（增量维护）
+当前规划真源：[RouteA_cEGR_PEMFC_工程化建模规格_v01.md](RouteA_cEGR_PEMFC_工程化建模规格_v01.md)
+记录说明：以下既有条目保留其当时证据语义；若与当前规划、当前 `.slx` 或当前初态门禁冲突，以最新追加记录和规划规格为准。
+
+当前状态（2026-07-22）：模型和通用运行合同已收口；旧 v03/v08 初态已被拒绝，新的 v09 I/P/V 初态包尚待离线长计算生成。新的正式矩阵、性能结论和迁移 parity 在该包提升前均处于未验证状态。
 
 已完成的 `run_routeA_phase1_matching_audit.m`、九工况结果和参数/接口账本属于既有基线证据，不是本路线的 Phase 编号。它们可用于现状判断，但不得替代后续设备参数、部件能力或独立验证证据。
+
+### 0.1 I/P/V 通用 profile 迁移冻结（2026-07-21）
+
+迁移顺序固定为：接口冻结与文档更新 -> 单模型三 profile 模式 -> Current/Power/Voltage 三份匹配初态 -> 四个核心脚本 -> 9 恒流、3 恒功率、3 恒电压基线及三类非恒定 profile smoke -> 三个旧 runner 缩为 wrapper -> 一次性里程碑提交。2026-07-21 审计确认目前停在“接口/说明已冻结、四脚本骨架待收口、Current 候选已生成、正式 bundle 未提升”这一状态。当前研究每次只激活一种电边界；不实现在线无扰模式切换。
+
+统一输入使用逻辑研究时间的 `cfg.boundary` 和 `cfg.cegr` profile。保存的初态只承担普通低负载气体、温度、压力、湿度和控制器状态的热启动便利，不承担后续目标负载的 ramp。`commandStartOffset_s=0.5` 时，runner 对常值 I/P profile 默认从 `0` 平滑 ramp 到目标，Voltage 从高于匹配热状态电压的零负载参考平滑降到目标；装配脚本再将逻辑时间平移到 operating point 的模型时间。显式时间序列由调用方完全负责。Current/Power/Voltage 共用受控电流源后的 `i_stack` 气路入口；`Step`、`Ramp` 不再是模型顶层模式。固定总压缩机流量只保留为历史诊断，不迁入通用核心 runner。
+
+四个核心脚本的职责固定为：`routeA_normalize_electrical_profile.m` 负责单位、范围、单调时间和阶跃/斜坡/任意曲线规范化；`routeA_prepare_electrical_boundary_input.m` 选择匹配初态并通过 `SimulationInput` 装配电、空气、cEGR、压力、湿度、热和 solver 输入；`run_routeA_electrical_boundary_study.m` 逐例运行 `studyCfg.cases` 并保留同次 `SimulationOutput`；`routeA_assess_electrical_boundary_outputs.m` 统一提取 I/V/P、气路、cEGR、阀、RPM、饱和、气体闭合和 `WM-L1+` 所需审计量。三份旧 matrix runner 只构造既有基线 case 并调用通用 runner，不再维护重复仿真逻辑。
+
+### 0.2 2026-07-21 脚本迁移审计与明日任务
+
+模型读回确认当前无需新增 `.slx` 结构：阴极出口压力使用 `routeA_target_p_ca_out_MPa`，阳极入口压力使用 `Hydrogen Source/Stack Pressure` 的减压阀设定，湿度使用现有两侧 `Relative Humidity` 常量和阴极 `routeA_cathode_humidifier_gain`，堆温使用现有 `Stack Temperature` Constant。明日先通过 `SimulationInput` 参数化这些已有接口；如 targeted read-back 证明接口不足，再单独提出最小模型补丁。
+
+当前维护顺序：
+
+1. 先收口 profile 规范化和单位合同，补齐非法单位、多列数据、时间和范围的失败测试。
+2. 再收口单例 input preparation，消除 `:368` 硬编码，补齐压力、RH/gain、堆温和 operating-point 兼容性检查。
+3. 然后验证通用 runner 的逐例隔离、同次 `SimulationOutput` 保留、失败摘要和 water-ledger 复用。
+4. 在三份匹配初态全部生成且通过短 smoke 之前，不运行 `9+3+3` 正式矩阵，不提升正式 `.mat`。
+5. 正式矩阵按长任务分工执行：短任务由 Codex 完成，预计超过约 10 min 的任务由用户在 MATLAB GUI 执行，Codex 只读取约定摘要并审计。
+6. 最后把三个旧 runner 收为无重复仿真逻辑的 wrapper，完成 parity、说明 read-back 和一次性提交。
 
 ### 0.0 cEGR 阀关闭态本构重构（2026-07-17）
 
@@ -527,3 +551,41 @@ MEA 的 `H2O_produced - mdot_ca(H2O) - mdot_an(H2O)` 残差分别为 `2.03e-20` 
 4. `slprj/`、`.slxc` 和活跃运行缓存默认保留且不纳入 Git；不以清缓存作为审计、提交或建模前置动作。
 5. 对 `.slx` 的结构或布局变更，除 `model_read`、`model_check` 和参数读回外，补做一次目标子系统的 MATLAB 图形化视觉复核，检查悬空线、端口方向、层级遮挡和布局可读性；视觉证据用于发现图形问题，不替代 API 结构和行为验证。
 6. 主模型保存纪律：`PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx` 是唯一当前模型事实源；`.slx.autosave` 只作 MATLAB 异常恢复文件，`.slxc` 与 `slprj/` 只作生成缓存，`PEMFuelCellSystemWithACustomLibraryParameters.m` 和 `PEMFuelCellSystemWithACustomLibraryDriveCycle.mat` 是参数/工况依赖，不是第二个模型。模型问题采用一个小步闭环完成：定位/修改 → 正式保存主模型 → 读回、`model_check` 和最小回归；这三项验证属于修改过程的一部分，不因后续单纯保存动作重复执行。纯布局或日志变更按风险做必要的读回/视觉确认，不自动触发完整行为回归。发现工作区为 dirty 时，先保留恢复副本再关闭或重载模型。2026-07-16 11:25 的主模型已正式保存并读回确认，当前不依赖 autosave 或缓存恢复。长时间审计脚本必须在结束时显式恢复模型，避免临时日志标记污染主模型。
+
+## 2026-07-22 Stage 1 平台收口记录
+
+### 已完成
+
+1. 完成活动工作树、历史归档、唯一 Route A `.slx`、运行脚本和说明文件盘点。当前系统结构仍只有 `PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx` 一个模型文件；历史模型和旧证据未被作为默认入口。
+2. 读回并保存模型参数化改动：堆温、阴极/阳极加湿 RH、阳极减压阀目标压力、阳极回流前馈、阳极吹扫阈值和使能均连接至 `platform_default` 参数层；Fuel Tank 的温度与 H2/N2 组分由 `tank_T`、`tank_yH2` 驱动，消除了原先纯氢硬编码。
+3. 将所有 I/P/V 观测信号一次性写入模型并保存。`run_routeA_electrical_boundary_study` 不再在每例仿真中修改日志标记或重载模型，输入装配只生成 `SimulationInput`，为 `parsim` 做好隔离。
+4. 通用 runner 已增加 `steady/transient`、`VariableStepAuto` 容差、稳态末段时间加权均值、`0.5%` 双半窗门、阳极吹扫污染门、显式阴阳极控制合同、可选紧凑结果文件和 `serial/parallel` 调度。并行模式默认申请 2 个 worker、上限 4 个，且不自动破坏已有池。
+5. 初态生成链已统一为低负载、零 cEGR、正常吹扫、多周期 post-purge 安静窗口流程。Current、Power、Voltage 候选均要求 `v09` metadata；提升器只接受三个安静窗口合格候选并原子提升。
+
+### 验证证据
+
+- `System_Control_Observability` 结构检查为 healthy。Fuel Tank 子树的检查只显示既有可选 Simscape 物理端口告警，没有新增悬空信号线。
+- `routeA_prepare_electrical_boundary_input.m`、`routeA_attach_platform_default_initial_state.m`、`routeA_assess_electrical_boundary_outputs.m`、`run_routeA_electrical_boundary_study.m`、初态生成/提升相关脚本均经 MATLAB Code Analyzer 复核为 `0` 个问题。
+- 新控制合同在旧 Current 初态上曾通过 `SimulationInput.validate`；实际 2 s smoke 随后被 Simulink 正确阻止，因为模型参数/观测配置变更后旧 `v03` operating point 内容校验和不再匹配。
+- 已增加并验证 `RouteA:InitialStateChecksumRefreshRequired` 门：旧正式初态及旧 v08 候选不能进入正式研究。未以 warning 或部分状态加载绕过该错误。
+
+### 当前阻塞与下一步
+
+当前模型尚无可用的 v09 I/P/V 正式初态包，因此尚未运行或宣称新的正式 I/P/V 矩阵结果。下一步由用户在 MATLAB GUI 执行三条候选初态的多周期长计算与原子提升；完成后只读取生成的 metadata、正式 `.mat` 和首个小规模 runner 结果进行审计。热启动 `ModelOperatingPoint` 的内部快照时间与“绝对仿真时间必须为 0 s”存在 Simulink 约束，当前将研究逻辑时间定义为 0，并在 metadata 保留快照时间；未把该约束伪装为已解决。
+
+### 2026-07-22 补充收口
+
+- profile 规范化器现拒绝多列展平输入；若 profile 结构体声明单位，则只接受 Current=A、Power=kW、Voltage=V、cEGR=ratio，不进行隐式换算。该合同已通过正例和错误单位/多列输入的无模型单元 smoke。
+- Current 九例、Power 三例、Voltage 三例 wrapper 继续只生成 case；移除了无效 `runPreflight` 标记，并显式暴露 `executionMode`、`parallelWorkers`、`showProgress` 和 `resultFile`。多案例 wrapper 默认选择 `parallel` 与 2 worker，通用 runner 仍允许单例串行使用。
+- 初态门禁重新读回：旧 formal 和旧 v08 Current candidate 都在输入装配阶段以 `RouteA:InitialStateChecksumRefreshRequired` 停止；runner 的无仿真预检已验证该错误被准确收集为案例失败摘要。
+- 活动脚本目录仍含若干已修改的历史专题 runner。为避免在正式 v09 初态包生成前移动用户工作树中的证据，本轮只冻结其为非默认入口；待首轮 I/P/V smoke 和 wrapper parity 完成后，再按一次性批次归档重复的专题 runner，不在当前阶段删除或复制它们。
+
+### 2026-07-22 v09 正式初态生成、结构修复与热启动 smoke
+
+- 本条记录取代上文“尚无可用 v09 初态包”的当时阻塞状态。最终模型结构冻结后，Current、Power、Voltage 三个 v09 候选均由 MATLAB 串行完成多周期条件化并原子提升至 `RouteA_platform_default_initial_state.mat`。三支快照时间分别为 `9487.499491 s`、`9495.447219 s`、`9994.787357 s`；跨周期同相位窗口均值的最大相对差分别为 `0.1626%`、`0.1638%`、`0.1497%`，均小于 `0.5%`。
+- 初态门改为相邻吹扫周期同相位的 `60 s` 时间加权窗口均值比较。阳极 N2 在吹扫间的窗内缓慢累积保留为 `maximumWithinWindowRelativeChange` 诊断，而不再把稳定极限环误拒为静态未收敛；每个窗口仍验证无吹扫。
+- 修复了初态条件化的倒退时间向量、二维 `routeA_stack_power_kW=[P,Q]` 日志提取、Power 支路 `kW/V` 到 A 的显式换算和限流单位、Voltage 支路遗漏的全局 `v_stack` Goto、空 `[]` 初态路径和数值 `N×2 [time_s,value]` profile 输入。Power 支路保留外部 kW 合同，在 Simulink 域通过 `Power kW to W` Gain 后进入物理 `P/V`；限流仍为 `0..392 A`。
+- 初次提升路径计算发现并修复了含 `..` 的 `modelDir` 归档根误定位。旧 v03 及一次结构失配的中间 v09 formal bundle 均已移入项目根 `99_历史归档/2026-07-22_Stage1_InitialState_Superseded/`；活动目录没有嵌套 `99_历史归档`，当前 formal metadata 已写入最终归档路径。
+- 最终 formal bundle 的三条 `2 s` 热启动 smoke 均通过且无 MATLAB warning：Current `28.000000 A / 427.631540 V / 11.973683 kW`，Power `28.000920 A / 427.630811 V / 11.974056 kW`，Voltage `28.233555 A / 427.529897 V / 12.070689 kW`。三种 `routeA_attach_platform_default_initial_state` 选择和 `routeA_prepare_electrical_boundary_input` 装配均已读回通过；整模型 `model_check` 保持既有 70 条 Simscape 物理端口告警，未引入新连接告警。
+- 初态生成必须保持串行，因为 Power/Voltage 依赖 Current 候选且三个过程共享同一模型/缓存；`parsim` 仅可在上述单例 smoke 通过后用于相互独立的正式研究矩阵，默认 2 worker、上限 4 worker，并非强制。
+- 仍未完成：最终 v09 formal bundle 下的 `9 Current + 3 Power + 3 Voltage` 统一 runner parity、`600 s` 尾窗、气体闭合与 `WM-L1+` 矩阵审计。不得将本条初态/2 s smoke 证据写成完整工况矩阵或设备匹配结论。

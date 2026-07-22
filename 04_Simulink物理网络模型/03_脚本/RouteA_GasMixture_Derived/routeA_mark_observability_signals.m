@@ -1,5 +1,8 @@
-function routeA_mark_observability_signals(model)
-% Mark the existing Route A observability lines for one simulation run.
+function routeA_mark_observability_signals(model, inputType)
+% Persist Route A observability names after a model/topology change.
+%
+% This is a model-configuration helper, not a study-run operation. The
+% unified runner relies on the saved logging configuration and never calls it.
 
 paths = routeA_block_paths(model);
 markSignalFromBlockOutput(paths.fcu, 1, 'routeA_egr_valve_area_cmd');
@@ -44,7 +47,23 @@ markSignalFromBlockOutput(paths.measurements, 3, ...
 markSignalFromBlockOutput(paths.measurements, 4, ...
     'routeA_stack_temperature_C');
 
-if string(get_param(paths.electricalLoad, 'input_type')) == "Voltage"
+if nargin < 2 || strlength(string(inputType)) == 0
+    inputType = string(get_param(paths.electricalLoad, 'input_type'));
+else
+    inputType = string(inputType);
+end
+if ~isscalar(inputType) || ...
+        ~any(inputType == ["Current", "Power", "Voltage"])
+    error('RouteA:ObservabilityInputType', ...
+        'inputType must be Current, Power, or Voltage.');
+end
+if inputType == "Current"
+    markSignalFromBlockOutput(paths.currentCommand, 1, ...
+        'routeA_current_profile_cmd_A');
+elseif inputType == "Power"
+    markSignalFromBlockOutput(paths.powerCurrentCommand, 1, ...
+        'routeA_power_current_cmd_limited_A');
+elseif inputType == "Voltage"
     markSignalFromBlockOutput(paths.voltageReference, 1, ...
         'routeA_voltage_ref_V');
     markSignalFromBlockOutput(paths.voltageError, 1, ...

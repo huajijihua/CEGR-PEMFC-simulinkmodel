@@ -14,6 +14,10 @@ paths.control = [model '/System_Control_Observability'];
 paths.fcu = [paths.control '/FCU_BoP_Control'];
 paths.measurements = [paths.control '/Measurements'];
 paths.electricalLoad = [paths.control '/Electrical Load'];
+paths.currentDemand = [paths.electricalLoad '/Inputs/Current Demand'];
+paths.currentCommand = [paths.currentDemand '/Current Demand'];
+paths.powerDemand = [paths.electricalLoad '/Inputs/Power Demand'];
+paths.powerCurrentCommand = [paths.powerDemand '/PS-Simulink Converter1'];
 paths.voltageDemand = [paths.electricalLoad '/Inputs/Voltage Demand'];
 paths.voltageReference = [paths.voltageDemand '/Voltage Reference'];
 paths.voltageMeasurement = [paths.voltageDemand '/Voltage Measurement'];
@@ -59,6 +63,7 @@ paths.airMdotSetSwitch = [paths.compressorControl ...
     '/A98_MdotSet_ModeSwitch'];
 paths.oerSetpoint = [paths.oxygen '/Oxygen Excess Ratio'];
 paths.cathodeHumidifier = [paths.cathodeAir '/Cathode Humidifier'];
+paths.cathodeRHSetpoint = [paths.cathodeHumidifier '/Relative Humidity'];
 paths.cathodeHumidifierBypass = [paths.cathodeHumidifier ...
     '/CathodeHumidifierBypass'];
 paths.cathodeHumidifierConverter = [paths.cathodeHumidifier ...
@@ -106,10 +111,16 @@ paths.outletTemperatureDiagnostics = [paths.control ...
     '/RouteA_CathodeOutlet_PT'];
 
 paths.hydrogenSource = [paths.anode '/Hydrogen Source'];
+paths.anodeInletPressureSetpoint = [paths.hydrogenSource '/Stack Pressure'];
 paths.anodeWaterSeparator = [paths.anode '/AnodeWaterSeparator_FC'];
 paths.anodeExhaust = [paths.anode '/Anode Exhaust'];
 paths.recirculation = [paths.anode '/Recirculation'];
+paths.anodeRecirculationControl = [paths.recirculation '/Feedforward Control'];
+paths.anodeRecirculationBaseCommand = [paths.anodeRecirculationControl '/Constant'];
+paths.anodeRecirculationCurrentGain = [paths.anodeRecirculationControl '/Gain'];
 paths.anodeHumidifier = [paths.anode '/Anode Humidifier'];
+paths.anodeRHSetpoint = [paths.anodeHumidifier '/Relative Humidity'];
+paths.anodePurgeRelay = [paths.anodeExhaust '/Relay'];
 
 paths.coolingSystem = [paths.thermal '/Cooling System'];
 paths.coolingPump = [paths.coolingSystem '/Pump'];

@@ -1,10 +1,13 @@
 # Simulink/Simscape PEMFC-cEGR 材料池与模型候选比较 v01
 
+文件类型：规划设计（材料与复用依据，覆盖式维护）
+当前设计真源：[RouteA_cEGR_PEMFC_工程化建模规格_v01.md](../04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md)
+
 日期：2026-07-07  
 阶段：材料池盘点、路线 A 基准模型决策、路线 B 留存审查。  
 范围：MATLAB/Simulink/Simscape 优先；不引入 COMSOL；AMESim 仅作为后续不足时的备选。2026-07-07 已决定全面转向路线 A：以官方 Gas Mixture PEMFC 示例派生 cathode-cEGR 模型；2026-07-14 起 `PEMFC_cEGR_Core_Physical_v01.slx` 已移入 `99_历史归档/2026-07-14_RouteB_Core_Physical/`。
 
-本文件只回答“有哪些成熟材料、候选模型和可复用组件”。当前工程化定义、接口契约和实施路线见 [RouteA_cEGR_PEMFC_工程化建模规格_v01.md](../04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md) 与 [RouteA_cEGR_PEMFC_实施与验证路线_v01.md](../04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_实施与验证路线_v01.md)。
+本文件只回答“有哪些成熟材料、候选模型和可复用组件”。当前工程化定义、接口契约和实施记录分别见 [RouteA_cEGR_PEMFC_工程化建模规格_v01.md](../04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md) 与 [RouteA_cEGR_PEMFC_实施与验证路线_v01.md](../04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_实施与验证路线_v01.md)。
 
 ## 1. 结论先行
 
