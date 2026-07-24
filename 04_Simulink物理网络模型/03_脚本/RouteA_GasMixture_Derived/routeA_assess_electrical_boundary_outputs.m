@@ -51,6 +51,9 @@ compressorMdotTrackingError = timeseries(compMdot.Data - ...
     airMdotSetAtCompressorTime, compMdot.Time);
 pressureDeltaMPa = timeseries((pUp.Data - pDown.Data) * 1e-6, pUp.Time);
 areaFraction = timeseries(area.Data / context.cegrValveMaxArea_m2, area.Time);
+outletPressure = loggedTimeseries(logsout, 'routeA_p_outlet');
+outletPressureMPa = timeseries(outletPressure.Data * 1e-6, ...
+    outletPressure.Time);
 
 tail = struct();
 tail.egrRatio = windowStats(ratio, context.tailWindow_s);
@@ -71,7 +74,10 @@ tail.compressorTemperature_K = windowStats(compT, context.tailWindow_s);
 tail.compressorCommand = windowStats(compCmd, context.tailWindow_s);
 tail.compressorRpm = windowStats(compRpm, context.tailWindow_s);
 tail.egrValveDeltaP_MPa = windowStats(pressureDeltaMPa, context.tailWindow_s);
+tail.egrValveArea_m2 = windowStats(area, context.tailWindow_s);
 tail.egrValveAreaFraction = windowStats(areaFraction, context.tailWindow_s);
+tail.cathodeOutletPressure_MPa = windowStats(outletPressureMPa, ...
+    context.tailWindow_s);
 tail.rhCaIn = windowStats(rhIn, context.tailWindow_s);
 tail.rhCaOut = windowStats(rhOut, context.tailWindow_s);
 tail.waterSeparator = windowStats(waterSeparator, context.tailWindow_s);
@@ -371,6 +377,7 @@ acceptance = struct( ...
     'powerRelativeTolerance', 5e-3, ...
     'voltageRelativeTolerance', 5e-3, ...
     'voltageSpanFraction', 5e-3, ...
+    'cegrRatioTolerance', NaN, ...
     'currentSaturationTailFractionLimit', 0.01, ...
     'currentSaturationTolerance_A', 1e-6);
 if isfield(caseCfg, 'acceptance') && isstruct(caseCfg.acceptance)
@@ -394,7 +401,8 @@ if abs(value) < eps
 else
     tolerance = max(0.002, 0.10 * abs(value));
 end
-if isfield(acceptance, 'cegrRatioTolerance')
+if isfield(acceptance, 'cegrRatioTolerance') && ...
+        isfinite(acceptance.cegrRatioTolerance)
     tolerance = acceptance.cegrRatioTolerance;
 end
 end

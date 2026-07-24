@@ -1,6 +1,6 @@
 function profile = routeA_normalize_electrical_profile( ...
     profileSpec, boundaryType, options)
-% Normalize a logical-time electrical or cEGR profile for From Workspace.
+% Normalize one logical-time Route A runtime-command profile.
 
 if nargin < 2 || isempty(boundaryType)
     boundaryType = "Current";
@@ -19,9 +19,9 @@ if ~isstruct(options) || numel(options) ~= 1
 end
 
 type = string(boundaryType);
-if ~isscalar(type) || ~any(type == ["Current", "Power", "Voltage", "CEGR"])
+if ~isscalar(type) || ~any(type == supportedProfileTypes())
     error('RouteA:ElectricalProfileType', ...
-        'Profile type must be Current, Power, Voltage, or CEGR.');
+        'Unsupported Route A runtime-command profile type: %s.', type);
 end
 constantRequest = isConstantProfileRequest(profileSpec);
 
@@ -110,6 +110,19 @@ if (~isempty(lower) && initialValue < lower) || ...
     error('RouteA:ElectricalProfileInitialValue', ...
         'The initial value is outside the profile bounds.');
 end
+if ~constantRequest
+    if rawTime(1) ~= 0
+        error('RouteA:ElectricalProfileInitialTime', ...
+            '%s explicit profile must start at logical time 0 s.', ...
+            defaults.label);
+    end
+    if abs(rawValue(1) - initialValue) > ...
+            1e-9 * max([1, abs(rawValue(1)), abs(initialValue)])
+        error('RouteA:ElectricalProfileInitialCommand', ...
+            ['%s explicit profile first value must equal the initial-state ', ...
+            'baseline command.'], defaults.label);
+    end
+end
 
 offset = defaults.commandStartOffset_s;
 rampDuration = defaults.startupRampDuration_s;
@@ -186,7 +199,7 @@ if ~isscalar(unit)
     error('RouteA:ElectricalProfileUnit', ...
         '%s unit must be a scalar text value.', type);
 end
-if type == "CEGR"
+if type == "CEGR" || canonicalUnit == "-"
     accepted = ["-", "1", "ratio"];
 else
     accepted = canonicalUnit;
@@ -331,11 +344,57 @@ switch type
         lower = 0;
         upper = Inf;
         unit = "V";
-    otherwise
+    case "CEGR"
         lower = 0;
         upper = 1;
         unit = "-";
+    case {"CathodeSourcePressure", "CathodeOutletPressure", ...
+            "AnodeSourcePressure", "AnodeInletPressure"}
+        lower = eps;
+        upper = Inf;
+        unit = "MPa";
+    case {"CathodeSourceTemperature", "AnodeSourceTemperature", ...
+            "StackTemperature"}
+        lower = -273.15;
+        upper = Inf;
+        unit = "degC";
+    case {"CathodeSourceO2", "CathodeSourceH2O", "AnodeSourceH2", ...
+            "CathodeHumidifierRH", "CathodeHumidifierGain", ...
+            "AnodeHumidifierRH", "AnodeRecirculationBase", ...
+            "AnodePurgeEnable", "AnodePurgeOnN2", "AnodePurgeOffN2", ...
+            "AirDirectCommand"}
+        lower = 0;
+        upper = 1;
+        unit = "-";
+    case "AirTargetMdot"
+        lower = 0;
+        upper = Inf;
+        unit = "kg/s";
+    case "AirTargetOer"
+        lower = 0;
+        upper = Inf;
+        unit = "-";
+    case "AnodeRecirculationGain"
+        lower = 0;
+        upper = Inf;
+        unit = "1/A";
+    otherwise
+        error('RouteA:ElectricalProfileType', ...
+            'Unsupported Route A runtime-command profile type: %s.', type);
 end
+end
+
+function types = supportedProfileTypes()
+types = ["Current", "Power", "Voltage", "CEGR", ...
+    "CathodeSourcePressure", "CathodeSourceTemperature", ...
+    "CathodeSourceO2", "CathodeSourceH2O", "AirTargetMdot", ...
+    "AirTargetOer", "AirDirectCommand", "CathodeOutletPressure", ...
+    "CathodeHumidifierRH", "CathodeHumidifierGain", ...
+    "AnodeSourcePressure", "AnodeSourceTemperature", "AnodeSourceH2", ...
+    "AnodeInletPressure", "AnodeHumidifierRH", ...
+    "AnodeRecirculationBase", "AnodeRecirculationGain", ...
+    "AnodePurgeEnable", "AnodePurgeOnN2", "AnodePurgeOffN2", ...
+    "StackTemperature"];
 end
 
 function tf = isTextScalar(value)

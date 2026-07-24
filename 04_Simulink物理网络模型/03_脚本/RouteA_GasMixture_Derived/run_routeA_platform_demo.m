@@ -1,126 +1,114 @@
-% Route A platform demo runner.
-% Lightweight daily entry for the PEMFC-cEGR platform. The model contains
-% the FCU/BoP control and physical calculations; this script only sets a
-% nominal operating point, runs sim(), and returns a compact summary.
+% Route A platform demo compatibility wrapper.
+%
+% This entry keeps the historical routeA_platform_demo_summary base
+% variable, while all case assembly, SimulationInput creation, simulation,
+% signal collection, and KPI assessment remain in the shared runner.
 
-model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
 scriptDir = fileparts(mfilename('fullpath'));
-modelDir = fullfile(scriptDir, '..', '..', '01_模型', 'RouteA_GasMixture_Derived');
-modelFile = fullfile(modelDir, [model '.slx']);
-oldDir = pwd;
 addpath(scriptDir);
-cd(modelDir);
-routeA_platform_demo_cleanup = onCleanup(@() restoreFolderAndModel(oldDir, model, modelFile));
-
-resetModelFromDisk(model, modelFile);
-refreshModelWorkspace(model);
-
 cfg = demoConfig();
-fprintf('\nRoute A platform demo\n');
-fprintf('  model=%s\n', model);
-fprintf('  power=%.4g kW mdot=%.4g kg/s egr=%.4g pCaOut=%.4g MPa\n', ...
-    cfg.targetPowerKW, cfg.targetMdot, cfg.targetEgrRatio, ...
-    cfg.targetPCaOutMPa);
+caseSpec = struct( ...
+    'caseId', cfg.caseId, ...
+    'profile', [0, 0; 5, cfg.targetPowerKW; ...
+        cfg.stopTime, cfg.targetPowerKW], ...
+    'targetRatio', cfg.targetEgrRatio, ...
+    'air', struct( ...
+        'modeId', cfg.airMode, ...
+        'targetMdot_kg_s', cfg.targetMdot, ...
+        'targetOer', cfg.targetOer, ...
+        'directCommand', cfg.directCompressorCmd), ...
+    'cathode', struct( ...
+        'outletPressure_MPa_abs', cfg.targetPCaOutMPa, ...
+        'humidifierRelativeHumidity', cfg.humidifierGain, ...
+        'humidifierEnabled', cfg.humidifierGain), ...
+    'acceptance', struct('cegrRatioTolerance', 0.01), ...
+    'thermal', struct( ...
+        'stackTemperatureSet_C', cfg.stackTemperatureSetC));
+cases = routeA_build_electrical_boundary_cases("Power", caseSpec);
+studyCfg = struct( ...
+    'calculationType', "transient", ...
+    'researchDuration_s', cfg.stopTime, ...
+    'tailLogicalWindow_s', [5, cfg.stopTime], ...
+    'commandStartOffset_s', 0, ...
+    'startupRampDuration_s', 0, ...
+    'studyMaxStep_s', 0.1, ...
+    'runWaterLedger', false, ...
+    'executionMode', "serial", ...
+    'parallelWorkers', 1, ...
+    'showProgress', true, ...
+    'retainSimulationOutputs', true, ...
+    'resultFile', "", ...
+    'cases', cases);
 
-summary = runDemoCase(model, modelFile, cfg);
+fprintf('\nRoute A platform demo compatibility wrapper\n');
+study = run_routeA_electrical_boundary_study(studyCfg);
+summary = legacySummary(study, cfg);
 assignin('base', 'routeA_platform_demo_summary', summary);
-dispSummary(summary);
+displaySummary(summary);
 
 function cfg = demoConfig()
-cfg = struct();
-cfg.caseId = "nominal_50p96kW_platform_demo";
-cfg.stopTime = 10;
-cfg.targetPowerKW = 50.96;
-cfg.airMode = 1; % target_mdot
-cfg.targetMdot = 0.045;
-cfg.targetOer = 2.5;
-cfg.directCompressorCmd = 0.5;
-cfg.egrMode = 1; % target_ratio
-cfg.targetEgrRatio = 0.02;
-cfg.directEgrArea = NaN;
-cfg.targetPCaOutMPa = 0.101325 + 0.06;
-cfg.humidifierGain = 1;
-cfg.stackTemperatureSetC = 80;
+cfg = struct( ...
+    'caseId', "nominal_50p96kW_platform_demo", ...
+    'stopTime', 10, ...
+    'targetPowerKW', 50.96, ...
+    'airMode', 1, ...
+    'targetMdot', 0.045, ...
+    'targetOer', 2.5, ...
+    'directCompressorCmd', 0.5, ...
+    'targetEgrRatio', 0.02, ...
+    'targetPCaOutMPa', 0.101325 + 0.06, ...
+    'humidifierGain', 1, ...
+    'stackTemperatureSetC', 80);
 end
 
-function summary = runDemoCase(model, modelFile, cfg)
-summary = emptySummary();
-summary.caseId = cfg.caseId;
-summary.stopTime = cfg.stopTime;
-summary.targetPowerKW = cfg.targetPowerKW;
-summary.targetMdotKgS = cfg.targetMdot;
-summary.targetOer = cfg.targetOer;
-summary.targetEgrRatio = cfg.targetEgrRatio;
-summary.targetPCaOutMPa = cfg.targetPCaOutMPa;
-
-try
-    resetModelFromDisk(model, modelFile);
-    refreshModelWorkspace(model);
-    paths = routeA_block_paths(model);
-    markDemoSignals(paths);
-    mw = get_param(model, 'ModelWorkspace');
-    pipeArea = getWorkspaceValue(mw, 'cegr_pipe_area', 0.0019634954);
-    if ~isfinite(cfg.directEgrArea)
-        cfg.directEgrArea = 2e-3 * pipeArea;
-    end
-
-    simIn = Simulink.SimulationInput(model);
-    simIn = simIn.setModelParameter( ...
-        'StopTime', sprintf('%.16g', cfg.stopTime), ...
-        'SignalLogging', 'on', ...
-        'SignalLoggingName', 'logsout', ...
-        'ReturnWorkspaceOutputs', 'on', ...
-        'SimscapeLogType', 'all');
-    simIn = simIn.setVariable('drive_cycle_time', ...
-        [0; 5; cfg.stopTime], 'Workspace', model);
-    simIn = simIn.setVariable('drive_cycle_power', ...
-        [0; cfg.targetPowerKW; cfg.targetPowerKW], 'Workspace', model);
-    simIn = simIn.setVariable('routeA_air_control_mode_id', ...
-        cfg.airMode, 'Workspace', model);
-    simIn = simIn.setVariable('routeA_target_mdot_comp_inlet', ...
-        cfg.targetMdot, 'Workspace', model);
-    simIn = simIn.setVariable('routeA_target_oer', ...
-        cfg.targetOer, 'Workspace', model);
-    simIn = simIn.setVariable('routeA_compressor_cmd_direct', ...
-        cfg.directCompressorCmd, 'Workspace', model);
-    simIn = simIn.setVariable('routeA_egr_control_mode_id', ...
-        cfg.egrMode, 'Workspace', model);
-    simIn = simIn.setVariable('routeA_cegr_valve_mode_id', 1, ...
-        'Workspace', model);
-    simIn = simIn.setVariable('routeA_target_egr_ratio_comp_in', ...
-        cfg.targetEgrRatio, 'Workspace', model);
-    simIn = simIn.setVariable('routeA_egr_valve_area_direct', ...
-        cfg.directEgrArea, 'Workspace', model);
-    simIn = simIn.setVariable('routeA_target_p_ca_out_MPa', ...
-        cfg.targetPCaOutMPa, 'Workspace', model);
-    simIn = simIn.setVariable('routeA_cathode_humidifier_gain', ...
-        cfg.humidifierGain, 'Workspace', model);
-    simIn = simIn.setVariable('routeA_stack_temperature_set_C', ...
-        cfg.stackTemperatureSetC, 'Workspace', model);
-    simIn = simIn.setBlockParameter(paths.stackTemperature, ...
-        'Value', 'routeA_stack_temperature_set_C');
-
-    simOut = sim(simIn);
-    summary.simCompleted = true;
-    summary = collectSummary(simOut, summary, model);
-    summary.kpiFiniteOk = all(isfinite([summary.actualPowerKW, ...
-        summary.compressorCmd, summary.compressorRpmCmd, ...
-        summary.compInletMdotKgS, summary.egrRatioCompIn, ...
-        summary.egrValveAreaCmd, summary.pCaOutMPa, ...
-        summary.RHCaIn, summary.RHCaOut, summary.mWaterSep]));
-    summary.passed = summary.simCompleted && summary.kpiFiniteOk;
-catch ME
-    summary.errorId = string(ME.identifier);
-    summary.errorMessage = firstLine(string(ME.message));
+function summary = legacySummary(study, cfg)
+summary = emptySummary(cfg);
+if ~isfield(study, 'cases') || isempty(study.cases)
+    summary.errorId = "RouteA:DemoNoCase";
+    summary.errorMessage = "The shared runner returned no demo case.";
+    return;
 end
-resetModelFromDisk(model, modelFile);
+result = study.cases(1);
+summary.simCompleted = isfield(result, 'simCompleted') && ...
+    logical(result.simCompleted);
+summary.targetPowerKW = valueOrFallback(result, ...
+    'targetPower_kW', cfg.targetPowerKW);
+summary.targetEgrRatio = valueOrFallback(result, ...
+    'targetRatio', cfg.targetEgrRatio);
+summary.actualPowerKW = tailMean(result, 'stackPower_kW');
+summary.compressorCmd = tailMean(result, 'compressorCommand');
+summary.compressorRpmCmd = tailMean(result, 'compressorRpm');
+summary.compInletMdotKgS = tailMean(result, 'compressorMdot_kg_s');
+summary.egrRatioCompIn = tailMean(result, 'egrRatio');
+summary.egrValveAreaCmd = tailMean(result, 'egrValveArea_m2');
+summary.pCaOutMPa = tailMean(result, 'cathodeOutletPressure_MPa');
+summary.RHCaIn = tailMean(result, 'rhCaIn');
+summary.RHCaOut = tailMean(result, 'rhCaOut');
+summary.mWaterSep = tailMean(result, 'waterSeparator');
+summary.kpiFiniteOk = all(isfinite([summary.actualPowerKW, ...
+    summary.compressorCmd, summary.compressorRpmCmd, ...
+    summary.compInletMdotKgS, summary.egrRatioCompIn, ...
+    summary.egrValveAreaCmd, summary.pCaOutMPa, ...
+    summary.RHCaIn, summary.RHCaOut, summary.mWaterSep]));
+summary.runnerPassed = isfield(study, 'passed') && logical(study.passed);
+summary.passed = summary.simCompleted && summary.kpiFiniteOk;
+if isfield(result, 'errorId')
+    summary.errorId = string(result.errorId);
+end
+if isfield(result, 'errorMessage')
+    summary.errorMessage = string(result.errorMessage);
+end
 end
 
-function summary = emptySummary()
-summary = struct('caseId', "", 'passed', false, 'simCompleted', false, ...
-    'errorId', "", 'errorMessage', "", 'stopTime', NaN, ...
-    'targetPowerKW', NaN, 'targetMdotKgS', NaN, 'targetOer', NaN, ...
-    'targetEgrRatio', NaN, 'targetPCaOutMPa', NaN, ...
+function summary = emptySummary(cfg)
+summary = struct( ...
+    'caseId', cfg.caseId, 'passed', false, 'runnerPassed', false, ...
+    'simCompleted', false, ...
+    'errorId', "", 'errorMessage', "", 'stopTime', cfg.stopTime, ...
+    'targetPowerKW', cfg.targetPowerKW, ...
+    'targetMdotKgS', cfg.targetMdot, 'targetOer', cfg.targetOer, ...
+    'targetEgrRatio', cfg.targetEgrRatio, ...
+    'targetPCaOutMPa', cfg.targetPCaOutMPa, ...
     'actualPowerKW', NaN, 'compressorCmd', NaN, ...
     'compressorRpmCmd', NaN, 'compInletMdotKgS', NaN, ...
     'egrRatioCompIn', NaN, 'egrValveAreaCmd', NaN, ...
@@ -128,192 +116,36 @@ summary = struct('caseId', "", 'passed', false, 'simCompleted', false, ...
     'mWaterSep', NaN, 'kpiFiniteOk', false);
 end
 
-function summary = collectSummary(simOut, summary, model)
-logsout = simOut.logsout;
-summary.actualPowerKW = collectSimscapePower(simOut, model);
-summary.compressorCmd = scalarLastOrFallback(simOut, logsout, ...
-    "routeA_compressor_cmd", "routeA_compressor_cmd_ts");
-summary.compressorRpmCmd = scalarLastOrFallback(simOut, logsout, ...
-    "routeA_compressor_rpm_cmd", "routeA_compressor_rpm_cmd_ts");
-summary.compInletMdotKgS = scalarLastOrNaN(logsout, ...
-    "routeA_mdot_comp_inlet");
-summary.egrRatioCompIn = scalarLastOrFallback(simOut, logsout, ...
-    "routeA_egr_ratio_comp_in", "routeA_egr_ratio_comp_in_ts");
-summary.egrValveAreaCmd = scalarLastOrFallback(simOut, logsout, ...
-    "routeA_egr_valve_area_cmd", "routeA_egr_valve_area_cmd_ts");
-summary.pCaOutMPa = scalarLastOrNaN(logsout, "routeA_p_outlet") / 1e6;
-summary.RHCaIn = scalarLastOrFallback(simOut, logsout, ...
-    "routeA_RH_ca_in", "routeA_RH_ca_in_ts");
-summary.RHCaOut = scalarLastOrFallback(simOut, logsout, ...
-    "routeA_RH_ca_out", "routeA_RH_ca_out_ts");
-summary.mWaterSep = scalarLastOrFallback(simOut, logsout, ...
-    "routeA_m_water_sep", "routeA_m_water_sep_ts");
-end
-
-function markDemoSignals(paths)
-nameLineFromBlockOut(paths.compressorFlowConverter, ...
-    'routeA_mdot_comp_inlet');
-nameLineFromBlockOut(paths.compressorCommandSwitch, ...
-    'routeA_compressor_cmd');
-nameLineFromBlockOut(paths.compressorRpmCommand, ...
-    'routeA_compressor_rpm_cmd');
-nameLineFromBlockOutPort(paths.fcu, 1, ...
-    'routeA_egr_valve_area_cmd');
-nameLineFromBlockOutPort(paths.fcu, 4, ...
-    'routeA_egr_ratio_comp_in');
-nameLineFromBlockOut(paths.outletPConverter, 'routeA_p_outlet');
-nameLineFromBlockOut(paths.cathodeRHInWorkspace, ...
-    'routeA_RH_ca_in');
-nameLineFromBlockOut(paths.rhOutWorkspace, 'routeA_RH_ca_out');
-nameLineFromBlockOut(paths.waterSepWorkspace, 'routeA_m_water_sep');
-end
-
-function nameLineFromBlockOut(blockPath, signalName)
-nameLineFromBlockOutPort(blockPath, 1, signalName);
-end
-
-function nameLineFromBlockOutPort(blockPath, portNumber, signalName)
-if getSimulinkBlockHandle(blockPath) == -1
-    return;
-end
-ph = get_param(blockPath, 'PortHandles');
-if numel(ph.Outport) < portNumber
-    return;
-end
-lineHandle = get_param(ph.Outport(portNumber), 'Line');
-if lineHandle ~= -1
-    set_param(lineHandle, 'Name', signalName);
-    try
-        set_param(lineHandle, 'DataLogging', 'on');
-    catch
-    end
-    try
-        set_param(lineHandle, 'DataLoggingNameMode', 'Custom', ...
-            'DataLoggingName', signalName);
-    catch
-    end
-end
-end
-
-function value = scalarLastOrFallback(simOut, logsout, signalName, variableName)
-value = scalarLastOrNaN(logsout, signalName);
-if ~isfinite(value)
-    value = scalarLastFromSimOutOrNaN(simOut, variableName);
-end
-end
-
-function value = scalarLastOrNaN(logsout, signalName)
-value = lastLoggedValueOrNaN(logsout, signalName);
-if isempty(value)
-    value = NaN;
-else
-    value = value(1);
-end
-end
-
-function value = scalarLastFromSimOutOrNaN(simOut, variableName)
-value = NaN;
-try
-    signal = simOut.get(char(variableName));
-catch
-    return;
-end
-if isempty(signal)
-    return;
-end
-try
-    data = signal.Data;
-    value = data(end);
-catch
-    try
-        value = signal(end);
-    catch
-        value = NaN;
-    end
-end
-end
-
-function value = lastLoggedValueOrNaN(logsout, signalName)
-value = NaN;
-for idx = 1:logsout.numElements
-    candidate = logsout.get(idx);
-    if string(candidate.Name) == signalName
-        signal = candidate.Values;
-        data = signal.Data;
-        nTime = numel(signal.Time);
-        if isvector(data)
-            value = data(end);
-        elseif size(data, 1) == nTime
-            value = squeeze(data(end, :));
-        elseif size(data, ndims(data)) == nTime
-            reshaped = reshape(data, [], nTime);
-            value = reshaped(:, end).';
-        else
-            value = squeeze(data(end, :));
-        end
-        value = value(:).';
-        return;
-    end
-end
-end
-
-function powerKW = collectSimscapePower(simOut, model)
-powerKW = NaN;
-try
-    simlog = simOut.get(['simlog_' model]);
-    mea = routeA_simscape_log_mea(simlog);
-    powerKW = mea.power_elec.series.values('kW');
-    powerKW = powerKW(end);
-catch
-end
-end
-
-function value = getWorkspaceValue(modelWorkspace, name, fallback)
+function value = valueOrFallback(result, fieldName, fallback)
 value = fallback;
-try
-    value = modelWorkspace.getVariable(name);
-catch
+if isfield(result, fieldName) && isscalar(result.(fieldName)) && ...
+        isfinite(result.(fieldName))
+    value = result.(fieldName);
 end
 end
 
-function txt = firstLine(txt)
-parts = splitlines(txt);
-txt = parts(1);
+function value = tailMean(result, fieldName)
+value = NaN;
+if ~isfield(result, 'tail') || ~isfield(result.tail, fieldName)
+    return;
 end
-
-function resetModelFromDisk(model, modelFile)
-if bdIsLoaded(model)
-    close_system(model, 0);
-end
-load_system(modelFile);
-end
-
-function refreshModelWorkspace(model)
-modelWorkspace = get_param(model, 'ModelWorkspace');
-if strcmp(modelWorkspace.DataSource, 'MATLAB File')
-    modelWorkspace.reload;
+stats = result.tail.(fieldName);
+if isstruct(stats) && isfield(stats, 'mean')
+    value = stats.mean;
 end
 end
 
-function restoreFolderAndModel(oldDir, model, modelFile)
-cd(oldDir);
-if bdIsLoaded(model)
-    close_system(model, 0);
-end
-if exist(modelFile, 'file')
-    load_system(modelFile);
-end
-end
-
-function dispSummary(summary)
+function displaySummary(summary)
 fprintf('\nRoute A platform demo result\n');
-fprintf('  passed=%d simCompleted=%d finite=%d\n', ...
-    summary.passed, summary.simCompleted, summary.kpiFiniteOk);
+fprintf('  passed=%d runnerPassed=%d simCompleted=%d finite=%d\n', ...
+    summary.passed, summary.runnerPassed, summary.simCompleted, ...
+    summary.kpiFiniteOk);
 if summary.passed
     fprintf('  P=%.4g kW cmd=%.4g rpm=%.4g mdot=%.4g kg/s\n', ...
         summary.actualPowerKW, summary.compressorCmd, ...
         summary.compressorRpmCmd, summary.compInletMdotKgS);
-    fprintf('  egr=%.4g area=%.4g pCaOut=%.4g MPa RHin=%.4g RHout=%.4g water=%.4g\n', ...
+    fprintf(['  egr=%.4g area=%.4g pCaOut=%.4g MPa RHin=%.4g ', ...
+        'RHout=%.4g water=%.4g\n'], ...
         summary.egrRatioCompIn, summary.egrValveAreaCmd, ...
         summary.pCaOutMPa, summary.RHCaIn, summary.RHCaOut, ...
         summary.mWaterSep);

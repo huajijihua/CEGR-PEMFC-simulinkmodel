@@ -70,9 +70,10 @@ if ~isfinite(egrRatio) || abs(egrRatio) > cfg.maxEgrRatio
         'The temporary normal-operation state is not zero-cEGR compatible.');
 end
 summary = physicalSummary(outFinal);
+commandProfileBaseline = v10CommandBaseline(mw, cfg);
 
 metadata = struct();
-metadata.schema = 'RouteA_parameter_consistent_initial_state_v03';
+metadata.schema = 'RouteA_parameter_consistent_initial_state_v10';
 metadata.model = string(model);
 metadata.generatedAt = string(datetime('now', ...
     'Format', 'yyyy-MM-dd HH:mm:ss'));
@@ -88,6 +89,12 @@ metadata.loadInputType = cfg.loadInputType;
 metadata.commandTargetPower_kW = cfg.targetPower_kW;
 metadata.commandTargetVoltage_V = cfg.targetVoltage_V;
 metadata.initializationCondition = initializationCondition(mw, cfg);
+metadata.commandProfileSchema = "RouteA_Command_Profile_v10";
+metadata.commandProfileFields = mw.getVariable('routeA_command_profile_fields');
+metadata.commandProfileBaseline = commandProfileBaseline;
+metadata.baselineElectricalCommand = baselineElectricalCommand(cfg, summary);
+metadata.sourceConditionerState = sourceConditionerState(mw);
+metadata.modelVersion = modelVersion(modelFile);
 metadata.preconditioning = struct( ...
     'kind', "smooth_load_ramp", ...
     'rampStartTime_s', cfg.loadRampStartTime_s, ...
@@ -253,29 +260,36 @@ end
 function configureLowLoadCommand(model, cfg, initialCurrentA, targetCurrentA)
 loadPath = cfg.loadPath;
 paths = routeA_block_paths(model);
-if cfg.loadInputType == "Power"
-    set_param(loadPath, 'input_type', 'Power');
-    return;
-end
-if cfg.loadInputType == "Voltage"
-    set_param(loadPath, 'input_type', 'Voltage');
-    return;
-end
-set_param(loadPath, 'input_type', 'Current');
-set_param([paths.currentDemand '/Current Demand'], 'VariableName', ...
-    '[drive_cycle_time, drive_cycle_current]');
 mw = get_param(model, 'ModelWorkspace');
-mw.assignin('drive_cycle_time', [0; cfg.loadRampStartTime_s; ...
+profileTime = [0; cfg.loadRampStartTime_s; ...
         cfg.loadRampStartTime_s + cfg.loadRampDuration_s; ...
-        cfg.checkpointStopTime_s]);
-mw.assignin('drive_cycle_current', ...
-    [initialCurrentA; initialCurrentA; targetCurrentA; targetCurrentA]);
+        cfg.checkpointStopTime_s];
+if cfg.loadInputType == "Current"
+    set_param(loadPath, 'input_type', 'Current');
+    set_param([paths.currentDemand '/Current Demand'], 'VariableName', ...
+        '[drive_cycle_time, drive_cycle_current]');
+    profileValue = [initialCurrentA; initialCurrentA; ...
+        targetCurrentA; targetCurrentA];
+    mw.assignin('drive_cycle_current', profileValue);
+elseif cfg.loadInputType == "Power"
+    set_param(loadPath, 'input_type', 'Power');
+    profileValue = [0; 0; cfg.targetPower_kW; cfg.targetPower_kW];
+    mw.assignin('drive_cycle_power', profileValue);
+else
+    set_param(loadPath, 'input_type', 'Voltage');
+    profileValue = [cfg.targetVoltage_V + cfg.voltageNoLoadMargin_V; ...
+        cfg.targetVoltage_V + cfg.voltageNoLoadMargin_V; ...
+        cfg.targetVoltage_V; cfg.targetVoltage_V];
+    mw.assignin('drive_cycle_voltage', profileValue);
+end
+mw.assignin('drive_cycle_time', profileTime);
 end
 
 function out = runCondition(model, cfg, stopTime_s, initialState)
 in = Simulink.SimulationInput(model);
-in = in.setModelParameter( ...
-    'StopTime', sprintf('%.16g', stopTime_s), ...
+    in = in.setModelParameter( ...
+        'StartTime', '0', ...
+        'StopTime', sprintf('%.16g', stopTime_s), ...
     'Solver', char(cfg.solver), ...
     'SolverType', 'Variable-step', ...
     'RelTol', sprintf('%.16g', cfg.relativeTolerance), ...
@@ -291,14 +305,9 @@ in = in.setModelParameter( ...
 in = in.setBlockParameter(cfg.loadPath, 'input_type', ...
     char(cfg.loadInputType));
 in = in.setVariable('routeA_air_control_mode_id', 2, 'Workspace', model);
-in = in.setVariable('routeA_target_oer', cfg.targetAirEquivalentOer, ...
-    'Workspace', model);
 in = in.setVariable('routeA_egr_control_mode_id', 1, 'Workspace', model);
 in = in.setVariable('routeA_cegr_valve_mode_id', 1, 'Workspace', model);
-% Initial-state conditioning uses the established constant zero-cEGR mode.
-in = in.setVariable('routeA_egr_target_input_mode_id', 0, ...
-    'Workspace', model);
-in = in.setVariable('routeA_target_egr_ratio_comp_in', 0, ...
+in = in.setVariable('routeA_egr_target_input_mode_id', 1, ...
     'Workspace', model);
 if isempty(initialState)
     modelStartTime_s = 0;
@@ -335,8 +344,11 @@ else
         profileValue = [cfg.targetVoltage_V; cfg.targetVoltage_V];
     end
 end
-in = in.setVariable('routeA_target_egr_ratio_comp_in_profile', ...
-    [modelStartTime_s, 0; stopTime_s, 0], 'Workspace', model);
+commandProfileBaseline = v10CommandBaseline( ...
+    get_param(model, 'ModelWorkspace'), cfg);
+in = in.setVariable('routeA_command_profile', ...
+    [modelStartTime_s, commandProfileBaseline; ...
+    stopTime_s, commandProfileBaseline], 'Workspace', model);
 in = in.setVariable('drive_cycle_time', profileTime_s, ...
     'Workspace', model);
 if cfg.loadInputType == "Current"
@@ -536,6 +548,66 @@ condition = struct( ...
     'solverStartTime_s', 0, ...
     'postPurgeOffset_s', cfg.postPurgeOffset_s, ...
     'postPurgeQuietWindow_s', cfg.postPurgeQuietWindow_s);
+end
+
+function baseline = v10CommandBaseline(mw, cfg)
+baseline = mw.getVariable('routeA_command_profile_baseline');
+baseline = reshape(double(baseline), 1, []);
+if numel(baseline) ~= 22 || any(~isfinite(baseline))
+    error('RouteA:ParameterPreconditionCommandProfile', ...
+        'The model workspace has no valid 22-column v10 command baseline.');
+end
+% The conditioning state is still zero-cEGR, but its complete physical
+% source and BoP command state is supplied through the common runtime path.
+baseline(6) = cfg.targetAirEquivalentOer;
+baseline(11) = 0;
+end
+
+function command = baselineElectricalCommand(cfg, summary)
+command = struct('current', summary.stackCurrent_A, ...
+    'power', summary.stackPower_kW, 'voltage', summary.stackVoltage_V);
+switch cfg.loadInputType
+    case "Current"
+        command.current = cfg.targetCurrentA;
+    case "Power"
+        command.power = cfg.targetPower_kW;
+    case "Voltage"
+        command.voltage = cfg.targetVoltage_V;
+end
+values = [command.current, command.power, command.voltage];
+if any(~isfinite(values))
+    error('RouteA:ParameterPreconditionElectricalBaseline', ...
+        'The v10 initial state has a non-finite electrical baseline command.');
+end
+end
+
+function state = sourceConditionerState(mw)
+state = struct();
+state.schema = "RouteA_Source_Conditioner_v10";
+state.cathode = struct( ...
+    'blockName', "Cathode_Source_Conditioner", ...
+    'species', ["N2", "O2", "H2O"], ...
+    'chamberVolume_L', mw.getVariable( ...
+        'routeA_cathode_source_conditioner_volume_L'), ...
+    'nominalFlow_kg_s', mw.getVariable( ...
+        'routeA_cathode_source_conditioner_nominal_flow_kg_s'));
+state.anode = struct( ...
+    'blockName', "Anode_Source_Conditioner", ...
+    'species', ["H2", "N2"], ...
+    'chamberVolume_L', mw.getVariable( ...
+        'routeA_anode_source_conditioner_volume_L'), ...
+    'nominalFlow_kg_s', mw.getVariable( ...
+        'routeA_anode_source_conditioner_nominal_flow_kg_s'));
+end
+
+function version = modelVersion(modelFile)
+info = dir(modelFile);
+if numel(info) ~= 1
+    error('RouteA:ParameterPreconditionModelVersion', ...
+        'Could not resolve the Route A model file for v10 metadata.');
+end
+version = struct('fileName', string(info.name), ...
+    'bytes', info.bytes, 'modified', string(info.date));
 end
 
 function summary = physicalSummary(out)
