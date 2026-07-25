@@ -1,0 +1,896 @@
+                                                          International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+                                                                     Contents lists available at ScienceDirect
+
+
+                                                International Journal of Hydrogen Energy
+                                                              journal homepage: www.elsevier.com/locate/he
+
+
+
+
+Research on PEMFC cathode circulation under low-load conditions and its
+optimal control in FCV power system for long-term durability
+Ze Liu a, b, Sichuan Xu a, b, *, 1, Lei Shi a, b, **, 1
+a
+    School of Automotive Studies, Tongji University, Shanghai, 201804, China
+b
+    Clean Energy Automotive Engineering Research Center, Tongji University, Shanghai, 201804, China
+
+
+
+
+A R T I C L E I N F O                                       A B S T R A C T
+
+Handling editor: F Gallucci                                 In this paper, the mechanism of proton exchange membrane fuel cell (PEMFC) cathode cycling is discussed and
+                                                            the high potential suppression control problem for fuel cell vehicles is investigated by using cathode cycling.
+Keywords:                                                   Firstly, a rigorous single-cell experimental investigation is performed to reveal the impact mechanism of cathode
+PEMFC system                                                recirculation on the internal polarization processes of PEMFC. Results show that an increase in the recirculation
+Cathode circulation
+                                                            ratio leads to an increase in the polarization impedance in the low and medium frequency regions but decreases
+High voltage control
+                                                            the ohmic impedance. Consequently, when the recirculation ratio increases to 1, the voltage drop rates are 2.2%,
+T-S MPC
+Electrochemical impedance spectroscopy                      3%, 4.6%, 5.8%, and 7% as the current density varies from 0 to 0.2 A/cm2, respectively, and the ohmic
+                                                            impedance decreases by 28.1%. On the basis, the optimal control scheme for high potential suppression based on
+                                                            cathode circulation in vehicular PEMFC system is proposed. The performance comparison of different control
+                                                            method is carried out on a software-in-the-loop testing platform. The results show that, for the same control
+                                                            objective, the model predictive control (T-S MPC) method is 55.5% and 16.7% lower than the proportional
+                                                            integral (PI) controller and the Takagi-Sugeno linear quadratic Gaussian (T-S LQG) in terms of controller input
+                                                            cost. On the contrary, the cumulative error of voltage tracking is reduced by 62% and 30.4% and the voltage
+                                                            response against disturbances is improved by 9.7% and 42.8%. Overall, the T-S MPC achieves the optimal control
+                                                            effect with less control effort.
+
+
+
+
+1. Introduction                                                                                  designed for proton exchange membrane fuel cell (PEMFC) systems to
+                                                                                                 ensure a stable output of critical control variables [4]. A typical vehicle
+    With the growing emphasis on carbon emission reduction, the                                  fuel cell system comprises four auxiliary subsystems integrated with a
+widespread adoption of proton exchange membrane fuel cells (PEMFCs)                              stack. These auxiliary subsystems collaborate to provide the necessary
+in automotive applications has shown significant advancement in recent                           conditions for the electrochemical reaction in the stack. Consequently, the
+decades. This is attributed to their notable attributes, including high                          control challenge in a typical fuel cell system encompasses four compo­
+efficiency, zero emissions, low noise, and rapid cold start capabilities                         nents: air supply control, hydrogen supply control, thermal and humidity
+[1]. Nevertheless, the distinctive demands of in-vehicle application                             control, and electrical control [5]. Common control variables include air
+scenarios necessitate fuel cells to operate under varying conditions such                        flow/pressure, hydrogen pressure, temperature, relative humidity, and
+as idling, low load, high load, and variable load. Consequently, the issue                       voltage and power control. The corresponding manipulated variables
+of durability emerges as a key challenge [2,3].                                                  involve the air compressor speed/backpressure valve position, the posi­
+                                                                                                 tion (or number) of the hydrogen proportional valve (or injection valve
+1.1. Control technology for long-term durability                                                 train), the pump/fan speed, and the humidifier output power. In some
+                                                                                                 advanced PEMFC systems, especially those with a self-humidification
+   To achieve prolonged endurance, such as 5000 h or more, in the                                function replacing the external humidifier, humidity is transformed
+                                                                                                 from the traditional power control mode to full humidification mode.
+operation of vehicle fuel cell systems, efficient controllers must be
+
+
+     * Corresponding author. School of Automotive Studies, Tongji University, Shanghai, 201804, China.
+    ** Corresponding author. School of Automotive Studies, Tongji University, Shanghai, 201804, China.
+       E-mail address: xusctj@163.com (S. Xu).
+     1
+       Sichuan Xu and Lei Shi have the same contribution to this study.
+
+https://doi.org/10.1016/j.ijhydene.2024.02.254
+Received 13 November 2023; Received in revised form 30 January 2024; Accepted 19 February 2024
+Available online 7 March 2024
+0360-3199/© 2024 Hydrogen Energy Publications LLC. Published by Elsevier Ltd. All rights reserved.
+Z. Liu et al.                                                                                              International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+    For various control challenges in fuel cell systems, researchers have            1.2. Cathode recirculation
+extensively explored different control algorithms and models. The
+development of a control-oriented dynamic model serves as a funda­                       The control variables strongly affecting fuel cell durability have been
+mental step for controller design [6,7], especially since advanced con­              summarized from a control perspective, but this is for the conventional
+trol algorithms are often constrained by the availability of commercially            vehicle fuel cell system. While there is a wealth of research aimed at
+accessible hardware. Dynamic models fall into two categories:                        enhancing durability from a control perspective, there still exists a
+first-principle mathematical models and data-driven black-box or                     notable gap, particularly concerning the issue of carbon corrosion
+gray-box models. The commonly used models are 0D or 1D mathemat­                     induced by high potentials under low-load conditions [40]. Cathode
+ical models built on first principles and simulated using MATLAB/Si­                 recirculation is effective in mitigating high potential through the
+mulink [8]. These models offer comprehensive insights into the internal              reduction of oxygen concentration in incoming air, thereby alleviating
+state of the system, facilitating the design of observer-based control and           durability degradation caused by carbon corrosion [41]. Numerous
+estimation techniques—an area of current significance. Additionally,                 studies have been conducted in this area in recent years. In the study by
+they strike a balance between the high speed and fidelity required for               Jiang et al. [42], the performance of cathode recirculation in a 10 kW
+control design. Dynamical models of PEMFC systems, such as the one                   stack is investigated, revealing a significant increase in voltage drop
+developed in [9–11] and its variations, have been extensively examined               (0.042 V @ 54 mA/cm2) with increased cathode recirculation ratio and
+from a control perspective. Numerous fuel cell controllers have been                 reduced fresh air flow. Zhao et al. [43] conducted a detailed orthogonal
+developed based on these dynamic models to address challenges related                experiment to explore the humidification capability and voltage
+to strong system nonlinearity, parameter uncertainty, and load distur­               clamping effect of cathode recirculation. They found that it increased
+bance rejection.                                                                     relative humidity at the cathode inlet, promoting uniform oxygen dis­
+    Much of the control research is centered around the gas supply sys­              tribution while adjusting cell voltage to suppress high potential (from
+tem, given that oxygen deficiency significantly impacts fuel cell dura­              0.828V to 0.780V) at low current density, thereby improving fuel cell
+bility [12]. Initial research on gas supply control aimed to achieve                 stack durability. Liu et al. [44] focused on a dual injector recirculating
+optimal responsiveness and accuracy of the oxygen excess ratio (OER).                PEMFC stack, showing that the dual recirculation mode mitigated gas
+Proportional integral differential (PID) controllers, renowned for their             shortage issues during dynamic loading, offering relief from carbon
+simplicity and widespread engineering applications, were among the                   corrosion problems compared to dead anode and dead cathode modes.
+pioneering solutions [11]. An enhanced feed-forward multi-gain                       Zhang et al. [45] investigated humidification and pressure-limiting ef­
+scheduling PI controller has been proposed and experimentally vali­                  fects using simulation and experimental methods. High-frequency
+dated to enhance performance [13]. To address nonlinearities,                        impedance results indicated a significant reduction in membrane
+fuzzy-PID was introduced to manage the OER with positive outcomes,                   impedance values and oxygen concentration with cathode recirculation.
+albeit at the expense of real-time performance with more rules [14,15].              Liu et al. [46] delved into control issues in high-power automotive
+Sliding mode control, a variable structure control method, has demon­                PEMFC systems, designing an efficient adaptive controller for precise
+strated effective control outcomes in [16–18] due to its advantages of               voltage regulation by controlling pump speed. Tu et al. [47] investigated
+simple design, low computational effort, and robust nonlinearity. As                 the alleviating effect of cathode recirculation on oxygen starvation
+control requirements evolve to handle nonlinearities, disturbances, and              under high current density. The results indicated that exhaust gas
+parameter uncertainties, advanced model-based control algorithms are                 recirculation significantly mitigated gas starvation and flooding during
+gaining favor. A model reference adaptive controller is presented in [19]            cycling loads, serving as a crucial alleviation strategy to improve the
+to enhance system dynamic error. Model predictive control has been                   dynamic characteristics of PEMFC.
+explored to optimize anti-disturbance responsiveness and OER accuracy
+[20–22]. Observer-based algorithms such as sliding mode observer,
+Kalman filter, and Luenberger observer enhance system lifetime by                    1.3. Innovations
+monitoring internal states [23–25]. Observer-based optimal control
+methods, aiming to derive optimal control laws by solving cost func­                      Based on the literature review above, it is evident that cathode
+tions, are proposed to improve OER control effects [26]. Optimal control             recirculation can achieve high potential suppression by adjusting the
+typically involves offline feedback gains and is computationally less                inlet oxygen concentration, thereby alleviating the irreversible degra­
+intensive. The active disturbance rejection algorithm based on an                    dation caused by carbon corrosion in automotive PEMFC under low-load
+extended state observer (ESO) [27] considers nonlinearity, uncertainty,              conditions. While previous research has yielded rich results, there are
+and disturbance as lumped terms, estimated in real time by ESO,                      still many gaps to be filled. For example, the impact of cathode recir­
+effectively eliminating overshoot. Furthermore, some neural                          culation on PEMFC operation lacks in-depth and effective character­
+network-based control algorithms, while demanding substantial exper­                 ization, especially in terms of characterizing the influence mechanism
+imental data and computational resources, hold promise from a theo­                  from an internal dynamics perspective. Additionally, to ensure the
+retical and technical development standpoint [28–30].                                effectiveness of cathode recirculation, addressing the control problem of
+    In addition to the breathing variables, other crucial control variables          maintaining smooth voltage output and stable tracking against load
+for fuel cells, concerning efficiency and durability, encompass temper­              disturbances is crucial, particularly with efficient and accurate control
+ature [31], humidity [32], hydrogen pressure [33], and output voltage                algorithms. Therefore, based on the points mentioned above, the main
+[34]. Various controllers have been devised for these parameters, par­               innovations of this paper are as follows:
+alleling the well-explored air supply controllers. Examples include
+PI/PID controllers [32], fuzzy control systems [35], optimal control                   (1) Investigating the impact of cathode recirculation on three inter­
+strategies [36,37], active disturbance rejection control approaches [38],                  nal polarization processes of PEMFC, revealing the internal in­
+and robust control methodologies [39]. Despite the diverse nature of                       fluence mechanism of cathode recirculation.
+these control algorithms, they share a common motivation and adhere to                 (2) Establishing a fuel cell system control model that includes a
+a similar control workflow. The distinctions lie in the differential                       cathode recirculation loop and analyzing its nonlinear
+controlled variables, causing variations in manipulated variables across                   characteristics.
+the plant, and the diverse inputs and outputs, leading to distinct model               (3) Proposing a multi-model scheduling scheme based on T-S fuzzy
+characteristics, such as nonlinearity.                                                     theory and exploring the optimal control strategy for high po­
+                                                                                           tential suppression under vehicle operating conditions.
+
+
+                                                                              1016
+Z. Liu et al.                                                                                                    International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+    The purpose of this paper is to obtain an optimal control scheme to                 at 100 kPa using the back pressure valve. λ0 is controlled at 3.0 and
+solve the high voltage suppression problem and to provide a new                         hydrogen mass flow is kept at 0.07SLPM. The electrochemical work­
+perspective for the durability control of vehicle PEMFC systems under                   station, Gamry Interface 5000E, is used to measure EIS. The frequency
+different operating conditions.                                                         range in this study is from 10 kHz to 0.1 kHz, and the amplitude is picked
+                                                                                        to be 8% of DC load to achieve a linear measure.
+2. Experiment setup and PEMFC system model
+
+2.1. Experiment setup of single cell                                                    2.2. PEMFC system dynamic model
+
+    A 25 cm2 commercial membrane assembly (MEA) is used in this                             In this section, a physical model of a typical vehicle PEMFC system
+study to investigate the effect of cathode circulation on PEM fuel cell                 equipped with a cathode recirculation loop is developed for use in the
+performance. The Pt loading of the anode is 0.1 mg/cm2 and the Pt                       development of idle controllers to mitigate the effects of high potentials.
+loading of the cathode is 0.3 mg/cm2. The flow channels at both sides                   The test bench of the automotive PEMFC system is shown in Fig. 1(b),
+are serpentine channels in parallel wherein the polytetrafluoroethylene                 through which the accuracy of the established model is verified by
+(PTFE) gaskets are used for sealing. All single cell experiments are                    collecting operational data.
+conducted on the Greenlight test station, its actual test bench are shown
+in Fig. 1 (a). The pure hydrogen is supplied through hydrogen storage                   2.2.1. Electrochemical model
+tanks, and the compressed air is provided by a compressor. The mass                        The accurate modeling of the voltage of the fuel cell is crucial as it is
+flow rate and inlet gas pressure for the anode and cathode are deter­                   directly related to the evaluation of the control effect. The electro­
+mined by mass flow controllers and backpressure valves, respectively.                   chemical model can be modeled as:
+The inlet gas can directly be supplied to the single cell or be humidified
+                                                                                        Vfc = N ⋅ Vcell = N⋅(Vnernst − Vact − Vohm − Vcon )                              (1)
+by the bubble humidifier. The temperature of cell is adjusted by the
+water bath, and a thermocouple placed at the cathode provides the real-                 where, Vfc is the stack voltage, Vcell is the individual voltage， N is the
+time temperature measurement, which could be regarded as whole-cell                     number of individual cells, Vnernst represents the thermodynamic Nernst
+temperature during the operation.                                                       voltage， Vact denotes the activation loss, Vohm is the ohmic loss, Vcon is
+    In this single cell experiment, cathode circulation ratio (φ) is defined            the concentration loss. Vnernst can be expressed as:
+as the ratio of the circulating gas mass flow to the fresh air mass flow.                                                    [                  ]
+The φ is controlled by increasing the circulating gas and decreasing the                Vnernst = E0 −
+                                                                                                       Δs (           ) RTst
+                                                                                                            Tst − Tref +
+                                                                                                                                (   ) 1 (
+                                                                                                                              ln pH2 + ln pO2
+                                                                                                                                              )
+                                                                                                                                                               (2)
+fresh air stoichiometric ratio (λ0) while keeping the total gas volume                                 2F                2F            2
+constant. The experimental pressure of cathode and anode is fixed at
+60 ◦ C. The inlet gas pressure for anode and cathode are both controlled                where E0 represents the standard electric potential, pH2 is the hydrogen
+                                                                                        partial pressure, pO2 is the oxygen partial pressure, Tst represent the cell
+
+
+
+
+           Fig. 1. Cathode circulation experimental bench and its vehicle system. (a) G20 test station, (b) Integrated system bench for vehicle applications.
+
+                                                                                 1017
+Z. Liu et al.                                                                                                                     International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+temperature. In addition, the three voltage losses can be calculated as:                            The rate of water production is:
+⎧
+  Vact = k1 + k2 Tst + k3 Tst ln(Co2 ) + k4 Tst ln(i ∗ A)                                                  NI
+⎪
+⎪
+⎪
+⎪                                                                                               Wv,gen =      × M H2 O                                                                  (10)
+⎨                                                                                                          2F
+  Vohm = i × Rohm
+            (                  )                                     (3)
+⎪
+⎪
+⎪
+⎪                                                                                               In equations 6–10, N is the number of cells, Vca is the cathode volume,
+⎩ Vcon = cln imax/(i − i)
+                     max                                                                        pN2 is the partial pressure nitrogen in the cathode, RO2 and RN2 are the
+                                                                                                gas constant for oxygen and nitrogen, WO2 ,in and WO2 ,out are the mass
+where k1 ∼ k4 are the identification parameters, c is the empirical co­                         flow rate of oxygen into and out of the cathode, WN2 ,in and WN2 ,out are the
+efficient, i is the current density, A is the activation area, imax is the                      mass flow rate of nitrogen into and out of the cathode, pv,ca is the partial
+limiting current density. Co2 is the dissolved oxygen concentration at the                      pressure of water vapor at the cathode, MO2 is the molar mass of oxygen,
+cathode reaction interface, which can be expressed as:                                          RH2 O and MH2 O are the gas constant and molar mass of water vapor,
+                                                                                                Wv,in,ca and Wv,out,ca are the inflow flow rate and outflow flow rate of
+CO2 = 1.969 × 10− 7 pO2 exp(− Tst / 498)                                           (4)
+                                                                                                water at the cathode, Wv,gen and Wv,mem are water production rate and
+Rohm is the total resistance can be expressed as:                                               water flow rate through the membrane, psat (Tst ) is the saturation vapor
+                                                                                                pressure.
+Rohm =
+                         lm
+                         ( (                 ))                                    (5)              The hydrogen partial pressure and water vapor partial pressure in the
+                              1
+         (k5 λm + k6 )exp k7 303 −      1                                                       anode channel can be modeled as follows:
+                                       Tst
+                                                                                                dpH2 RH2 Tst (                                 )
+                                                                                                    =          WH2 ,in − WH2 ,out − WH2 ,react                                          (11)
+where, lm is the thickness of the membrane, k5 ∼ k7 are the identification                       dt   Van
+parameters, λm is the average water content.                                                    ⎧
+                                                                                                                      (                           )
+    Equations (1)–(5) constitute the complete fuel cell electrochemical                         ⎨ dpv,an = RH2 O Tst Wv,in,an − Wv,out,an − Wv,mem if pv,an < psat (Tst )
+                                                                                                ⎪
+semi-empirical and semi-mechanical model, in which the Nernst voltage                               dt         Van                                                                      (12)
+                                                                                                ⎪
+                                                                                                ⎩
+and activation losses are directly influenced by oxygen pressure; thus the                        pv,an = psat (Tst ) if pv,an ≥ psat (Tst )
+proposed cathode recirculation will take the reacted exhaust gas refeed
+                                                                                                    The flow rate of hydrogen gas consumed by the electrochemical re­
+to the inlet to achieve the purpose of voltage regulation. The parameters
+                                                                                                action is:
+in the voltage model are collected in Table 1.
+                                                                                                               NIst
+                                                                                                WH2 ,react =        × MH2                                                               (13)
+2.2.2. Cathode/anode mass balance                                                                              2F
+    According to mass conservation and the ideal gas law, the internal
+gas pressure at the cathode/anode of the fuel cell is determined by the                         In equations 11–13, Van , RH2 and MH2 are the anode volume, the gas
+inlet and outlet flow rates and the electrochemical reaction rate. The                          constant and the molar mass of the hydrogen, respectively. pH2 and pv,an
+partial pressure of the gas at the cathode is modeled as follows:                               are hydrogen partial pressure and water vapor partial pressure at the
+                                                                                                anode, respectively. WH2 ,in , WH2 ,out and WH2 ,react are the inlet flow rate,
+dpO2 RO2 Tst (                                 )
+                                                                                                the outlet flow rate and the reaction consumption flow rate of the anode
+    =          WO2 ,in − WO2 ,out − WO2 ,react                                     (6)
+ dt   Vca                                                                                       hydrogen, respectively. Wv,in,an and Wv,out,an are the inlet flow and outlet
+                                                                                                flow of the water vapor at anode, respectively.
+dpN2 RN2 Tst (                    )
+    =          WN2 ,in − WN2 ,out                                                  (7)
+ dt   Vca
+                                                                                                2.2.3. Air compressor model
+    The oxygen consumption can be calculated from the stack current Ist .                           The model of the air compressor consists of speed dynamic and static
+                NIst                                                                            map. In a large number of previous research works, the dynamic of the
+WO2 ,react =         × MO2                                                         (8)          air compressor is modeled as a lumped rotational parameter model,
+                4F
+                                                                                                where the manipulated variable motor voltage. However, current com­
+   The partial pressure of water vapor inside the cathode is:                                   mercial PEMFC systems support air compressors with speed as the only
+⎧
+                      (                                    )                                    manipulated variable. Therefore, in this paper, the rotational speed,
+⎨ dpv,ca = RH2 O Tst Wv,in,ca − Wv,out,ca + Wv,gen + Wv,mem if pv,ca < psat (Tst )
+⎪
+    dt         Vca                                                                              which is closer to the actual application, is used as the only control input
+⎪
+⎩                                                                                               for the air compressor, which facilitates the modeling and verification of
+  pv,ca = psat (Tst ) if pv,ca ≥ psat (Tst )
+                                                                                                the flow MAP. The dynamic of the speed is concisely modeled as a one-
+                                                                                   (9)          order inertia link:
+                                                                                                                      1
+                                                                                                nactual,cp (s) =           n (s)                                                        (14)
+                                                                                                                   τcp s + 1 cp
+Table 1
+Calibration values of PEMFC electrochemical model.                                              where ncp represents the input speed of the air compressor. nactual,cp is the
+  Symbol              Description                   Value                   Unit                actual speed considering the time lag， τcp is the time constant.
+  N                   Cell number                   360                     /                       The static map of the compressor is expressed by collecting experi­
+  A                   Fuel cell active area         300                     cm2                 mental data with a centrifugal compressor and training a radial basis
+  F                   Faraday constant              96,485                  C/mol               function (RBF) forward neural network model, which improves the fi­
+  c                   empirical constant            0.02                    /
+                                                                                                delity of the model, instead of the previous empirical formula method.
+  imax                Limiting current density      2.2                     A/cm2
+  k1                  identified coefficient        0.1406                  /                   The inputs to the RBF model are the pressure ratio (psm /patm ) and the
+  k2                  identified coefficient        − 8.4 × 10− 3           /                   actual compressor speed. psm is the supply manifold pressure determined
+  k3                  identified coefficient        − 5.01 × 10− 4          /                   by the manifold dynamics, patm is the atmospheric pressure. The output
+  k4                  identified coefficient        4.31 × 10− 5            /                   is the mass flow rate (Wcp ) of the compressor. The validation of the RBF
+  k5                  identified coefficient        − 1.34 × 10− 2          /
+  k6                  identified coefficient        0.2472                  /
+                                                                                                model based on the Gaussian kernel function is given in Section 4.2.
+  k7                  identified coefficient        0.5746                  /
+
+
+
+
+                                                                                         1018
+Z. Liu et al.                                                                                                                        International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+2.2.4. Circulation pump model                                                                                Table 2
+   The control model of the cathode circulation pump is referenced to                                        Parameters and constants for model simulation.
+the modeling process of the air compressor. The only manipulated var­                                          Symbol       Description                          Values             Unit
+iable of the pump is the speed, the dynamics of which is simulated by the
+                                                                                                               Vsm          Supply manifold volume               0.02               m3
+one-order inertia link:                                                                                        Vrm          Return manifold volume               0.005              m3
+                                                                                                               Vca          Cathode volume                       0.01               m3
+                     1
+nactual,p (s) =              npump (s)                                                         (15)            Van          Anode volume                         0.005              m3
+                  τp s + 1                                                                                     ksm,out      Cathode inlet flow constant          2.2 × 10− 4        kg/(s*Pa)
+                                                                                                               krm,in       Cathode outlet flow constant         3.6 × 10− 4        kg/(s*Pa)
+where npump represents the input speed of the pump, nactual,p is the actual                                    γ            Ratio of specific heat of air        1.4                /
+speed, τp is time constant.                                                                                    CD           Discharge coefficient of nozzle      0.012              /
+                                                                                                               R            Universal gas constant               8.3415             J/(mol*K)
+    The operating of the circulating pump selected in the actual system
+                                                                                                               RO2          Oxygen gas constant                  259.8              J/(kg*K)
+determine the flow rate as a function of the speed and differential                                            RN2          Nitrogen gas constant                296.8              J/(kg*K)
+pressure. A flow rate model based on a back propagation (BP) neural                                            RH2 O        Vapor gas constant                   461.5              J/(kg*K)
+network is developed by collecting experimental data from the pump.                                            MO2          Oxygen molar mass                    32                 g/mol
+The inputs to the model are the pump speed and the differential pressure                                       MN2          Nitrogen molar mass                  28                 g/mol
+                                                                                                               MH2 O        Vapor molar mass                     18                 g/mol
+(psm − prm ), prm is the exhaust pressure determined by the manifold dy­                                       Patm         Atmosphere pressure                  101.325            kPa
+namics, and the output is the pump mass flow rate (Wpump ). The vali­                                          MH2          Hydrogen molar mass                  2                  g/mol
+dation of the flow model for the BP artificial neural network is given in                                      RH2          Hydrogen gas constant                4.124              J/(kg*K)
+Section 4.2.
+    In the section of pump and compressor modeling, a data-driven
+approach is used instead of the traditional first-principles-based                                           Wsm,in = Wcp + Wpump                                                          (21)
+modeling approach, which improves model fidelity, cuts the model’s
+parametric complexity, and increases the speed of real-time                                                      Equations 1–21 form a nonlinear model of the PEMFC and its air
+calculations.                                                                                                supply subsystem, including the air supply, electrochemical reaction,
+                                                                                                             and exhaust cycle. The model simulation is executed in the MATLAB/
+2.2.5. Manifold dynamics                                                                                     Simulink environment, which can simulate a series of dynamic pro­
+   According to the conservation of mass, the pressure dynamics of the                                       cesses. Other auxiliary processes such as hydrogen supply, air-exhaust
+supply and exhaust manifolds can be calculated as follows:                                                   gas mixing, etc. are not described individually and can be referred to
+                                                                                                             our previous work [46]. The parameters and constants used for the
+dpsm Tmix Rair (
+    =            Wsm,in − Wsm,out
+                                  )
+                                                                                               (16)          model simulation other than the electrochemical reactions are collected
+ dt    Vsm                                                                                                   in Table 2.
+
+dprm Tst Rair (                  )
+    =           Wrm,in − Wrm,out                                                               (17)          3. Methodology
+ dt   Vrm
+                                                                                                             3.1. Problem definition
+where Vsm and Vrm are the volumes of the inlet and exhaust manifolds,
+respectively. Tmix is the temperature of the mixed gases from the
+                                                                                                                 Section 2 develops a novel dynamic fuel cell system model with the
+compressor and the circulation pump. Wsm,in , Wsm,out , Wrm,in ， Wrm,out are
+                                                                                                             cathode recirculation process. The purpose of cathode recirculation is
+the supply manifold inlet and outlet flows and the exhaust manifold inlet
+                                                                                                             applied to regulate the voltage value at low load conditions. In this
+and outlet flows, respectively. Due to the small pressure difference,
+                                                                                                             work, the controlled variable is the output voltage. To ensure the sys­
+Wsm,out and Wrm,in are:
+                                                                                                             tem’s reliability, stability and durability, the output voltage must follow
+Wsm,out = ksm,out (psm − pca )                                                                 (18)          the set value precisely, even when subject to strong disturbances.
+                                                                                                             Therefore, manipulated variables and controllers are critical. Generally,
+Wrm,in = krm,in (pca − prm )                                                                   (19)          continuous or cyclic operation above 0.8v is unacceptable in low/idle
+                                                                                                             control of vehicle fuel cells, so 0.8v is set as the control target.
+where, ksm,out and krm,in are the flow coefficients of the cathode inlet and                                     In the control system of this paper, the speed of the recirculation
+outlet, respectively.                                                                                        pump is set as the control input (u), the current can be considered as
+   Calculating the mass flow at the exhaust manifold outlet by means of                                      disturbance (w) and the voltage is the measurement output (y). Due to
+the nonlinear nozzle flow equation:                                                                          the concern of high voltage control under low load conditions, offline
+
+
+
+          ⎧                                      √̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅
+                                                                  [
+                                    (       )1 √                        (          )γ−γ 1 ]              (    )γ−γ 1
+          ⎪
+          ⎪
+          ⎪ CD πD2 (1 − cos(θ))prm patm γ √      √ 2γ 1 − patm                                    patm      2
+          ⎪
+          ⎪          √̅̅̅̅̅̅̅̅                                                                         >
+          ⎨         4 RTst            prm             γ− 1                  prm                    prm     γ+1
+Wrm,out =                           √  ̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅                                                                                                                          (20)
+          ⎪
+          ⎪                              (             )(γ−γ+11)                (             )γ−γ 1
+          ⎪
+          ⎪      2
+          ⎩ CD πD (1√− ̅̅̅̅̅̅̅̅
+          ⎪              cos(θ))prm
+                                       γ
+                                                 2                  patm
+                                                                           ≤
+                                                                                       2
+                    4 RTst                   γ+1                    prm            γ+1
+
+
+
+                                                                                                             calibration of the air compressor is carried out, and the OER is main­
+where, CD is the charge coefficient, D and θ are the diameter and opening                                    tained at the set value. The proportional controller for the air
+angle of the nozzle, respectively. R is the universal gas constant.                                          compressor speed in response to load variation is as follows:
+    Due to the addition of the dynamic process of cathode recirculation
+                                                                                                             ncp = 432.4 × Ist + 33130                                                     (22)
+in the air subsystem, Wsm,in is approximated by the sum of:
+
+
+                                                                                                      1019
+Z. Liu et al.                                                                                                        International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+                                                                                          Where, r is the number of fuzzy rules, u is premise variables，in this
+                                                                                      study is Ist , M is the fuzzy set.
+3.2. Linearization
+                                                                                          The constraint of fuzzy rules makes the weighted output of multiple
+                                                                                      linear models, thus improving the control effect over a wide range of
+    Compared to nonlinear model-based control, control methods based
+                                                                                      operation. The output based on T-S fuzzy theory can be expressed as:
+on nominal linearized models have the advantages of computational
+simplicity and good real-time performance easily implemented in                                  ∑
+                                                                                                 n
+
+commercial controllers; however, the key to such methods is to obtain                 y(k) =           αi ⋅ yi (k)                                                         (25)
+dynamic characteristics that are highly compatible with nonlinear sys­
+                                                                                                 i=1
+
+
+tems. This section linearizes the nonlinear model established in Section              where， k is the sample moment, i is the model number, αi is the weight
+2 and discusses the dynamic characteristics of the linearized model at                of the i-th nominal model, yi (k) is the output of the i-th model, y(k) is the
+different nominal points.                                                             total output.
+    Due to the actual system’s operational behavior, where the voltage
+exceeds 0.8V when the current is below 80A, three nominal operating                   3.4. LQG design
+points were selected for linearization at 40A, 50A, and 70A. The linear
+model is                                                                                  According to Equation (23), the state space expression from the
+{
+  δẋ = Aδx + Bu δu + Bw δw                                                           input, u, to the first measurement variable, δy1 (Vcell), is given by:
+                                                                    (23)              {
+  δy = Cδx + Du δu + Dw δw                                                              δẋ = Aδx + Bu δu
+                                                                                                                                                             (26)
+                                                                                        δy1 = Cy1 δx + Dw δw
+Where， δ( ⋅) represents the variation from the nominal value. The state,
+x, measurement output, y, input, u, and disturbance, w, are                               A linear quadratic regulator (LQR) optimal control is used to design a
+⎧      [                                   ]T                                         state feedback controller based on output regulation. Since the LQR
+⎪
+⎪
+⎨
+   x = prm npump ncp psm pH2 mw,an pN2 pO2                                            problem is concerned with the convergence of states and inputs, the cost
+                                                                                      function is in the form
+                        T
+   y = [Vcell psm prm ]                                            (24)
+⎪
+⎩ u = npump
+⎪                                                                                         ∫∞
+   w = Ist                                                                            J=       δxT Cy1 T Qy Cy1 δx + δuT Rδu                                (28)
+                                                                                             0
+    The linearized model comprises 8 states, 2 inputs (control input and
+disturbance input), and 3 outputs. The operating conditions of the sys­               where Qy is the tuning matrix of the output， R is the tuning matrix of
+tem at the three nominal operating points are given in Table 3.                       the input, they are responsible for the state tracking or control energy
+    Fig. 2 illustrates the dynamic characteristics of the linearized model            priorities and need to be chosen reasonably.
+at three nominal operating points. The results show that the dynamics of                 LQR control aims to compute a set of optimal control actions that
+the models are different at different nominal points, which represents                minimize the cost function is given by
+the effect of nonlinearity. Meanwhile, when the step signal is near the                                      (             )
+nominal point, the nominal model can highly match the dynamic                         δu = − Kδ̂ x , K = R− 1 Bu T S + N T                                (29)
+characteristics of the nonlinear model, however, as the step signal moves                 When measurements from different sensors are available but subject
+away from the nominal point, the problem of mismatch appears. This is                 to noise, Kalman filter combines sensory data from various sources
+due to the oxygen partial pressure dynamics that determines the output                (known as sensor fusion) to find the best estimate of the parameter of
+voltage is influenced not only by the circulation pump but also by the air            interest. To simulate real experimental conditions, process and mea­
+compressor, and the coupling of the two increases the nonlinearity of the             surement white noise are added to system and the state space expression
+system, which leads to the mismatch caused by the approximate line­                   of the system is rewritten as:
+arization. Therefore, the control error caused by the model mismatch                  {
+needs to be avoided when using the control design based on the line­                    δẋ = Aδx + Bu δu + Bw δw + Gδw1
+                                                                                                                                                         (30)
+arized model.                                                                           δy = Cy δx + Du δu + Dw δw + v
+
+                                                                                      where, G is a noise transformation matrix. Both w1 and v are modeled as
+3.3. T-S fuzzy theory                                                                 Gaussian white noise，
+                                                                                          The Kalman filter calculates the feedback matrix Kk and completes
+    To address model mismatch, we employ a multi-model fusion                         the optimal state estimation, which is a two-part process, prediction and
+approach. T-S fuzzy theory, grounded in a multi-model scheduling                      correction [23]. Based on the theory of the observer, the state and output
+methodology, utilizes fuzzy rules to precisely approximate a linearized               equations of the Kalman estimator are:
+model to a nonlinear one, effectively mitigating nonlinearity. In this                                              (                           )
+                                                                                       x˙ = Aδx + Bu δu + Bw δw + Kk δy − Cy δ̂
+                                                                                      δ̂                                      x − Du δu − Dw δw             (31)
+study, fuzzy rules are devised for the three nominal models outlined in
+Section 3.2, incorporating current as the fuzzy variable. This is formu­              [       ] [ ]     [ ]      [    ]
+                                                                                          δ̂y    Cy      Du        Dw
+lated as:                                                                                      =    δ̂
+                                                                                                     x+     δu +        δw                                                 (32)
+                                                                                          δ̂x    I       0         0
+    Rule i:                                                                               The Kalman filter uses the known inputs u, w and the measurements y
+       If u1 is Mi1 , ⋅⋅⋅, and μg is Mig .                                            to generate the estimated output ̂y and state ̂
+                                                                                                                                    x . Based on equation (32)，
+       Then ẋ = Ai x(t) + Bi u(t), i = 1,2,3, ⋅⋅⋅,r                                  The Kalman filter is a state-space model having 5 inputs and 11 outputs.
+                                                                                      The input variables are [Ist npump ]T and [Vcell psm prm ]T with noisy. The first
+                                                                                      three outputs are the estimated true system output ̂          y , the remaining
+Table 3
+The operating conditions of the three nominal models.                                 eight outputs are the state estimates ̂  x.
+
+  Model         Ist/A   ncp/rpm      npump/rpm         Tst/K   θ/◦   Vcell/V
+
+  M1            40      45,000       8500              338     30    0.8
+  M2            50      50,000       7600              338     30    0.8
+  M3            70      60,000       4800              338     30    0.8
+
+
+                                                                               1020
+Z. Liu et al.                                                                                                           International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+
+
+Fig. 2. Comparison of step response of nominal model and nonlinear plant.(a) Variation of δw，(b) Variation of δu,(c),(e)and (g) represent the variation of output δy1
+at different current points with δw, (d),(h) and (f) represent the variation of output δy1 at different current points with δu.
+
+
+
+3.5. MPC design
+
+    The MPC mechanism is described as follows: at each sampling
+moment, a finite-time open-loop optimization problem is solved online
+based on the current measurement information and the obtained first
+element of the resulting control sequence is applied to the controlled
+object. The MPC algorithm consists of three steps: prediction, optimi­
+zation, and feedback correction. The linear state space shown in Equa­
+tion (26) is used to design MPC controller. The discrete predicted system
+incremental model is shown in Equation (33). The predicted p-step state
+in MPC is shown in Equation (34).
+{
+   δx(k + 1) = φδx(k) + Gδu(k)
+                                                                      (33)
+   δy1 (k) = Cy1 δx(k) + Dw δw(k)
+
+δxp (k + p|k) = φp δx(k) + Gp δU(k)                                       (34)
+
+Where φ = I + kA, G = TBu and k is the sampling moment.
+     ⎡ ⎤        ⎡                  ⎤                                                                  Fig. 3. The proposed optimal control scheme in this paper.
+       I          0 0⋯0                       ⎡             ⎤
+     ⎢φ ⎥       ⎢ G⋯⋯              ⎥            δu(k|k)
+     ⎢ 2⎥ p ⎢                      ⎥          ⎢             ⎥
+φp = ⎢     ⎥    ⎢                  ⎥, δU(k) = ⎢ δu(k+1|k) ⎥
+     ⎢ φ ⎥, G = ⎢ φG G⋮            ⎥          ⎣⋮            ⎦                                      ∑
+                                                                                                   N2                                      ∑
+                                                                                                                                           Nu
+     ⎣: ⎦       ⎣ ⋮⋱               ⎦                                                    J=γ               (yr (k + j) − ym (k + j))2 + ρ         (u′(k + j − 1) − u′(k + j − 2))2
+         p         p− 1   p− 2                  δu(k + p|k)
+       φ          φ G φ G⋯G                                                                        j=N1                                    j=1
+                                                                                               {
+                                                                                                   103 ≤ u(k + j) ≤ 104 , j = 1⋯Nu
+In this study, we expect output voltage can follow the reference signal                 s.t.
+quickly and accurately with only minimal control cost. Therefore, the                              |δu(k + j − 1)| ≤ 1000, j = 1⋯Nu
+objective function and constraints can be expressed as follows:                                                                                                                 (35)
+
+                                                                                        where, N1 and N2 represent the start and end time of the prediction
+                                                                                        horizon. Nu define the time domain of the control increments. u′ is the
+
+
+                                                                                 1021
+Z. Liu et al.                                                                                                    International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+
+
+          Fig. 4. Effect of cathode circulation ratio on PEMFC external performance. (a) Relative humidity at cathode inlet. (b) Variation of output voltage.
+
+
+tentative control signal, yr is the desired voltage response, and ym is the
+                                                                                            Table 4
+model response of voltage. γ and ρ are the weight metrics.
+                                                                                            The key parameter settings in DRTtools.
+    In this chapter, MATLAB/Simulink serves as the computational
+platform for model linearization, control algorithm design, and solution.                     Items                                                Values
+The involved toolboxes include the Control System Design Toolbox,                             Method of discretization                             Gaussian
+Statistics and Machine Learning Toolbox, and Predictive Control                               Regularization derivative                            1st order
+                                                                                              Regularization parameter                             1e-5
+Toolbox, among others. Simulation and comparative analysis of
+                                                                                              RBF shape control                                    FWHM coefficient
+different algorithms are conducted in the Simulink environment. The                           FWHM coefficient                                     0.5
+control system structure based on the TS fuzzy model fusion optimal
+control algorithm is visualized in Fig. 3.
+                                                                                        hence, the adjustable current region occurs at 0.05–0.15A/cm2. The
+4. Results and discussion                                                               optimal φ are 1.0, 0.8, and 0.2, which obviously should be appropriately
+                                                                                        reduced with increasing current.
+4.1. Characteristics analysis of cathode cycling on PEMFC                                   Fig. 5(a) shows the effect of the φ on the internal polarization process
+                                                                                        when current density is 0.1A/cm2. In this paper, EIS data were fitted
+    Fig. 4(a) shows the variation in relative humidity at cathode inlet                 using DRTtools [48]. Detailed parameter settings are shown in Table 4.
+with increasing φ. It can be found that the humidity tends to increase                  It can be found from Fig. 5(a) that the impedance spectral radius grad­
+gradually as φ increases. When no circulation is applied, the air is set to             ually increases and shifts to the left with increasing φ. The semicircle of
+dry air, but when the circulation ratio reaches 1.0, the humidity is                    the middle frequency is much larger than the semicircle of the high
+around 50%. It is obvious that the cathode cycle brings a substantial                   frequency, which suggests that the internal polarization at this stage is
+amount of water vapor and thus humidifies the intake air. Fig. 4 (b)                    dominated by the oxygen reduction reaction (ORR) at cathode. With the
+shows the voltage suppression effect under different current and φ. In                  increase of φ, the cathode oxygen partial pressure as well as the oxygen
+this case, the fresh air stoichiometry without circulation is set to 3.0. As            concentration decreases gradually, which reduces the ORR reaction and
+the φ increases, the voltage tends to decrease at different current den­                oxygen diffusion rate, leading to an increase in impedance. The change
+sities. This is due to the increase in circulating gas, which reduces the               from the internal polarization process also directly explains the fact that
+partial pressure of oxygen in the cathode intake, resulting in voltage                  the external voltage is reduced in Fig. 4(b). Conversely, ohmic internal
+suppression. Moreover, voltage is more sensitive to changes in the φ at                 resistance demonstrates the opposite trend. The ohmic loss in the
+high currents than at low currents. Specially, as the current density in­               Nyquist plot is described as high-frequency intercept with the real axis.
+creases, the voltage drops are 0.021V, 0.026V, 0.038V, 0.047V and                       The leftward shift in the impedance spectrum indicates a gradual
+0.055V via an increase in the cyclic ratio from 0 to 1.0, respectively. The             decrease in ohmic resistance with increasing φ. This is because the in­
+rate of decrease is 2.2%, 3%, 4.6%, 5.8% and 7%, respectively.                          crease in the φ raises the water content within the membrane, which
+    At present, 0.8V is commonly adopted as the control threshold,                      reduces the resistance to proton conduction as well as the contact
+
+
+
+
+       Fig. 5. Effect of cathode circulation ratio on PEMFC internal polarization process. (a) Electrochemical impedance spectroscopy, (b) Ohmic resistance.
+
+                                                                                 1022
+Z. Liu et al.                                                                                                   International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+
+
+Fig. 6. Validation of the PEMFC system dynamic model. (a-b) Verification and error of the electrochemical model, (c-d) Verification and error of the RBF model for
+the air compressor flow rate, (e-f) Verification and error of the BP model for the recirculation pump flow rate.
+
+
+resistance between the membrane and the electrodes. Fig. 5(b) further                    external humidification results shown in Fig. 4 (a). In Figs. 4 and 5, the
+quantifies the change in ohmic resistance with different φ. As φ in­                     changes in the performance of the PEMFC due to cathode cycling are
+creases, the ohmic internl resistance decreases from 0.055 Ω cm2 to 0.04                 analyzed from an internal plus external perspective, which provides a
+Ω cm2, a reduction of 28.1%. However, it is also observed that the rate of               theoretical basis for the design of controllers.
+decrease slows down with increasing φ, which corresponds to the
+
+
+
+
+Fig. 7. Comparison of the voltage control effect of different control method. (a) is current density profile, (b) is voltage control effect, (c) and (d) are the enlarged
+views of the yellow boxes in Fig. 7(b).
+
+                                                                                  1023
+Z. Liu et al.                                                                                                        International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+4.2. Validation of the PEMFC system model                                              4.4. Robustness of controllers
+
+    To bring the control simulation closer to the real experiment, the                     In the context of potential unexpected events during fuel cell system
+accuracy of the nonlinear simulation model developed in Section 2                      operation that could lead to system instability, it is crucial for the
+needs to be verified. The validation data comes from the system shown                  designed controller to demonstrate robustness against random distur­
+in Fig. 1(b). The polarization curve data are collected through current                bances. Within the air supply system, the air compressor significantly
+load experiments on the real fuel cell system, and the voltage model                   influences the fuel cell’s voltage output by directly modifying the oxy­
+parameters are identified, as shown in Table 1. Fig. 6(a) verifies the                 gen concentration entering the stack through its flow. When the air
+steady-state voltage and power output of the model. The current is                     compressor experiences sudden changes, the high-potential controller
+loaded from 0A to 240A. Since this study is more concerned with the                    must swiftly respond to stabilize the voltage at the desired value. In this
+voltage output at low load, a more intensive loading is performed at this              section, a disturbance of 3% is introduced to the air compressor speed to
+condition. The results show that the simulation results agree with the                 assess the robustness of the designed high-potential controller. The
+experimental data, with the vast majority of errors within 1% and the                  disturbance profile of the compressor speed is depicted in Fig. 8(a), with
+largest voltage errors controlled within 2%, demonstrating the high fi­                the operating current density maintained at 0.1 A/cm2. At 10s, the
+delity of the established voltage model.                                               compressor speed experiences a sudden increase, lasting for 5s, followed
+    Furthermore, the flow models of the air compressor and circulation                 by a sudden decrease at 20s, which lasts for 5s. Fig. 8(b) illustrates the
+pump, which are essential auxiliary components in the air supply sub­                  control stability of the three developed controllers in the face of dis­
+system, are validated and the results are shown in Fig. 6(b) and (c). The              turbances. The T-S LQG controller exhibits minimal robustness since
+results show that the air compressor flow MAP established by BRF neural                LQG, being a deterministic controller based on the mathematical model,
+network is highly consistent with the experimental data, and the relative              assumes complete knowledge of the system’s dynamic characteristics.
+error of most of the sample points is within ±5%. It is worth noting that              Consequently, it lacks responsiveness when confronted with unknown
+the extreme error point occurs at the air compressor surge boundary                    disturbances in the system model. In contrast, the T-S MPC controller
+when the flow rate is very low, and small fluctuations can cause great                 demonstrates superior robustness. When the system encounters uncer­
+relative error values, so it should not be considered. For the circulation             tain disturbances, T-S MPC swiftly recovers stability within 2s. This is
+pump, the results show that the relative error is controlled to within                 attributed to MPC compensating for uncertainties during the online
+±5%. Overall, the model of the voltage and auxiliary components                        optimization process by utilizing real-time measurement data, enabling
+clearly captures the actual system characteristics with errors within                  it to better adapt to the actual dynamics of the system.
+acceptable limits for controller development.
+                                                                                       4.5. Dynamic response of oxygen partial pressure
+4.3. Voltage control effect comparison
+                                                                                           To a certain extent, the implementation of cathode recirculation at
+    The control performance of various controllers is assessed using a                 small current density can have two mutually exclusive effects on the
+current profile depicted in Fig. 7(a), and the results are presented in                output voltage. An increase in humidity increases the output voltage,
+Fig. 7(b)–(d). The control objective in this study is to achieve stable and            while a decrease in oxygen partial pressure decreases the output voltage.
+fast-tracking voltage at the set point of 0.8V under different current                 However, from the results in Fig. 4, it can be proved that the oxygen
+disturbances. Fig. 7(b) illustrates the voltage control effectiveness of               partial pressure has a dominant contribution to the reduction of voltage.
+different control methods. Without running a cathode cycle, the voltage                Fig. 8 detailed shows the dynamic response of the internal oxygen par­
+exceeds 0.8V, which is unacceptable for the long-term operation of the                 tial pressure during the high potential suppression control. It can been
+PEMFC. During the tracking phase, the static errors of all three con­                  seen that three controllers vary the output voltage by decreasing the
+trollers are sufficiently small. However, during load changes, PI con­                 oxygen partial pressure compared to no cathode circulation mode. The
+trollers inevitably experience overshooting, and the T-S LQG controller                oxygen partial pressure dynamics shown in Fig. 9(a) can explain some of
+based on internal state feedback eliminates overshooting but exhibits a                the phenomena in Fig. 7(b). Specifically, at each current step, the
+significant lag in dynamic response. In contrast, the T-S MPC method                   controller regulates the speed of the circulation pump to achieve the
+demonstrates the best balance between transient response and steady-                   target partial pressure of oxygen and thus achieves accurate voltage
+state error, attributed to MPC’s advanced prediction and real-time                     control. As a result, there is a significant deviation in the voltage during
+optimization mechanism. Fig. 7(c) and (d) provide enlarged views of                    the period from the beginning of the change in oxygen partial pressure to
+the control effect during the load up and load down stages, respectively,              its stabilization. T-S MPC method show the best control effect with the
+for a more visual comparison.                                                          fastest oxygen partial pressure response and no overshoot for each load
+    Additionally, the performance of the different control methods dur­                change. In contrast, PI has significant overshooting and T-S LQG has the
+ing dynamic adjustment is quantified in Table 5. In the load-up instant                slowest response speed. Fig. 9(b) shows the amplified view of the oxygen
+(@20s), the overshoot of PI controller is 2 mV, while the value of T-S                 partial pressure dynamic during loading condition in order to more
+LQG and T-S MPC is 0. The turning time of T-S MPC is about 1s, which is                clearly represent the above results.
+33.3% and 66.7% faster than PI and T-S LQG. Similarly, in the load-
+down moment (@40s), T-S MPC is 50% and 60% faster than the other                       4.6. Quantification of control costs and effects
+two control methods. These results show that the T-S MPC coupled
+control method has excellent performance against the step current                          To quantitatively evaluate the control output performance, also
+signal.                                                                                known as voltage control level as illustrated in Fig. 8, two error integral
+                                                                                       criteria are recorded as the integral of squared error (ISE) and the in­
+Table 5                                                                                tegral of time multiplied by squared error (ITSE), respectively, calcu­
+Quantitative analysis results of different control methods.                            lated as shown in equation 36 and 37. For ISE, which reflects the
+                                                                                       accumulated control error of the output in a finite time t. The ITSE, on
+  Methods       Load-up stage                  Load-down stage
+                                                                                       the other hand, is more concerned with the error in the late transient
+                Overshoots      Turning time   Overshoots        Turning time          response of the controller.
+  PI            2 mV            1.5s           1 mV              2s                            ∫t
+  T-S LQG       0               3s             0                 2.5s                               ⃒                    ⃒2
+                                                                                       ISE =        ⃒Vcrtl (t) − Vref (t)⃒ dt                                              (36)
+  T-S MPC       0               1s             0                 1s                            0
+
+
+
+                                                                                1024
+Z. Liu et al.                                                                                                        International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+
+
+                   Fig. 8. Robustness analysis of different controllers. (a) Current and disturbance conditions, (b) Voltage control stability demonstration.
+
+
+
+
+Fig. 9. Oxygen partial pressure response of different control methods. (a) is the oxygen partial pressure dynamic, (b) is the enlarged view of yellow box in Fig. 8(a).
+
+
+                                                                                               scenarios subjected to external disturbances. The control costs and
+Table 6
+                                                                                               control performance are summarized in Table 6. Compared to the PI and
+Evaluation of the output performance of different controllers.
+                                                                                               T-S LQG, the control cost TV of the T-S MPC is reduced by 55.5% and
+  Criteria                   PI                             T-S LQG       T-S MPC              16.7%, respectively. On the contrary, the ISE of the T-S MPC is reduced
+  ISE                        4.2 × 10− 4                    2.3 × 10− 4   1.6 × 10− 4          by 62% and 30.4%, respectively, which represents smaller cumulative
+  ITSE                       3.1 × 10− 3                    4.9 × 10− 3   2.8 × 10− 3          errors. The ITSE is reduced by 9.7% and 42.8%, respectively, which
+  TV                         4.5 × 10− 5                    2.4 × 10− 5   2.0 × 10− 5
+                                                                                               represents faster response time.
+
+
+           ∫t                                                                                  4.7. Concise comparison
+                  ⃒                    ⃒2
+ITSE =           t⃒Vcrtl (t) − Vref (t)⃒ dt                                      (37)
+             0                                                                                     This paper proposes an optimal control scheme for mitigating carbon
+                                                                                               corrosion and enhancing durability in automotive fuel cells under high
+where, Vcrtl (t) is the actual voltage output at sampling moment t, Vref (t)
+                                                                                               potential, utilizing the cathode recirculation method. Up to now, most
+is the reference voltage, t is the sampling moment.
+                                                                                               research has focused on the open-loop control and performance analysis
+         ∑
+         ∞
+                                                                                               of cathode recirculation, with limited exploration of its closed-loop
+TV =       |ui+1 − ui |                                                          (38)          control performance. To further clarify the effectiveness and superior­
+          i=0
+                                                                                               ity of the research results in this paper, we have compared the results
+    Furthermore, to evaluate the control costs, the total variation (TV) of                    with representative published studies. The detailed comparison results
+the controller input is calculated [49]. TV is defined as the input vari­                      are presented in Table 7. Specifically，in Ref. [46], researchers pro­
+ation to perform a control action and the expression is shown in equation                      posed a feedforward + fuzzy PID (SFF + FSPID) algorithm to suppress
+(38). The total variation of the manipulated variables allows a visual                         high potential. Under similar current step amplitudes, it can be observed
+representation of the smoothness of the input signal, especially in                            that there is no difference in static error between the two algorithms;
+
+Table 7
+Comparison of control effects between this study and previous research.
+  Stage                                       Controllers                           Evaluation indicators
+
+                                                                                    Overshoots                                 Static error                       Tuning time
+
+  Step-up                                     SFF + FSPID (ref. [46])               0.5 mV                                     0                                  2s
+                                              T-S MPC (this study)                  0                                          0                                  1s
+  Step-down                                   SFF + FSPID                           2 mV                                       0                                  0.5s
+                                              T-S MPC                               0                                          0                                  1s
+
+
+
+
+                                                                                        1025
+Z. Liu et al.                                                                                                    International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+
+both can accurately achieve steady-state tracking. However, in terms of               Acknowledgements
+dynamic response, the control algorithm in this paper exhibits almost no
+overshoot and can rapidly achieve target value tracking. This further                    This work was supported by the National Key R&D Program of China
+confirms the superiority of the approach proposed in this paper for                   under Grant 2017YFB0102802; and the Foundation of National Key
+automotive fuel cell systems. Overall, this paper enriches the previous               Laboratory for Compressor Technology.
+research findings, providing a new solution for the effective control of
+cathode recirculation in automotive PEMFCs.                                           References
+
+5. Conclusion                                                                          [1] Chen H, Liu Z, Ye X, Yi L, Xu S, Zhang T. Air flow and pressure optimization for air
+                                                                                           supply in proton exchange membrane fuel cell system. Energy 2022;238.
+                                                                                       [2] Zhao J, Li X. A review of polymer electrolyte membrane fuel cell durability for
+    In this study, the effect of cathode cycling on the voltage charac­                    vehicular applications: degradation modes and experimental techniques. Energy
+teristics of a proton exchange membrane fuel cell is investigated, and the                 Conversion and Management; 2019. p. 199.
+                                                                                       [3] Yuan X-Z, Li H, Zhang S, Martin J, Wang H. A review of polymer electrolyte
+electrochemical impedance spectroscopy is used to gain insight into the                    membrane fuel cell durability test protocols. J Power Sources 2011;196(22):
+cause from the perspective of internal polarization. On this theoretical                   9107–16.
+basis, in order to reduce the risk of high voltage suffered by automotive              [4] Yang B, Li J, Li Y, Guo Z, Zeng K, Shu H, et al. A critical survey of proton exchange
+                                                                                           membrane fuel cell system control: summaries, advances, and perspectives. Int J
+fuel cells at low loads and thus further improve the durability, an                        Hydrogen Energy 2022;47(17):9986–10020.
+optimal high-potential controller combining the T-S fuzzy and model                    [5] Daud WRW, Rosli RE, Majlan EH, Hamid SAA, Mohamed R, Husaini T. PEM fuel
+predictive control algorithms is developed. The main findings are as                       cell system control: a review. Renew Energy 2017;113:620–38.
+                                                                                       [6] Abdin Z, Webb CJ, Gray EM. PEM fuel cell model and simulation in
+follows:
+                                                                                           Matlab–Simulink based on physical parameters. Energy 2016;116:1131–44.
+                                                                                       [7] Chavan SL, Talange DB. Modeling and performance evaluation of PEM fuel cell by
+    (1) The relative humidity at the cathode inlet gradually increases                     controlling its input parameters. Energy 2017;138:437–45.
+        with the increase of the cycling ratio, but the rate of humidity               [8] Liu Y, Dirkes S, Kohrn M, Wick M, Pischinger S. A high-fidelity real-time capable
+                                                                                           dynamic discretized model of proton exchange membrane fuel cells for the
+        increase gradually decreases with the increase of the φ. Voltage is                development of control strategies. J Power Sources 2022:537.
+        more sensitive to changes in the φ at high currents than at low                [9] Pukrushpan JT, Peng H, Stefanopoulou AG. Control-oriented modeling and
+        currents. At φ = 1, the voltage drop rates are 2.2%, 3%, 4.6%,                     analysis for automotive fuel cell systems. Journal of Dynamic Systems
+                                                                                           Measurement and Control-Transactions of the Asme 2004;126(1):14–25.
+        5.8% and 7% when the current density is varied from 0 to 0.2A/                [10] Pukrushpan JT, Stefanopoulou AG, Peng H. Control of fuel cell power systems:
+        cm2, respectively.                                                                 principles, modeling, analysis and feedback design. Berlin, Germany: Springer;
+    (2) The electrochemical impedance spectroscopy results show that                       2004.
+                                                                                      [11] Pukrushpan JT, Stefanopoulou AG, Peng H. Control of fuel cell breathing. IEEE
+        the increase of the cathode cycling ratio exacerbates the polari­                  Control Syst Mag 2004;24(2):30–46.
+        zation impedance at the mid- and low-frequency. The obstruction               [12] Hou J, Yang M, Ke C, Zhang J. Control logics and strategies for air supply in PEM
+        of oxygen reduction reaction and the weakening of oxygen                           fuel cell engines. Appl Energy 2020;269.
+                                                                                      [13] Liu Z, Zhang B, Xu S. Research on air mass flow-pressure combined control and
+        diffusion rate are the direct causes of the increase in polarization               dynamic performance of fuel cell system for vehicles application. Appl Energy
+        impedance. On the contrary, the ohmic resistance gradually                         2022:309.
+        decreased with the increase of the φ, and the ohmic internal                  [14] Baroud Z, Benmiloud M, Benalia A, Ocampo-Martinez C. Novel hybrid fuzzy-PID
+                                                                                           control scheme for air supply in PEM fuel-cell-based systems. Int J Hydrogen
+        resistance decreased by 28.1% when φ = 1.
+                                                                                           Energy 2017;42(15):10435–47.
+    (3) T-S fuzzy-based multi-model scheduling method handles the                     [15] Liu Z, Chen H, Peng L, Ye X, Xu S, Zhang T. Feedforward-decoupled closed-loop
+        model mismatch problem in developing linear controllers.                           fuzzy proportion-integral-derivative control of air supply system of proton
+        Compared to PI and T-S LQG，the optimal T-S MPC method has                          exchange membrane fuel cell. Energy 2022:240.
+                                                                                      [16] Li Y, Pei P, Ma Z, Ren P, Huang H. Method for system parameter identification and
+        significant advantages in terms of disturbance suppression, fast                   controller parameter tuning for super-twisting sliding mode control in proton
+        response and stable tracking. The T-S MPC method reduced the                       exchange membrane fuel cell system. Energy Convers Manag 2021:243.
+        cumulative error by 62% and 30.4% and the dynamic error by                    [17] Sankar K, Jana AK. Nonlinear multivariable sliding mode control of a reversible
+                                                                                           PEM fuel cell integrated system. Energy Convers Manag 2018;171:541–65.
+        9.7% and 42.8%, respectively, over the previous two methods,                  [18] Matraji I, Ahmed FS, Laghrouche S, Wack M. Comparison of robust and adaptive
+        while the control costs are reduced by 55.5% and 16.7%,                            second order sliding mode control in PEMFC air-feed systems. Int J Hydrogen
+        respectively.                                                                      Energy 2015;40(30):9491–504.
+                                                                                      [19] Han J, Yu S, Yi S. Oxygen excess ratio control for proton exchange membrane fuel
+                                                                                           cell using model reference adaptive control. Int J Hydrogen Energy 2019;44(33):
+    Building upon this study, future research can further explore the                      18425–37.
+following aspects:                                                                    [20] Yang D, Pan R, Wang Y, Chen Z. Modeling and control of PEMFC air supply system
+                                                                                           based on T-S fuzzy theory and predictive control. Energy 2019:188.
+                                                                                      [21] Wang Y, Li H, Feng H, Han K, He S, Gao M. Simulation study on the PEMFC oxygen
+    (1) Validate the control algorithms by extending the testing from a                    starvation based on the coupling algorithm of model predictive control and PID.
+        software platform to an actual hardware platform, evaluating the                   Energy Conversion and Management; 2021. p. 249.
+                                                                                      [22] Li Q, Chen W, Liu Z, Guo A, Liu S. Control of proton exchange membrane fuel cell
+        responsiveness, stability, and accuracy of the algorithms in real-
+                                                                                           system breathing based on maximum net power control strategy. J Power Sources
+        world scenarios.                                                                   2013;241:212–8.
+    (2) Conduct further testing to assess the practical operational effects           [23] Yuan H, Dai H, Wei X, Ming P. Model-based observers for internal states estimation
+        of cathode recirculation in high-power automotive fuel cell                        and control of proton exchange membrane fuel cell system: a review. J Power
+                                                                                           Sources 2020:468.
+        systems.                                                                      [24] Liu J, Gao Y, Su X, Wack M, Wu L. Disturbance-observer-based control for air
+    (3) Verify the actual impact of cathode recirculation on durability                    management of PEM fuel cell systems via sliding mode technique. IEEE Trans
+        enhancement and assess its real-world effectiveness.                               Control Syst Technol 2019;27(3):1129–38.
+                                                                                      [25] Wang Y, Wang Y, Wang D, Chai T. Observer-based composite adaptive type-2 fuzzy
+                                                                                           control for PEMFC air supply systems. IEEE Trans Fuzzy Syst 2022;30(2):515–29.
+Declaration of competing interest                                                     [26] Niknezhadi A, Allué-Fantova M, Kunusch C, Ocampo-Martínez C. Design and
+                                                                                           implementation of LQR/LQG strategies for oxygen stoichiometry control in PEM
+                                                                                           fuel cells based systems. J Power Sources 2011;196(9):4277–82.
+    The authors declare that they have no known competing financial                   [27] Sun L, Shen J, Hua Q, Lee KY. Data-driven oxygen excess ratio control for proton
+interests or personal relationships that could have appeared to influence                  exchange membrane fuel cell. Appl Energy 2018;231:866–75.
+the work reported in this paper.                                                      [28] Abbaspour A, Khalilnejad A, Chen Z. Robust adaptive neural network control for
+                                                                                           PEM fuel cell. Int J Hydrogen Energy 2016;41(44):20385–95.
+                                                                                      [29] Damour C, Benne M, Lebreton C, Deseure J, Grondin-Perez B. Real-time
+                                                                                           implementation of a neural model-based self-tuning PID strategy for oxygen
+
+
+
+                                                                               1026
+Z. Liu et al.                                                                                                               International Journal of Hydrogen Energy 61 (2024) 1015–1027
+
+     stoichiometry control in PEM fuel cell. Int J Hydrogen Energy 2014;39(24):                  [40] Shao Y, Yin G, Gao Y. Understanding and approaches for the durability issues of Pt-
+     12819–25.                                                                                        based catalysts for PEM fuel cell. J Power Sources 2007;171(2):558–66.
+[30] Wang X, Chen J, Quan S, Wang Y-X, He H. Hierarchical model predictive control               [41] Shao Y, Xu L, Zhao X, Li J, Hu Z, Fang C, et al. Comparison of self-humidification
+     via deep learning vehicle speed predictions for oxygen stoichiometry regulation of               effect on polymer electrolyte membrane fuel cell with anodic and cathodic exhaust
+     fuel cells. Appl Energy 2020:276.                                                                gas recirculation. Int J Hydrogen Energy 2020;45(4):3108–22.
+[31] Chen F, Jiao J, Hou Z, Cheng W, Cai J, Xia Z, et al. Robust polymer electrolyte             [42] Jiang H, Xu L, Fang C, Zhao X, Hu Z, Li J, et al. Experimental study on dual
+     membrane fuel cell temperature tracking control based on cascade internal model                  recirculation of polymer electrolyte membrane fuel cell. Int J Hydrogen Energy
+     control. J Power Sources 2020:479.                                                               2017;42(29):18551–9.
+[32] Fang M, Wan X, Zou J. Development of a fuel cell humidification system and                  [43] Zhao X, Xu L, Fang C, Jiang H, Li J, Ouyang M. Study on voltage clamping and self-
+     dynamic control of humidity. Int J Energy Res 2022.                                              humidification effects of pem fuel cell system with dual recirculation based on
+[33] Quan S, Wang Y-X, Xiao X, He H, Sun F. Feedback linearization-based MIMO model                   orthogonal test method. Int J Hydrogen Energy 2018;43(33):16268–78.
+     predictive control with defined pseudo-reference for hydrogen regulation of                 [44] Liu Y, Tu Z, Chan SH. Performance analysis and dynamic characteristics of a proton
+     automotive fuel cells. Appl Energy 2021:293.                                                     exchange membrane fuel cell with dual recirculation pumps for air-free
+[34] Chen P-C. Robust voltage tracking control for proton exchange membrane fuel                      applications. J Power Sources 2023:566.
+     cells. Energy Convers Manag 2013;65:408–19.                                                 [45] Zhang Q, Tong Z, Tong S. Effect of cathode recirculation on high potential
+[35] Ye X, Zhang T, Chen H, Cao J, Chen J. Fuzzy control of hydrogen pressure in fuel                 limitation and self-humidification of hydrogen fuel cell system. J Power Sources
+     cell system. Int J Hydrogen Energy 2019;44(16):8460–6.                                           2020:468.
+[36] Hu D, Wang Y, Li J, Yang Q, Wang J. Investigation of optimal operating                      [46] Liu Z, Xu S, Guo S. High-potential control for durability improvement of the vehicle
+     temperature for the PEMFC and its tracking control for energy saving in vehicle                  fuel cell system based on oxygen partial pressure regulation under low-load
+     applications. Energy Convers Manag 2021:249.                                                     conditions. Int J Hydrogen Energy 2022;47(76):32607–27.
+[37] Damour C, Grondin D, Benne M, Grondin-Perez B, Deseure J, Chabriat JP.                      [47] Liu Y, Zhao J, Tu Z, Hwa Chan S. Optimization strategies to mitigate reactant
+     Innovative model-based control approach of a proton exchange membrane fuel cell                  starvation in a dead-ended hydrogen–oxygen proton exchange membrane fuel cell
+     system. J Power Sources 2012;206:144–52.                                                         during cyclic loading. Fuel 2024:357.
+[38] Chen X, Xu J, Liu Q, Chen Y, Wang X, Li W, et al. Active disturbance rejection              [48] Ciucci F, Chen C. Analysis of electrochemical impedance spectroscopy data using
+     control strategy applied to cathode humidity control in PEMFC system. Energy                     the distribution of relaxation times: a bayesian and hierarchical bayesian approach.
+     Conversion and Management; 2020. p. 224.                                                         Electrochim Acta 2015;167:439–54.
+[39] Wang Y-X, Chen Q, Zhang J, He H. Real-time power optimization for an air-coolant            [49] Skogestad S. Simple analytic rules for model reduction and PID controller tuning.
+     proton exchange membrane fuel cell based on active temperature control. Energy                   J Process Control 2003;13(4):291–309.
+     2021:220.
+
+
+
+
+                                                                                          1027
+

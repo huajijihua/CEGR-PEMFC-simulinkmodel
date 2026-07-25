@@ -2,6 +2,8 @@
 
 本目录保持平铺，避免破坏既有 scriptDir/../.. 相对路径。当前活动链收口为一个正式研究 runner、通用辅助脚本和一个 MATLAB unittest 入口；不按 Current/Power/Voltage、负载或研究工况复制脚本。
 
+平台重置规格审阅期间，本目录中的脚本只作为现状证据和兼容入口维护，不新增按边界、负载、策略或 Source_Conditioner 复制的脚本。新的活动 API 目标见 `04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_Platform_implementation-plan_v01.md`；当前 v10 初态链和 22 列 profile 尚未通过重置后的冷态/结构门禁。
+
 ## 正式核心
 
 | 分类 | 活动入口 | 职责 |

@@ -24,8 +24,8 @@ resetModelFromDisk(model, modelFile);
 refreshModelWorkspace(model);
 mw = get_param(model, 'ModelWorkspace');
 appliedParameterValues = applyParameterValues(mw, parameterValues);
-mw.assignin('routeA_cegr_enabled', true);
-mw.assignin('routeA_cegr_valve_mode_id', 1);
+mw.assignin('routeA_cegr_enabled', cfg.cegrEnabled);
+mw.assignin('routeA_cegr_valve_mode_id', cfg.cegrValveModeId);
 
 stackAreaCm2 = mw.getVariable('stack_area');
 stackIL = mw.getVariable('stack_iL');
@@ -101,11 +101,29 @@ metadata.preconditioning = struct( ...
     'rampDuration_s', cfg.loadRampDuration_s, ...
     'voltageNoLoadMargin_V', cfg.voltageNoLoadMargin_V, ...
     'purpose', "physical_hot_start_preconditioning");
-metadata.egrTargetRatio = 0;
-metadata.cegrTopologyEnabled = true;
-metadata.cegrValveModeId = 1;
-metadata.egrReferenceKind = "mode1_zero_target_near_zero";
+metadata.egrTargetRatio = cfg.egrTargetRatio;
+metadata.cegrTopologyEnabled = cfg.cegrEnabled;
+metadata.cegrValveModeId = cfg.cegrValveModeId;
+metadata.egrControlModeId = cfg.egrControlModeId;
+if ~cfg.cegrEnabled
+    metadata.egrReferenceKind = "topology_disabled";
+elseif cfg.cegrValveModeId == 1
+    metadata.egrReferenceKind = "mode1_zero_target_near_zero";
+else
+    metadata.egrReferenceKind = "mode0_closed";
+end
 metadata.cegrValveMaxArea_m2 = cegrValveMaxArea_m2;
+metadata.egrPipeCondensationEnabled = cfg.egrPipeCondensationEnabled;
+metadata.egrPipeInitialPressure_MPa = cfg.egrPipeInitialPressure_MPa;
+metadata.egrPipeInitialTemperature_C = cfg.egrPipeInitialTemperature_C;
+metadata.egrPipeInitialMassFractions = cfg.egrPipeInitialMassFractions;
+metadata.egrPipeInitialMoleFractions = cfg.egrPipeInitialMoleFractions;
+metadata.anodeExhaustPipeInitialPressure_MPa = ...
+    cfg.anodeExhaustPipeInitialPressure_MPa;
+metadata.anodeExhaustPipeInitialTemperature_C = ...
+    cfg.anodeExhaustPipeInitialTemperature_C;
+metadata.anodeExhaustPipeInitialMoleFractions = ...
+    cfg.anodeExhaustPipeInitialMoleFractions;
 metadata.snapshotTimeS = initialState.snapshotTime;
 metadata.normalOperationPhase = 'post_anode_purge_quiet_window_end';
 metadata.purgePeriodS = periodic.period_s;
@@ -136,6 +154,18 @@ cfg.loadInputType = "Current";
 cfg.targetCurrentA = NaN;
 cfg.targetPower_kW = NaN;
 cfg.targetVoltage_V = NaN;
+cfg.cegrValveModeId = 1;
+cfg.cegrEnabled = true;
+cfg.egrControlModeId = 1;
+cfg.egrPipeCondensationEnabled = true;
+cfg.egrPipeInitialPressure_MPa = [];
+cfg.egrPipeInitialTemperature_C = [];
+cfg.egrPipeInitialMassFractions = [];
+cfg.egrPipeInitialMoleFractions = [];
+cfg.anodeExhaustPipeInitialPressure_MPa = [];
+cfg.anodeExhaustPipeInitialTemperature_C = [];
+cfg.anodeExhaustPipeInitialMoleFractions = [];
+cfg.egrTargetRatio = 0;
 cfg.loadRampStartTime_s = 0.5;
 cfg.loadRampDuration_s = 120;
 cfg.voltageNoLoadMargin_V = 20;
@@ -172,6 +202,67 @@ validateattributes(cfg.currentDensity_A_cm2, {'numeric'}, ...
     {'scalar', 'positive', 'finite'});
 validateattributes(cfg.targetAirEquivalentOer, {'numeric'}, ...
     {'scalar', 'positive', 'finite'});
+validateattributes(cfg.cegrValveModeId, {'numeric'}, ...
+    {'scalar', 'integer', '>=', 0, '<=', 1});
+validateattributes(cfg.cegrEnabled, {'logical', 'numeric'}, {'scalar'});
+cfg.cegrEnabled = logical(cfg.cegrEnabled);
+validateattributes(cfg.egrControlModeId, {'numeric'}, ...
+    {'scalar', 'integer', '>=', 1, '<=', 2});
+validateattributes(cfg.egrPipeCondensationEnabled, {'logical', 'numeric'}, ...
+    {'scalar'});
+cfg.egrPipeCondensationEnabled = logical(cfg.egrPipeCondensationEnabled);
+if ~isempty(cfg.egrPipeInitialPressure_MPa)
+    validateattributes(cfg.egrPipeInitialPressure_MPa, {'numeric'}, ...
+        {'scalar', 'positive', 'finite'});
+end
+if ~isempty(cfg.egrPipeInitialTemperature_C)
+    validateattributes(cfg.egrPipeInitialTemperature_C, {'numeric'}, ...
+        {'scalar', 'finite'});
+end
+if ~isempty(cfg.egrPipeInitialMassFractions)
+    validateattributes(cfg.egrPipeInitialMassFractions, {'numeric'}, ...
+        {'vector', 'finite', 'nonnegative'});
+    cfg.egrPipeInitialMassFractions = reshape( ...
+        cfg.egrPipeInitialMassFractions, [], 1);
+    if numel(cfg.egrPipeInitialMassFractions) ~= 4 || ...
+            abs(sum(cfg.egrPipeInitialMassFractions) - 1) > 1e-9
+        error('RouteA:ParameterPreconditionEgrPipeComposition', ...
+            'egrPipeInitialMassFractions must be a four-species unit vector.');
+    end
+end
+if ~isempty(cfg.egrPipeInitialMoleFractions)
+    validateattributes(cfg.egrPipeInitialMoleFractions, {'numeric'}, ...
+        {'vector', 'finite', 'nonnegative'});
+    cfg.egrPipeInitialMoleFractions = reshape( ...
+        cfg.egrPipeInitialMoleFractions, [], 1);
+    if numel(cfg.egrPipeInitialMoleFractions) ~= 4 || ...
+            abs(sum(cfg.egrPipeInitialMoleFractions) - 1) > 1e-9
+        error('RouteA:ParameterPreconditionEgrPipeComposition', ...
+            'egrPipeInitialMoleFractions must be a four-species unit vector.');
+    end
+end
+if ~isempty(cfg.anodeExhaustPipeInitialPressure_MPa)
+    validateattributes(cfg.anodeExhaustPipeInitialPressure_MPa, ...
+        {'numeric'}, {'scalar', 'positive', 'finite'});
+end
+if ~isempty(cfg.anodeExhaustPipeInitialTemperature_C)
+    validateattributes(cfg.anodeExhaustPipeInitialTemperature_C, ...
+        {'numeric'}, {'scalar', 'finite'});
+end
+if ~isempty(cfg.anodeExhaustPipeInitialMoleFractions)
+    validateattributes(cfg.anodeExhaustPipeInitialMoleFractions, ...
+        {'numeric'}, {'vector', 'finite', 'nonnegative'});
+    cfg.anodeExhaustPipeInitialMoleFractions = reshape( ...
+        cfg.anodeExhaustPipeInitialMoleFractions, [], 1);
+    if numel(cfg.anodeExhaustPipeInitialMoleFractions) ~= 4 || ...
+            abs(sum(cfg.anodeExhaustPipeInitialMoleFractions) - 1) > 1e-9
+        error('RouteA:ParameterPreconditionAnodeExhaustComposition', ...
+            ['anodeExhaustPipeInitialMoleFractions must be a four-', ...
+            'species unit vector.']);
+    end
+end
+validateattributes(cfg.egrTargetRatio, {'numeric'}, ...
+    {'scalar', 'finite', '>=', 0, '<=', 1});
 cfg.loadInputType = string(cfg.loadInputType);
 if ~isscalar(cfg.loadInputType) || ...
         ~any(cfg.loadInputType == ["Current", "Power", "Voltage"])
@@ -304,11 +395,51 @@ in = Simulink.SimulationInput(model);
     'SaveOperatingPoint', 'on');
 in = in.setBlockParameter(cfg.loadPath, 'input_type', ...
     char(cfg.loadInputType));
+in = in.setVariable('routeA_cegr_enabled', cfg.cegrEnabled, ...
+    'Workspace', model);
 in = in.setVariable('routeA_air_control_mode_id', 2, 'Workspace', model);
-in = in.setVariable('routeA_egr_control_mode_id', 1, 'Workspace', model);
-in = in.setVariable('routeA_cegr_valve_mode_id', 1, 'Workspace', model);
+in = in.setVariable('routeA_egr_control_mode_id', cfg.egrControlModeId, ...
+    'Workspace', model);
+in = in.setVariable('routeA_cegr_valve_mode_id', cfg.cegrValveModeId, ...
+    'Workspace', model);
 in = in.setVariable('routeA_egr_target_input_mode_id', 1, ...
     'Workspace', model);
+if cfg.egrPipeCondensationEnabled
+    egrPipeIsCond = '[0; 0; 0; 1]';
+else
+    egrPipeIsCond = '[0; 0; 0; 0]';
+end
+egrPipePath = [model '/Cathode_Air_cEGR_BOP/EGRPipe'];
+in = in.setBlockParameter(egrPipePath, 'isCond', egrPipeIsCond);
+if ~isempty(cfg.egrPipeInitialPressure_MPa)
+    in = in.setBlockParameter(egrPipePath, 'p0', ...
+        sprintf('%.16g', cfg.egrPipeInitialPressure_MPa));
+end
+if ~isempty(cfg.egrPipeInitialTemperature_C)
+    in = in.setBlockParameter(egrPipePath, 'T0', ...
+        sprintf('%.16g', cfg.egrPipeInitialTemperature_C));
+end
+if ~isempty(cfg.egrPipeInitialMassFractions)
+    in = in.setBlockParameter(egrPipePath, 'x0', ...
+        mat2str(cfg.egrPipeInitialMassFractions, 16));
+end
+if ~isempty(cfg.egrPipeInitialMoleFractions)
+    in = in.setBlockParameter(egrPipePath, 'y0', ...
+        mat2str(cfg.egrPipeInitialMoleFractions, 16));
+end
+anodeExhaustPipePath = [model '/Anode_Hydrogen_BOP/Anode Exhaust/Pipe (FC)'];
+if ~isempty(cfg.anodeExhaustPipeInitialPressure_MPa)
+    in = in.setBlockParameter(anodeExhaustPipePath, 'p0', ...
+        sprintf('%.16g', cfg.anodeExhaustPipeInitialPressure_MPa));
+end
+if ~isempty(cfg.anodeExhaustPipeInitialTemperature_C)
+    in = in.setBlockParameter(anodeExhaustPipePath, 'T0', ...
+        sprintf('%.16g', cfg.anodeExhaustPipeInitialTemperature_C));
+end
+if ~isempty(cfg.anodeExhaustPipeInitialMoleFractions)
+    in = in.setBlockParameter(anodeExhaustPipePath, 'y0', ...
+        mat2str(cfg.anodeExhaustPipeInitialMoleFractions, 16));
+end
 if isempty(initialState)
     modelStartTime_s = 0;
     rampEndTime_s = cfg.loadRampStartTime_s + cfg.loadRampDuration_s;
@@ -544,7 +675,7 @@ condition = struct( ...
         mw.getVariable('routeA_anode_purge_on_n2_mole_fraction'), ...
     'anodePurgeOffN2MoleFraction', ...
         mw.getVariable('routeA_anode_purge_off_n2_mole_fraction'), ...
-    'cegrTargetRatio', 0, ...
+    'cegrTargetRatio', cfg.egrTargetRatio, ...
     'solverStartTime_s', 0, ...
     'postPurgeOffset_s', cfg.postPurgeOffset_s, ...
     'postPurgeQuietWindow_s', cfg.postPurgeQuietWindow_s);
@@ -557,10 +688,10 @@ if numel(baseline) ~= 22 || any(~isfinite(baseline))
     error('RouteA:ParameterPreconditionCommandProfile', ...
         'The model workspace has no valid 22-column v10 command baseline.');
 end
-% The conditioning state is still zero-cEGR, but its complete physical
-% source and BoP command state is supplied through the common runtime path.
+% The conditioning cEGR target and its complete physical source/BoP command
+% state are supplied through the common runtime path.
 baseline(6) = cfg.targetAirEquivalentOer;
-baseline(11) = 0;
+baseline(11) = cfg.egrTargetRatio;
 end
 
 function command = baselineElectricalCommand(cfg, summary)

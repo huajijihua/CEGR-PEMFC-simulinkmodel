@@ -1,0 +1,479 @@
+                            i n t e r n a t i o n a l j o u r n a l o f h y d r o g e n e n e r g y 4 2 ( 2 0 1 7 ) 1 8 5 5 1 e1 8 5 5 9
+
+
+
+                                                   Available online at www.sciencedirect.com
+
+                                                                ScienceDirect
+
+                                           journal homepage: www.elsevier.com/locate/he
+
+
+
+Experimental study on dual recirculation of
+polymer electrolyte membrane fuel cell
+
+Hongliang Jiang a,b,1, Liangfei Xu a,b,c,1, Chuan Fang a,b,1,
+Xingwang Zhao a,b,1, Zunyan Hu a,b,1, Jianqiu Li a,b,*,1,
+Minggao Ouyang a,b,**,1
+a
+  State Key Lab of Automotive Safety and Energy, Tsinghua University, Beijing 100084, PR China
+b
+  Collaborative Innovation Center of Electric Vehicles in Beijing, Beijing 100081, PR China
+c
+  Institute of Energy and Climate Research, IEK-3: Electrochemical Process Engineering, Forschungszentrum Jülich
+GmbH, 52425 Jülich, Germany
+
+
+
+article info                                       abstract
+
+Article history:                                   Durability and start-up ability in sub-zero environment are two technical bottlenecks of
+Received 21 February 2017                          vehicular polymer electrolyte membrane (PEM) fuel cell systems. With exhaust gas recir-
+Received in revised form                           culation on the anode and cathode side, the cell voltage at low current density can be
+1 April 2017                                       reduced, and the membrane can be humidified without external humidifier. They may be
+Accepted 18 April 2017                             helpful to prolong the working lifetime and to promote the start-up ability. This paper
+Available online 10 May 2017                       presents an experimental study on a PEM fuel cell system with anodic and cathodic
+                                                   recirculation. The system is built up based on a 10 kW fuel cell stack, which consists of
+Keywords:                                          50 cells and has an active area of 261 cm2. A cathodic recirculation pump and a hydrogen
+Polymer electrolyte membrane fuel                  recirculation pump are utilized on the cathode and anode side, respectively. Key param-
+cell                                               eters, e.g., stack current, stack voltage, cell voltage, air flow, relative humidity on the
+Anodic recirculation                               cathode side, oxygen concentration at the inlet and outlet of the cathode side, are
+Cathodic recirculation                             measured. Results show that: 1) with a cathodic recirculation the system gets good self-
+Voltage clamping                                   humidification effect, which is similar to that with an external humidifier; 2) with a
+Self-humidification                                cathodic recirculation and a reduction of fresh air flux, the cell voltage can be obviously
+Durability                                         reduced; 3) with an anodic recirculation the cell voltage can also be reduced due to a
+                                                   reduction in the hydrogen partial pressure, the relative humidity on the cathode side is a
+                                                   little smaller than the case with only cathode recirculation. It indicates that, for our stack
+                                                   the cathodic recirculation is effective to clamp cell voltage at low current density, and a
+                                                   self-humidification system is possible with cathodic recirculation. Further study will focus
+                                                   on the dynamic model and control of the dual recirculation fuel cell system.
+                                                     © 2017 Hydrogen Energy Publications LLC. Published by Elsevier Ltd. All rights reserved.
+
+
+
+
+  * Corresponding author. State Key Lab of Automotive Safety and Energy, Tsinghua University, Beijing 100084, PR China.
+ ** Corresponding author. State Key Lab of Automotive Safety and Energy, Tsinghua University, Beijing 100084, PR China.
+    E-mail addresses: jhl15@mails.tsinghua.edu.cn (H. Jiang), xuliangfei@tsinghua.edu.cn (L. Xu), fangc14@mails.tsinghua.edu.cn
+(C. Fang), zxw16@mails.tsinghua.edu.cn (X. Zhao), huzy14@mails.tsinghua.edu.cn (Z. Hu), lijianqiu@tsinghua.edu.cn (J. Li), ouymg@
+tsinghua.edu.cn (M. Ouyang).
+  1
+    Fax: þ86 10 62785708.
+http://dx.doi.org/10.1016/j.ijhydene.2017.04.183
+0360-3199/© 2017 Hydrogen Energy Publications LLC. Published by Elsevier Ltd. All rights reserved.
+18552                      i n t e r n a t i o n a l j o u r n a l o f h y d r o g e n e n e r g y 4 2 ( 2 0 1 7 ) 1 8 5 5 1 e1 8 5 5 9
+
+
+
+                                                                                   reduced, which reduces the voltage of fuel cell at open circuit
+Introduction                                                                       or low current conditions. Although simply reducing inlet air
+                                                                                   or hydrogen flow rate can also reduce cell voltage, nonuni-
+Air pollution and energy crisis bring strict restrictions on                       formity of reactant distribution becomes severe. Breault et al.
+vehicle emission and energy consumption. Polymer electro-                          [19] and Thomas et al. [20] proposed different cathodic recir-
+lyte membrane (PEM) Fuel Cell Electric Vehicle (FCEV) is one of                    culation systems for inlet air humidification. Kim et al. [21]
+the most promising vehicles in the future with the advantages                      studied exhaust gas recirculation of fuel cell by theoretical
+of zero emission, high efficiency and the probability of using                     and experimental methods, and validated its humiliation ef-
+renewable energy, and it has been research hotspot for a long                      fect. Test with a 5-cell stack showed that, performance with
+time [1,2]. However, there are still bottlenecks that block the                    an exhaust gas recirculation is a little less than that with a
+rapid commercialization of FCEVs. Durability and start-up                          membrane humidifier. Hu et al. [22] studied the relationship
+ability in sub-zero environment are two of them [2e4].                             between cathodic recirculation rate and the internal water
+    Durability is a big challenge in vehicular fuel cell applica-                  content of fuel cell through modeling and simulation. Water
+tions. There are different factors that influent the working                       management strategy is proposed based on cathodic recircu-
+lifetime of a fuel cell. Among them, the high potential in idle or                 lation. Cheng et al. [23] proposed an air supply strategy based
+low load states is a key one. Previous researches showed that,                     on a cathodic EGR in order to keep cell voltage under 0.8 V and
+operating in high potential state leads to a dissolution of                        to improve the lifetime of fuel cell in the method of modeling
+Platinum catalyst and an corrosion of carbon material, thus it                     and simulation.
+accelerates the degradation of fuel cell [5e8]. Experimental                           From above it is known that, most of the recent studies
+study by Noto et al. [9] showed that fuel cell performance                         related to gas recirculation of a fuel cell system focus on EGRs
+degradation rate under potential cycling from 0.65 V to open                       on one side, and are conducted theoretically. An experimental
+circuit voltage (OCV) was more than 6 times than that from                         study for a system with dual recirculation is really rare. This
+0.65 V to 0.85 V. However, in most cases of automotive appli-                      paper presents an experimental study on a PEM fuel cell sys-
+cations, idle and low-load states are ineluctable, because the                     tem with anodic and cathodic recirculation. A fuel cell system
+output power of a fuel cell engine is determined by working                        with a 10 kW, 50 cells, 261 cm2 fuel cell stack is built up to
+conditions of the vehicle. Reducing cell voltage in low current                    realize anodic and cathodic recirculation, and key parameters
+density is therefore necessary in order to increase the lifetime                   are measured. Self-humidification and voltage clamping
+of a fuel cell.                                                                    functions of cathodic recirculation are verified and the results
+    Inlet gas humidification has great impact on the perfor-                       are analyzed afterward.
+mance of fuel cell, and it associates with the ionic conduc-                           The remaining content of this paper is organized as follow.
+tivity of membrane [10]. So usually one or two external                            Section System structure introduces the built fuel cell system.
+humidifiers is needed to avoid dehydration of membrane,                            Active voltage clamping and self-humidification are theoreti-
+which becomes an obstacle to fast star-up in sub-zero envi-                        cally analyzed in Section Theoretical analysis. Experimental
+ronment. When a fuel cell system is equipped with an                               study and results are presented in Section Experimental
+external humidifier, it normally takes a long time to heat the                     study. Conclusions are presented in Section Conclusion.
+water that is contained in the humidifier. Thus, it is an
+essential step to remove the external humidifier for short-
+ening the start-up time.                                                           System structure
+    Several studies have been conducted for technologies on
+self-humidification and voltage clamping. One possibility is to                    The experiments presented in this paper are conducted on a
+use exhaust gas recirculation systems. With exhaust gas                            system based on a 10 kW PEMFC test platform. Physical
+recirculation on the anode or the cathode side, the cell voltage                   appearance and schematic of the test system are shown in
+at low current density can be reduced, and the membrane can                        Figs.1 and 2, respectively. It consists of air supply system,
+be humidified without an external humidifier. They may be                          hydrogen supply system, cooling system, cell voltage monitor
+helpful to prolong the working lifetime and to promote the                         and an electric load. The specifications of the testbench are
+start-up ability.                                                                  listed in Table 1. The main function of the test bench is to
+    Exhaust gas recirculation (EGR) can be designed for the                        control the flow rate of air and hydrogen. Humidification is
+anode or the cathode system. A lot of researches on anodic                         also available on both anode and cathode sides. A membrane
+recirculation of PEMFC have been carried out. Different types                      humidifier is utilized on the cathode side, and a bubble hu-
+of recirculation system, including systems with recirculation                      midifier is utilized on the anode side. A cathodic recirculation
+pump [11,12], injection pump [13e15] or pumpless system                            pump is used to recycle part of the cathode exhaust gas to the
+[16,17], have been studied in order to improve fuel consump-                       cathode inlet, and a back-up pressure valve is used to control
+tion and realize humidification of hydrogen. Toyota has                            the cathode pressure. Hydrogen recirculation is built up in the
+developed a novel fuel cell system for its FCEV Mirai. Self-                       same way as cathode. A purge valve and a bypass valve in the
+humidification is realized through H2 recirculation and spe-                       anode outlet provide different operation modes for the anode
+cial cell structure [18].                                                          system (i.e. the direct through mode, the dead-end mode, and
+    In a fuel cell system with cathodic recirculation, part of the                 the recirculation mode). The cooling system keeps the stack
+cathode exhaust gas, which has high temperature and high                           temperature within a proper range, and the cell voltage
+humidity, is re-circulated to be mixed with fresh air. The inlet                   monitoring system measures and records all the single cell
+gas in cathode is humidified and the oxygen concentration is                       voltages and the total voltage of the stack. In order to monitor
+                            i n t e r n a t i o n a l j o u r n a l o f h y d r o g e n e n e r g y 4 2 ( 2 0 1 7 ) 1 8 5 5 1 e1 8 5 5 9                18553
+
+
+
+
+                                                 Fig. 1 e Physical appearance of the system.
+
+
+
+
+                                                   Fig. 2 e Schematic of the overall system.
+
+
+
+                                                                                    Theoretical analysis
+ Table 1 e Specifications of testbench.
+ Parameters                                              Values                     The theoretical            analysis       is   based   on   the   following
+ Max test power                                 20 kW/600 V/600 A                   assumptions:
+ Max flow rate (anode)                          250 L/min
+ Max flow rate (cathode)                        750 L/min                            1. The system works in a steady state.
+ Max gas temperature (anode)                    85  C                               2. Each gas is considered as an ideal gas.
+ Max gas temperature (cathode)                  80  C
+                                                                                     3. Mole fraction of water in ambient air is relatively small so it
+ Humidification (anode)                         Bubble humidifier,
+                                                dew point control
+                                                                                        is neglected. Other components of air except oxygen and
+ Humidification (cathode)                       Membrane humidifier,                    nitrogen are also neglected.
+                                                dew point control                    4. Hydrogen fraction in gas from hydrogen tank is considered
+                                                                                        as 100%.
+the relative humidity and oxygen concentration of inlet air, a                       5. Nitrogen accumulation in anode is neglected since gas
+humidity sensor is installed in the inlet of the cathode side,                          purging is applied in anode in this study, which removes
+and two oxygen sensors are placed in the inlet and outlet of                            condensed water and accumulated nitrogen.
+the cathode side, respectively.                                                      6. Water condensation is neglected during gas mixture.
+18554                                i n t e r n a t i o n a l j o u r n a l o f h y d r o g e n e n e r g y 4 2 ( 2 0 1 7 ) 1 8 5 5 1 e1 8 5 5 9
+
+
+
+    Part of the cathode exhaust gas, whose temperature and                                   respectively; xi,in,an and xi,out,ca (i ¼ H2, vap) represent molar
+humidity are high, is recirculated and mixed with fresh air in                               fractions of gas species in anode inlet and outlet gas,
+the fuel cell system with cathodic recirculation. Eqs. (1)e(3)                               respectively.
+show the flow rate in mole/s of oxygen, nitrogen and water,                                     The control factors of anode subsystem is recirculation flux
+W_ O ;in;ca , W_ N ;in;ca and W_ vap;in;ca , in the inlet of cathode ac-                     Wre;an . According to this Eqs. (8) and (9), increase of anodic
+    2             2
+
+cording to species conservation.                                                             recirculation flux will increase the inlet humidity of anode
+                                                                                             inlet gas, which can be reflected on the decrease of hydrogen
+W_ O ;in;ca ¼ Wdry;ca $xO ;dry;ca þ Wre;ca $xO ;out;ca
+    2                    2                    2                                              fraction in anode inlet gas.
+           ¼ Wdry;ca $xO2 ;dry;ca þ a$Wex;ca $xO2 ;out;ca                          (1)          Voltage of fuel cell can be described as following equation,
+                                                                                             where Vnernst is Nernst voltage and DVohm , DVact and DVtrans
+W_ N ;in;ca ¼ Wdry;ca $xN ;dry;ca þ Wre;ca $xN ;out                                          stand for ohmic loss, activation loss and mass transfer loss
+    2                    2                    2
+                                                                                             respectively.
+           ¼ Wdry;ca $xN2 ;dry;ca þ a$Wex;ca $xN2 ;out;ca                          (2)
+                                                                                             V ¼ Vnernst  DVohm  DVact  DVtrans                         (10)
+W_ vap;in;ca ¼ Wre $xvap;out;ca ¼ a$Wex;ca $xvap;out;ca                            (3)
+                                                                                                Nernst voltage shown in Eq. (7), where V0 is the reversible
+   Here, Wdry;ca , Wex;ca and Wre;ca stand for flow rate of dry air                          cell potential at standard pressure. R ¼ 8:31 J=ðmol$KÞ is the
+                                                                                                                                        1
+from compressor, exhaust air and recirculated exhaust air,                                   ideal gas constant and F ¼ 96; 485 C$mol       is the faraday
+respectively; xi,dry,ca, xi, out, ca and xi,in,ca (i ¼ O2, N2, vap)                          constant. T is the cell temperature in Kelvin, pH2 ;an and pO2 ;ca
+represent molar fractions of gas species in dry air, exhaust air                             are the partial pressures of hydrogen and oxygen gases in the
+and inlet air, respectively. Recirculation ratio, a, is defined as                           anode and cathode respectively while p0 is the ambient
+the ratio of the recirculated exhaust gas to the overall exhaust                             pressure.
+gas in cathode. The molar fraction of oxygen and water vapor                                                                         
+in the cathode inlet gas can be derived from equations, as                                                      RT    pH ;an 1 pO ;ca
+                                                                                             Vnernst ¼ V0 þ         ln 2 þ ln 2                            (11)
+                                                                                                                2F     p0    2  p0
+shown in following equation.
+                                                                                                Ohmic loss is proportional to operating current I and ohmic
+                        W _ O ;in;ca
+xO2 ;in;ca ¼                 2                                                               resistant Rohm , which is usually associated with hydration of
+            _            _
+           WO2 ;in;ca þ WN2 ;in;ca þ W _ vap;in;ca
+                                                                                             proton exchange membrane.
+                       xO2 ;dry;ca  xO2 ;out;ca
+         ¼ xO2 ;dry                                                             (4)
+                      Wdry;ca ðWex;ca $a þ 1                                                 DVohm ¼ I$Rohm                                                (12)
+
+                                                                                                Activation voltage loss can be calculated using Tafel
+                         W_ vap;in;ca                    x
+xvap;in;ca ¼                                     ¼       vap;out;ca                        equation, as shown in Eq. (9) [24], where In is the internal
+              _           _
+             WO ;in;ca þ WN ;in;ca þ W_ vap;in;ca Wdry;ca ðWex;ca $a þ 1
+                   2           2                                                             current due to fuel crossover, and I0 is the exchange current,
+                                                                                   (5)       and a is the charge transfer coefficient.
+     The control factors of cathode subsystem are the dry air                                                         
+                                                                                                        RT      I þ In
+flow rate Wdry, ca and recirculation ratio a. According to this                              DVact ¼        ln                                             (13)
+                                                                                                        2aF       I0
+equation, concentration of oxygen will decrease as the in-
+crease of a. Dry air flow rate has no significant influence on                                  Concentration voltage loss is caused by mass transfer, and
+xO2 ;in;ca , since the increase of inlet gas flow rate will cause in-                        usually appears at high current loads. It can be express as Eq.
+crease of exhaust gas. And the concentration of oxygen is al-                                (10), according to Larminie [24], where I1 is limiting current at
+ways lower than that without recirculation, i.e. in dry air. In                              which the fuel is used up at a rate equal to its maximum
+Eq. (5), it is obvious that mole fraction of water increases as the                          supply speed.
+increase of recirculation ratio and effect of dry air flow rate is                                                
+                                                                                                        RT       I
+also not significant. This is also the basic of humidification of                            DVtrans ¼  ln 1                                             (14)
+                                                                                                        2F      I1
+cathodic recirculation.
+     For the anodic recirculation, similar theoretical Eqs. (6)e(9)                             In this study, low current operation point is studied so
+can be deduced.                                                                              ohmic loss and mass transfer loss are not considered. Acti-
+                                                                                             vation loss is cause by electrochemical reactions. Nernst
+W_ H ;in;an ¼ Wtank þ Wre;an $xH ;out;an                                           (6)       voltage is associated with oxygen partial pressure and there-
+    2                           2
+
+                                                                                             fore can be affect through cathodic recirculation.
+W_ vap;in;an ¼ Wre;an $xvap;out;an                                                 (7)          Therefore, in order to reduce cell voltage at low current
+                                                                                             operation point, partial pressure of oxygen needs to be
+                        _ H ;in;an                                                           reduced. Partial pressure of oxygen in cathode is not only
+                      W                            1  xH2 ;out;an
+xH2 ;in;an ¼               2
+                                            ¼1                                   (8)       positively associated with oxygen concentration but also with
+                _
+               WH2 ;in;an þ W   _ vap;in;an     Wtank;an Wre;an þ 1
+                                                                                             total pressure. Simply applying cathodic recirculation would
+                                                                                             lower inlet oxygen concentration but also increase total
+                      W _ vap;in;an              xvap;out;an
+xvap;in;an ¼                               ¼                                      (9)       pressure in cathode. According to the analysis above, fresh air
+               W_ H ;in;an þ W  _ vap;in;an Wtank;an Wre;an þ 1
+                   2                                                                         flux should be reduced together with the application of
+   Here, Wtank;an and Wre;an stand for flow rate of hydrogen                                 cathodic recirculation to achieve better voltage clamping
+from tank and recirculated exhaust gas from anode,                                           effect.
+                           i n t e r n a t i o n a l j o u r n a l o f h y d r o g e n e n e r g y 4 2 ( 2 0 1 7 ) 1 8 5 5 1 e1 8 5 5 9       18555
+
+
+
+Experimental study                                                                   Table 3 e Experiments condition.
+                                                                                     Parameters                                             Values
+Experimental procedure                                                               Pressure at anode outlet (atm)                          1
+                                                                                     Pressure at cathode outlet (atm)                        1
+The fuel cell stack used in this study is a 50-cell, 261 cm2 stack                   Flow rate of inlet H2 (L/min)                           30
+with metallic bipolar plate. The specifications of the stack are                     Flow rate of inlet fresh air (L/min)                    20e110
+shown in Table 2. As shown in Table 3, during the experi-                            Coolant flow rate (L/min)                               22
+                                                                                     Temp. of coolant inlet ( C)                            68
+ments, stack temperature is control at 68  C. As the stack
+works at low current point in the experiments, air and
+hydrogen flow rate are set to fix value, 110 L/min and 30 L/min
+respectively, referenced to the recommended minimum value                          voltage drops, as shown in Fig. 3(b). During the cathodic
+of the stack.                                                                      recirculation operation, the anodic recirculation pump is
+    Two experiments are carried out. In the first experiment,                      turned on at the timing t2, and turned off at the timing t3. It can
+the fuel cell stack works at a constant current of 31 A (119 mA/                   be seen that, due to the opening of the anodic pump, the cell
+cm2), the inlet air is humidified and the inlet hydrogen is not                    voltage drops slightly, and the relative humidity of inlet air
+humidified. Anode is set to dead-end mode, and purge valve                         drops from 98% to about 90%.
+opens for 600 ms each 15 s. Then, the membrane humidifier                             Fig. 4(a, b) illustrates the oxygen and hydrogen concen-
+on the cathode side is turned off at t0, while the current is                      trations of inlets and outlets on the cathode and anode side.
+unchanged. After the voltage became stable, cathodic recir-                        Neglecting nitrogen in anode inlet and outlet gas, vapor con-
+culation is applied by turning on the cathodic recirculation                       centration can be calculated based on hydrogen concentra-
+pump. At the same time, effect of anodic recirculation is also                     tion, as shown in (b) in Fig. 4. When anodic recirculation turns
+study during the test. Variations of current, average cell                         on at t2, 1) hydrogen molar fraction in the anode inlet de-
+voltage, pump speed and humidity of inlet air are presented in                     creases, which means that the molar fraction of water in the
+Fig. 3.                                                                            anode inlet increases; 2) hydrogen molar fraction in the anode
+    In the second experiment, inlet fresh air flow rate and                        outlet increases, which means that the water molar fraction in
+cathodic recirculation are applied simultaneously to study the                     the anode outlet decreases; 3) oxygen water molar fraction
+voltage clamping effect of cathodic recirculation. In this                         both in the cathode inlet and outlet increases, which means
+experiment, fuel cell stack works at constant value of 31 A                        that the water molar fraction in the cathode side decreases.
+(119 mA/cm2), the speed of cathodic recirculation pump in-                            It indicated that, when the anode recirculation pump is
+creases from 0 to 3000 r min1, and the flow rate of fresh air                     turned on, the water molar fraction on the cathode side and
+decreases from 110 to 20 L/min. Variation of current, average                      on the anode outlet decreases. This can be explained as fol-
+cell voltage, pump speed and concentration of oxygen in inlet                      lows. 1) The reduction of relative humidity on the cathode side
+air are presented in Fig. 5. In order to investigate the voltage                   is mainly due to the water transport through the membrane.
+reduction effect, same experiment is performed at another                          When the anode recirculation pump is turned on, some water
+operation point, 14 A (54 mA/cm2).                                                 flux goes through the membrane from cathode to anode,
+                                                                                   leading to a slightly reduction in the water content on the
+Results and discussion                                                             cathode side. 2) When the anode recirculation pump is off
+                                                                                   before t2, water accumulates at the anode outlet. When it is
+As shown in Fig. 3(b), voltage drops down gradually during the
+                                                                                   turned on, the water goes out of the anode outlet, leading a
+time period of [t0, t1], because inlet air is not humidified and
+                                                                                   reduction in the water content in anode.
+the relative humidity of air in the stack decreases gradually. At
+                                                                                      The first experiment shows that, cathodic recirculation is
+the timing t1, cathodic recirculation pump is turned on, and
+                                                                                   effective in humidifying the inlet air, but the cell voltage can't
+the inlet gas is the mixture of fresh dry air and exhaust air.
+                                                                                   be reduced significantly when fresh air flow rate remains
+Relative humidity rises up rapidly from 42% to 60% in 5 s, and
+                                                                                   unchanged. It decreases from 0.795 V to 0.779 V when the
+then increases gradually to 98% in 100 s. The humidified effect
+                                                                                   current density is 119 mA/cm2 and the recirculation pump
+is similar to that with an external humidifier. During this
+                                                                                   turns on. When cathodic and anodic recirculation are applied
+period, the average cell voltage decreases slightly, and then
+                                                                                   together, humidity of cathode inlet gas is a little lower than
+increases from 0.776 V to a stable value 0.779 V. It is 0.016 V
+                                                                                   the case of only cathodic recirculation, and both cathode and
+smaller than that with an external humidifier, 0.795 V. The
+                                                                                   anode inlet gas are humidified.
+anode purging valves opens every 15 s, causing slightly
+                                                                                      As mention in Section Theoretical analysis, fresh air flow
+                                                                                   rate should be reduced during cathodic recirculation to ach-
+                                                                                   ieve a larger voltage drop. In the second experiment, the
+ Table 2 e Specifications of fuel cell stack.                                      anodic recirculation pump keeps off and the cathodic recir-
+ Parameters                                                    Values              culation pump is turned on. Both the rotational speed of the
+ Cells number                                                50                    cathodic pump and the fresh air flow changes, the dynamic
+ Area                                                        261 cm2               process is illustrated in Fig. 5. The cell current remains un-
+ Rated operation point                                       261 A, 30 V           changed at 31 A (119 mA/cm2). The fresh air flow decreases
+ Max power                                                   10 kW                 from 110 L/min to 40 L/min gradually. At the same time, the
+ Operating temperature                                       60e70  C
+                                                                                   cathodic recirculation pump is turn on and the speed is
+18556                      i n t e r n a t i o n a l j o u r n a l o f h y d r o g e n e n e r g y 4 2 ( 2 0 1 7 ) 1 8 5 5 1 e1 8 5 5 9
+
+
+
+
+                                     Fig. 3 e Self-humidification through cathodic recirculation.
+
+
+
+
+                       Fig. 4 e Variation of oxygen and hydrogen concentration during experiment 1.
+
+
+
+
+adjusted from 0 to 3000 r min1 gradually. As a result, the                        concentration at outlet also drops from 15.8% to 4.1%. Average
+oxygen concentration at cathode inlet drops from 18.2% to                          cell voltage drop of 0.042 V is observed, from 0.828 V to 0.780 V.
+9.8%, the oxygen concentration at outlet also drops from 13.7%                        In this study, the nominal SRn (stoichiometric ratio) is
+to 4.9%, and the average cell voltage decreases from 0.772 V to                    defined in Eq. (15) to describe the amount of fresh air into the
+0.732 V. About a voltage drop of 0.040 V is observed. It is                        fuel cell stack, where Wdry;ca is fresh air flow rate in L/min
+significantly larger than the voltage drop of 0.016 V in the first                 under standard state (273.15 K, 101.325 kPa), I is the current
+experiment.                                                                        and F ¼ 96,485 C/mol is the faraday constant. n ¼ 4 stands for
+    Same operation is performed at 14 A (54 mA/cm2), as                            the number of electron in one oxygen molecule. Ncell ¼ 50 is
+shown in Fig. 6. The fresh air flow decreases from 110 L/min to                    the cells number of the stack in this study.
+20 L/min gradually. At the same time, the cathodic recircula-
+                                                                                                Wdry;ca $0:21
+tion pump is turn on and the speed is adjusted from 0 to                           SRn ¼                                                         (15)
+                                                                                            I=F=n$Ncell $22:4$60
+3000 r min1 gradually. As a result, the oxygen concentration
+at cathode inlet drops from 18.6% to 7.2% while the oxygen                              At 31 A, SRn decreases from 4.25 to 1.52 when fresh air flux
+                         i n t e r n a t i o n a l j o u r n a l o f h y d r o g e n e n e r g y 4 2 ( 2 0 1 7 ) 1 8 5 5 1 e1 8 5 5 9   18557
+
+
+
+
+                            Fig. 5 e Voltage clamping through cathodic recirculation at I ¼ 31 A.
+
+
+
+
+                            Fig. 6 e Voltage clamping through cathodic recirculation at I ¼ 14 A.
+
+
+
+
+decreases from 110 to 40 L/min, while it decreases from 9.5 to                   different operation conditions, the curves are similar. Fig. 7
+1.64 at 14 A when air flux decreases from 110 to 20 L/min.                       shows a strong correlation between SRn and average cell
+Variations of average cell voltage at different SR value are                     voltage. Especially when SR is less than 2.5, the voltage
+shown in Fig. 7. Although voltages are different at two                          reduction becomes more obvious with the decrease of SRn. At
+18558                      i n t e r n a t i o n a l j o u r n a l o f h y d r o g e n e n e r g y 4 2 ( 2 0 1 7 ) 1 8 5 5 1 e1 8 5 5 9
+
+
+
+
+  Fig. 7 e Relationship between the nominal stoichiometry ratio (SRn) and average cell voltage at I ¼ 31 A and I ¼ 14 A.
+
+
+
+
+31 A, the voltage drop is 0.012 V (from 0.776 to 0.760 V) when SR                  fresh air flux) and 0.042 V (@54 mA/cm2 and reduced fresh air
+varies from 4.25 to 2.68, while it drops about 0.028 V (from                       flux). Coloration between the nominal stoichiometric ratio
+0.760 to 0.732 V) when SR varies from 2.68 to 1.52. At 14 A,                       (SRn) and average cell voltage indicates that, using this voltage
+voltage drop from SR ¼ 2.6 to 1.64 is 0.03 V, much larger than                     clamping method, voltage reduction will be notable when the
+that from SR ¼ 9.5 to 2.6, 0.18 V.                                                 SRn is less than 2.5.
+                                                                                       Dynamic model of fuel cell system with dual recirculation
+                                                                                   can be built and used to investigate self-humidification and
+Conclusion                                                                         voltage clamping based on the experimental study in this
+                                                                                   paper. Advanced control method of dual recirculation system
+This paper presents an experimental study on a PEM fuel cell                       is also needed. Further study will focus on the dynamic model
+system with anodic and cathodic recirculation. A fuel cell                         and control of the dual recirculation fuel cell system.
+system with cathodic and anodic recirculation is built up
+based on a 10 kW fuel cell stack, which consists of 50 cells and
+has an active area of 261 cm2. Key parameters, e.g., stack
+                                                                                   Acknowledgments
+current, stack voltage, cell voltage, air flow, relative humidity
+on the cathode side, oxygen concentration at the inlet and
+                                                                                   This work is supported by the National Natural Science Foun-
+outlet of the cathode side, are measured. Theoretical analysis
+                                                                                   dation of China (Nos. U1564209 and 51576113), Alexander von
+shows that, inlet air humidity can be improved by cathodic
+                                                                                   Humboldt Foundation of Germany (No. CHN1154431STP),
+recirculation and the water concentration increases with the
+                                                                                   Ministry of Science and Technology of China (Nos.
+increase of recirculation ratio. Fresh air flow rate reduction
+                                                                                   2015BAG06B01 and 2016YFE0102200), Tsinghua University (in-
+should be applied together with the cathode recirculation to
+                                                                                   dependent research plan Z02-1 No. 20151080411), and State Key
+get better voltage clamping effect.
+                                                                                   Laboratory of Automotive Safety and Energy (No. ZZ2016-041).
+   Experimental study based on the built up system is carried
+out. Relative humidity of inlet gas can reach 98% by using
+cathodic recirculation. It indicates that, with a cathodic                         references
+recirculation the system gets good self-humidification effect,
+which is similar to that with an external humidifier. When
+both the cathodic and anodic recirculation operate, the rela-                        [1] Alaswad A, Baroutaji A, Achour H, Carton J, Al Makky A,
+tive humidity of hydrogen on the anode side increases, and                               Olabi AG. Developments in fuel cell technologies in the
+the relative humidity of mixed air on the cathode side de-                               transport sector. Int J Hydrogen Energy 2015;41:16499e508.
+                                                                                     [2] Veziroglu A, Macario R. Fuel cell vehicles: state of the art with
+creases, compared to the situation with only cathodic recir-
+                                                                                         economic and environmental concerns. Int J Hydrogen
+culation. The different trends on the anode and cathode side
+                                                                                         Energy 2011;36:25e43.
+are mainly due to the water transport through the membrane.                          [3] Li J, Hu Z, Xu L, Ouyang M. Fuel cell system degradation
+When the anode recirculation pump is turned on, some water                               analysis of a Chinese plug-in hybrid fuel cell city bus. Int J
+flux goes through the membrane from cathode to anode,                                    Hydrogen Energy 2016;41:15295e310.
+which leads to a slightly reduction in the relative humidity on                      [4] Wang Y, Chen KS, Mishler J, Cho SC, Adroher XC. A review of
+the cathode side. By applying cathodic recirculation and                                 polymer electrolyte membrane fuel cells: technology,
+                                                                                         applications, and needs on fundamental research. Appl
+reducing the fresh air flux meanwhile, the average cell voltage
+                                                                                         Energy 2011;88:981e1007.
+drop becomes more obviously. In this study, voltage drop due
+                                                                                     [5] Borup R, Meyers J, Pivovar B, Kim YS, Mukundan R,
+to cathodic EGR increases from 0.016 V (@119 mA/cm2 and                                  Garland N, et al. Scientific aspects of polymer electrolyte fuel
+constant fresh air flux) to 0.040 V (@119 mA/cm2 and reduced                             cell durability and degradation. Chem Rev 2007;107:3904e51.
+                             i n t e r n a t i o n a l j o u r n a l o f h y d r o g e n e n e r g y 4 2 ( 2 0 1 7 ) 1 8 5 5 1 e1 8 5 5 9        18559
+
+
+ [6] Schmittinger W, Vahidi A. A review of the main parameters                            system-I. Control-oriented modeling. Int J Hydrogen Energy
+     influencing long-term performance and durability of PEM                              2006;31:1879e96.
+     fuel cells. J Power Sources 2008;180:1e14.                                      [16] Uno M, Shimada T, Tanaka K. Reactant recirculation system
+ [7] Wu J, Yuan XZ, Martin JJ, Wang H, Yang D, Qiao J, et al. Proton                      utilizing pressure swing for proton exchange membrane fuel
+     exchange membrane fuel cell degradation under close to                               cell. J Power Sources 2011;196:2558e66.
+     open-circuit conditions. Part I: in situ diagnosis. J Power                     [17] Uno M, Shimada T, Tanaka K. Reactant recirculation
+     Sources 2010;195:1171e6.                                                             technique utilizing pressure swing for proton exchange
+ [8] Yoon W, Huang X. Study of polymer electrolyte membrane                               membrane fuel cell system. In: 8th annu int energy convers
+     degradation under OCV hold using bilayer MEAs. J                                     eng conf; 2010.
+     Electrochem Soc 2010;157:B599e606.                                              [18] Nonobe Y, Hasegawa T, Imanishi H, Nada M, Ikogi Y.
+ [9] Noto H, Kondo M, Otake Y, Kato M. Development of fuel cell                           Development of the fuel cell system in the Mirai FCV. SAE
+     hybrid vehicle by Toyota-durability. Hybrid technology. SAE                          Tech Pap 2016;12:5.
+     Tech Pap 2009:1e6.                                                              [19] Breault RD. High temperature reactant recycling for PEM fuel
+[10] Kim H-Y, Kim K. Numerical study on the effects of gas                                cell humidification. US 7067209 B2. 2006.
+     humidity on proton-exchange membrane fuel cell                                  [20] Hild T, Herbig T, Wnendt B. Cathode humidification of a PEM
+     performance. Int J Hydrogen Energy 2016:4e11.                                        fuel cell through exhaust gas recirculation into a positive
+[11] He J, Choe S-Y, Hong C-O. Modelling and control strategy of a                        displacement compressor. US 7781084 B2. 2010.
+     fuel delivery system with dual recirculation lines for a PEM                    [21] Kim BJ, Kim MS. Studies on the cathode humidification by
+     fuel cell system. In: 6th int. fuel cell sci. eng. technol. conf;                    exhaust gas recirculation for PEM fuel cell. Int J Hydrogen
+     2008. p. 661e73.                                                                     Energy 2012;37:4290e9.
+[12] Migliardini F, Di Palma TM, Gaele MF, Corbo P. Hydrogen                         [22] Hu J, Xu L, Li J, Ouyang M, Cheng S, Fang C. Water
+     purge and reactant feeding strategies in self-humidified PEM                         management in a self-humidifying PEM fuel cell system by
+     fuel cell systems. Int J Hydrogen Energy 2016;42:1e8.                                exhaust gas recirculation. In: 2014 IEEE conf expo transp
+[13] Karnik AY, Sun JSJ, Buckland JH. Control analysis of an                              electrif Asia-Pacific (ITEC Asia-Pacific), 1; 2014. p. 1e6.
+     ejector based fuel cell anode recirculation system. In: 2006                    [23] Cheng S, Li J, Xu L, Ouyang M. Air supply system model with
+     Am control conf; 2006. p. 484e9.                                                     exhaust gas recirculation for improving the life of fuel cell.
+[14] Bao C, Ouyang M, Yi B. Modeling and control of air stream                            In: IEEE transp electrif conf expo, ITEC Asia-Pacific 2014-conf
+     and hydrogen flow with recirculation in a PEM fuel cell                              proc; 2014. p. 1e6.
+     system-II. Linear and adaptive nonlinear control. Int J                         [24] Larminie J, Dicks A, McDonald MS. Fuel cell systems
+     Hydrogen Energy 2006;31:1897e913.                                                    explained, vol. 2; 2003.
+[15] Bao C, Ouyang M, Yi B. Modeling and control of air stream
+     and hydrogen flow with recirculation in a PEM fuel cell
+

@@ -5,6 +5,42 @@
 核对对象：Current、Power、Voltage 三种电边界、单 study 互斥门禁、气路控制权限及初态/求解器合同  
 当前规划真源：[RouteA_cEGR_PEMFC_工程化建模规格_v01.md](RouteA_cEGR_PEMFC_工程化建模规格_v01.md)
 
+## 0. 用户要求归纳：Stage 1 长要求的短合同
+
+本节把本轮建模要求固定为可复用的短合同，后续不再要求用户重复粘贴长段原文。若活动实现与本节冲突，应先按本节整改；若存在明确的技术限制，必须在实施记录中写出证据和未闭环项，不得用说明文字替代验证。
+
+### 0.1 平台、脚本和说明文件边界
+
+1. 当前 Route A 只有一个活动 `.slx`，且派生自官方 Gas Mixture PEMFC 案例；电堆、气路、热路、控制和 cEGR 集成在同一模型内。
+2. MATLAB 脚本只做参数/工况装配、`SimulationInput` 配置、`sim`/`parsim` 调度、结果提取和审计；脚本可以调用模型求解，但不得在脚本中复制或替代电堆、气路、热路的物理计算。脚本按通用职责收口，不按策略、负载或工况复制；一次性研究脚本完成后归档。
+3. 除 `AGENTS.md` 和 `README` 外，说明文件分为规划设计和实施记录两类：规划设计采用覆盖式更新，实施记录按日期/阶段增量更新；禁止在多个说明文件中无限重复同一要求和证据。
+
+### 0.2 每次研究的三组计算前合同
+
+每个 study 在进入 `sim`/`parsim` 前必须同时明确：
+
+1. **初态**：气路和电堆气体状态来自统一的低负载物理热初态；参考点避开阳极周期吹扫抖动，用吹扫后的安静窗口和相邻周期变化小于 `0.5%` 的数据生成。初态只锁定拓扑、物种维度和关键组件兼容性，不锁定研究压力、温度、湿度、组成、流量、cEGR、回流/吹扫或 I/P/V 目标。
+2. **控制要求**：每个 study 只允许一种 I/P/V 电边界，Current、Power、Voltage 分开调用；每个 case 由统一 runner 注入该边界和统一气路/热控 profile。逻辑 `t=0` 先保持初态基准，再按默认 `0.5 s` 保持 + `60 s` 斜坡进入目标。主动命令与物理网络随动响应必须分开记录。
+3. **求解器**：稳态和瞬态分开声明；研究求解器 `StartTime` 始终为 `0 s`。稳态按尾窗平均和关键量相对变化 `<0.5%` 判定，瞬态保留物理量随时间的完整曲线。热启动 operating-point 的绝对快照时间若不能重基准为 `0 s`，必须明确标注为已知限制。
+
+### 0.3 长任务和并行任务工作流
+
+- MATLAB GUI 离线交接是例外，不是交互超时兜底。只有流程/输入输出契约固定、agent 已用同一模型和参数链亲自完成代表性 case 的端到端无报错运行、预计至少约 `30 min` 或数小时且通常涉及 `10` 个以上工况、命令和验收判据可直接粘贴这四项同时成立时，才交给用户执行。Code Analyzer、`model_check` 或装配无报错不能代替亲自运行证据。
+- v10 低负载物理热初态生成、三分支候选和提升、兼容性审计及必要短 smoke 由 agent 自己完成，不得因预计耗时交接；未达到上述门槛的任务也由 agent 继续执行或拆分验证。
+- 通过门禁的正式矩阵才由用户执行，完成后 agent 只读取约定的 KPI、失败栈和紧凑结果文件；不得缩短、降精度、轮询打断或重复正式任务。串行/并行由脚本字段控制，并行池默认 `2`、最大 `4`，同一初态依赖链保持串行。
+
+### 0.4 当前合规状态（截至 2026-07-24）
+
+| 要求 | 当前结论 | 证据和未闭环项 |
+|---|---|---|
+| 单一官方派生模型 | **已满足（结构层）** | 根级读回只有一个活动 `.slx`；当前文件 hash 为 `7916d490e076d165a564389af1f320e8b8d7a56ff6b2c98a315f249cb7c5f928`，`Dirty=off`，包含电堆、BOP、cEGR、控制和观测。 |
+| 通用脚本、避免文件爆炸 | **已满足（职责层）** | 活动脚本按 runner、输入/KPI、初态链、审计和测试分工；不按工况复制；旧一次性脚本已归档。`sim`/`parsim` 仅是模型执行入口，不是脚本替代物理模型。 |
+| 规划/记录纪律 | **本卷已补齐** | 本节固定短合同；规划规格覆盖更新，实施记录按阶段增量维护。 |
+| 三组计算前合同 | **接口已实现，最终验收待完成** | runner 已有初态、统一 22 列命令 profile、稳态/瞬态求解器和 preflight；v10 Current/Power/Voltage MAT 尚未生成，因此正式 v10 study 当前应被门禁拒绝。 |
+| 长任务/并行工作流 | **已实现（带交接门禁）** | 只有固定流程、agent 亲自无报错验证、预计至少约 `30 min`/数小时且通常 `10+` case 的正式大任务才交给 GUI；runner 默认 `parallelWorkers=2`，限制 `1..4`，并行只调度 `SimulationInput`。 |
+
+当前模型因此可以宣称“满足单模型、统一脚本职责、计算前合同和工作流的结构要求”，但不能宣称 Stage 1 v10 全部验收完成；v10 三分支热初态生成、三例短 smoke 和 root 级 warning 的专项审计仍是关闭前置条件。
+
 ## 1. 模型结构读回
 
 当前唯一模型中的 `Electrical Load` 是带掩码的三选一接口，掩码选项为 `Current | Power | Voltage`，变体激活时机为 `update diagram`。`Inputs` 下实际存在三个变体：
@@ -154,7 +190,7 @@ R3_MODEL_DIRTY=off
 
 ### 7. 2026-07-24 v10 物理热初态与统一命令增量
 
-本轮继续同一活动分卷，未新增模型、脚本或说明文件，未提交/推送 Git，未运行正式矩阵：
+本轮继续同一活动分卷，未新增模型、脚本或说明文件，未运行正式矩阵；模型与 Route A 活动实现已在 `d4bbf3c`（`feat(routea): implement v10 physical hot-start and command profiles`）提交并通过系统代理推送，正式结果目录 `05_汇报` 未纳入该提交：
 
 1. 在 `Cathode_Air_cEGR_BOP/Oxygen Source` 和 `Anode_Hydrogen_BOP/Hydrogen Source` 中读回并保留官方 FuelCell `Reservoir (FC)`、`Mass Flow Rate Source (FC)`、`Constant Volume Chamber (FC)`、`Pressure Source (FC)` 与受控温度源；阴极物种为 N2/O2/H2O，阳极为 H2/N2。
 2. 阳极调理器与既有 Fuel Tank/PRV 节点之间改用官方 `Local Restriction (FC)`。此前试验性的 0.05 m `Pipe (FC)` 产生独立热-流动状态并在冷初始化中不收敛，已移除；对应参数脚本中的短管长度变量已删除。调理器仍保持真实容积和物种库存，阳极入口没有新增独立质量流量执行器。
@@ -162,4 +198,8 @@ R3_MODEL_DIRTY=off
 4. 模型结构读回确认 `Conditioned_Fuel -> Local Restriction -> Fuel Tank/PRV`、原 PRV 输出和原 H2 接口完整；显式 `save_system` 后模型编译通过，保存状态为 `Dirty=off`。`model_check` 对 Simscape 物理端口仍返回既有适配器误报 warning，不能替代编译证据。
 5. 参数脚本、profile 装配/规范化、初态链和 runner 共 9 个 MATLAB 文件 Code Analyzer 全部为 0 个问题。22 列 profile 自检通过：字段数为 22、t=0 等于基准、默认 0.5 s 保持和 60 s 斜坡时间单调且有限。
 6. v10 MAT 尚未生成。当前模型 `LoadInitialState=off`、`InitialState=xInitial`，模型工作区和 base workspace 均无 `xInitial`；0.2 s 冷启动 Current smoke 在湿气体网络初始条件求解阶段未收敛，首要诊断涉及既有 `EGRPipe`/阳极加湿管和 H2 Reservoir，不把该次运行记为通过，也不据此修改既有 EGR/加湿管。
-7. v09 `RouteA_platform_default_initial_state.mat` 与 `RouteA_formal_v09_matrix_20260722` 三组正式结果保持原路径、原内容和原哈希，未重跑、未覆盖。下一步需由用户在 MATLAB GUI 串行执行 v10 Current/Power/Voltage 初态生成；完成后再由 agent 审计 metadata、热初态兼容门和三例短 smoke。
+7. v09 `RouteA_platform_default_initial_state.mat` 与 `RouteA_formal_v09_matrix_20260722` 三组正式结果保持原路径、原内容和原哈希，未重跑、未覆盖。下一步由 agent 自己串行执行 v10 Current/Power/Voltage 初态生成；完成后继续由 agent 审计 metadata、热初态兼容门和三例短 smoke，不把该必要阶段交给用户。
+
+### 8. 2026-07-24 MATLAB GUI 离线交接门禁修订
+
+用户补充并确认：GUI 离线执行只用于长时间、固定流程、已由 agent 亲自用同一模型/参数链/求解器和代表性 case 验证无报错、预计至少约 `30 min` 或数小时且通常涉及 `10` 个以上工况的正式扫描或敏感性任务。agent 必须先完成短 smoke 和运行链闭环，再提供可粘贴命令、I/O 契约、结果路径和验收判据；不满足任一项时不得以交互超时为理由交接。v10 初态生成/提升及其必要审计明确归 agent 自执行。上述规则已同步到项目 `AGENTS.md`、工程化规格和本卷；本次只更新说明文件，未修改 `.slx`、未触碰 v09 正式结果。

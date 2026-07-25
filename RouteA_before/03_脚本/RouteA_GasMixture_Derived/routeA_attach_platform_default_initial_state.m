@@ -1,0 +1,136 @@
+function [in, metadata] = routeA_attach_platform_default_initial_state( ...
+    in, model, modelDir, initialStateFile, loadInputType)
+% Attach a validated platform_default operating point without mutating model.
+%
+% This function restores only the saved physical/controller state and checks
+% model/topology compatibility. It changes SimulationInput only, so each case
+% can run independently in serial or through parsim. The caller owns all
+% current/power/voltage, gas-path, humidity, pressure, and thermal commands.
+
+if nargin < 4 || isempty(initialStateFile) || ...
+        strlength(string(initialStateFile)) == 0
+    initialStateFile = fullfile(modelDir, ...
+        'RouteA_platform_default_initial_state.mat');
+end
+if nargin < 5 || isempty(loadInputType) || ...
+        strlength(string(loadInputType)) == 0
+    loadInputType = "Current";
+end
+loadInputType = string(loadInputType);
+if ~isscalar(loadInputType) || ...
+        ~any(loadInputType == ["Current", "Power", "Voltage"])
+    error('RouteA:InitialStateLoadInputType', ...
+        'loadInputType must be Current, Power, or Voltage.');
+end
+if ~isfile(initialStateFile)
+    error('RouteA:MissingPlatformDefaultInitialState', ...
+        ['The required platform_default initial state is missing: %s. ', ...
+        'Run routeA_generate_platform_default_initial_state first.'], ...
+        initialStateFile);
+end
+loaded = load(initialStateFile);
+[initialState, metadata] = selectLoadVariant(loaded, loadInputType);
+if ~isfield(metadata, 'schema') || ...
+        ~contains(string(metadata.schema), "_v09_")
+    error('RouteA:InitialStateChecksumRefreshRequired', ...
+        ['The selected initial state is historical or not validated for ', ...
+        'the current model configuration. Generate and promote a fresh ', ...
+        'v09 I/P/V bundle.']);
+end
+if ~isa(initialState, 'Simulink.op.ModelOperatingPoint')
+    error('RouteA:InitialStateClassMismatch', ...
+        'The platform_default initial state must be a ModelOperatingPoint.');
+end
+if ~isfield(metadata, 'model') || string(metadata.model) ~= string(model)
+    error('RouteA:InitialStateModelMismatch', ...
+        'The saved platform_default state belongs to another model.');
+end
+if ~isfield(metadata, 'cegrTopologyEnabled') || ...
+        ~metadata.cegrTopologyEnabled
+    error('RouteA:InitialStateTopologyMismatch', ...
+        ['The saved state is not for the CEGR-enabled zero-recirculation ', ...
+        'topology required by Route A dynamic studies.']);
+end
+requiredModeFields = {'cegrValveModeId', 'egrReferenceKind'};
+if ~builtin('all', isfield(metadata, requiredModeFields)) || ...
+        metadata.cegrValveModeId ~= 1 || ...
+        string(metadata.egrReferenceKind) ~= "mode1_zero_target_near_zero"
+    error('RouteA:InitialStateModeMismatch', ...
+        ['The saved state is not a mode-1 zero-target near-zero cEGR ', ...
+        'platform_default operating point.']);
+end
+if ~bdIsLoaded(model)
+    error('RouteA:ModelNotLoaded', ...
+        'Load the Route A model before attaching its initial state.');
+end
+if ~isfield(metadata, 'cegrValveMaxArea_m2')
+    error('RouteA:InitialStateParameterMetadata', ...
+        ['The platform_default initial state does not record ', ...
+        'cegrValveMaxArea_m2. Regenerate the formal initial state.']);
+end
+stateValveArea_m2 = metadata.cegrValveMaxArea_m2;
+mw = get_param(model, 'ModelWorkspace');
+currentValveArea_m2 = mw.getVariable('cegr_valve_max_area');
+validateattributes(stateValveArea_m2, {'numeric'}, ...
+    {'scalar', 'positive', 'finite'});
+validateattributes(currentValveArea_m2, {'numeric'}, ...
+    {'scalar', 'positive', 'finite'});
+if abs(stateValveArea_m2 - currentValveArea_m2) > ...
+        1e-12 * max(1, abs(currentValveArea_m2))
+    error('RouteA:InitialStateParameterMismatch', ...
+        ['The platform_default initial state and model workspace disagree ', ...
+        'on cegr_valve_max_area. Regenerate the formal initial state.']);
+end
+
+paths = routeA_block_paths(model);
+% The ModelOperatingPoint was created with the mode-1 cEGR topology. Keep
+% that compile-time selection on the input; the runner later owns its target.
+in = in.setVariable('routeA_cegr_enabled', true, 'Workspace', model);
+in = in.setVariable('routeA_cegr_valve_mode_id', 1, 'Workspace', model);
+in = in.setBlockParameter(paths.electricalLoad, 'input_type', ...
+    char(loadInputType));
+if loadInputType == "Current"
+    in = in.setBlockParameter(paths.currentCommand, 'VariableName', ...
+        '[drive_cycle_time, drive_cycle_current]');
+end
+in = in.setInitialState(initialState);
+end
+
+function [initialState, metadata] = selectLoadVariant(loaded, loadInputType)
+if loadInputType == "Current"
+    stateField = 'routeA_initial_state_current';
+    metadataField = 'routeA_initial_metadata_current';
+elseif loadInputType == "Power"
+    stateField = 'routeA_initial_state_power';
+    metadataField = 'routeA_initial_metadata_power';
+else
+    stateField = 'routeA_initial_state_voltage';
+    metadataField = 'routeA_initial_metadata_voltage';
+end
+if isfield(loaded, stateField) && isfield(loaded, metadataField)
+    initialState = loaded.(stateField);
+    metadata = loaded.(metadataField);
+elseif isfield(loaded, 'routeA_initial_state') && ...
+        isfield(loaded, 'routeA_initial_metadata')
+    % Generators write a single generic pair before the atomic bundle
+    % promotion. Generic candidates must declare their exact load branch.
+    initialState = loaded.routeA_initial_state;
+    metadata = loaded.routeA_initial_metadata;
+    if ~isfield(metadata, 'loadInputType') || ...
+            string(metadata.loadInputType) ~= loadInputType
+        error('RouteA:PlatformDefaultLoadVariantMetadata', ...
+            'The selected operating point is not marked as %s compatible.', ...
+            loadInputType);
+    end
+else
+    error('RouteA:MissingPlatformDefaultLoadVariant', ...
+        ['The platform_default initial-state file does not contain the ', ...
+        'required %s operating point.'], loadInputType);
+end
+if ~isfield(metadata, 'loadInputType') || ...
+        string(metadata.loadInputType) ~= loadInputType
+    error('RouteA:PlatformDefaultLoadVariantMetadata', ...
+        'The selected operating point is not marked as %s compatible.', ...
+        loadInputType);
+end
+end

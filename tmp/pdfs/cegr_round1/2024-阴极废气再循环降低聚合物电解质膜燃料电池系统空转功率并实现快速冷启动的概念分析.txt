@@ -1,0 +1,715 @@
+                                                            International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+                                                                       Contents lists available at ScienceDirect
+
+
+                                                 International Journal of Hydrogen Energy
+                                                                journal homepage: www.elsevier.com/locate/he
+
+
+
+
+Conceptual analysis of cathode exhaust gas recirculation to reduce idling
+power and enable faster freeze starts in polymer electrolyte membrane fuel
+cell systems
+Martin Aggarwal a,* , Daniel Valentin a , Samuele Cappelli a , Thomas Loidl a , Patrick Pertl a ,
+Alexander Trattner a,b
+a
+    HyCentA Research GmbH, Inffeldgasse 15, 8010, Graz, Austria
+b
+    Graz University of Technology, Institute of Thermodynamics and Sustainable Propulsion Systems, Inffeldgasse 19, 8010, Graz, Austria
+
+
+
+
+A R T I C L E I N F O                                        A B S T R A C T
+
+Keywords:                                                    Proton exchange membrane (PEM) fuel cells are increasingly recognized as a viable clean energy option in
+PEMFC                                                        mobility, due to their high efficiency and minimal greenhouse gas emissions. A significant challenge in
+Exhaust gas recirculation                                    enhancing PEM fuel cell systems lies in improving the efficiency of the air processing subsystem (APS). Despite
+Cell voltage analysis
+                                                             recent progress, further optimization is imperative, particularly in addressing costs, service life, efficiency, and
+Efficiency
+                                                             dynamic behaviour. This study presents an innovative approach to cathode exhaust gas recirculation (CEGR) in
+Freeze start
+Idle power                                                   the fuel cell’s air supply system, enhancing both lifetime and efficiency by optimizing idling and freeze-start
+                                                             behaviours, thus enhancing the operational range. The system recirculates oxygen-depleted humid exhaust gas
+                                                             to the fuel cell stack, facilitated by components including a control valve, water separator, collection tank, and
+                                                             diaphragm pump. Simulation models provide detailed correlations between the gas composition of recirculated
+                                                             exhaust gas, oxygen stoichiometry, and cell voltage. Based on these insights, a control system for freeze starts and
+                                                             idling is developed. Simulation findings highlight the potential of the exhaust gas recirculation system to save up
+                                                             to 83 % hydrogen and extend service life during idle power through targeted cell voltage reduction. Furthermore,
+                                                             additional heat generation enables freeze starts up to 4.6 times faster at temperatures below − 30 ◦ C.
+
+
+
+                                                                                                    (continued )
+    ABBREVIATIONS                                    δ        MEA component thickness
+    AP        Air processing                         E0       Standard potential                      PEMFC          Proton exchange membrane      R      General gas constant
+    BoP       Balance of plants                      EN       Nernst potential                                       fuel cell
+    BPP       Bipolar plate                          F        Faraday constant                        Req            Required                      s      Iteration step
+    cat       Cathode                                iint     Internal current density                red            Reduction reaction            σ      Specific conductivity
+    CEGR      Cathode exhaust gas                    ilim     Limiting current density                Rec            Recirculated                  t      Time
+              recirculation                                                                           PID            Proportional-integral-        T      Temperature
+    CFD       Computational fluid dynamics           i0       Exchange current density                               derivative
+    Cons      Consumed                               I        Stack current                           Sup            Supplied                      U      Cell voltage
+    DC        Direct current                         λair     Air stoichiometry                       ​              ​                             XEGR   Recirculation ratio
+    DCDC      DC-to-DC converter                     λO2      Oxygen stoichiometry                    SYMBOLS                                      ξ1     Pre-logarithmic correction
+    Eff       Effective                              ṁ       Mass flow                                                                                   factor
+    FC        Fuel cell                              M        Molar mass                              A              Nominal active area           y      Volume fraction
+    GDL       Gas diffusion layer                    N        Stack cells                             αi (ox,/red)   Charge transfer coefficient   z      Valency
+    Max       Maximal                                OCV      Open circuit voltage
+    MEA       Membrane electrode assembly            P        Power
+    min       Minimal                                p0       Standard pressure                    1. Introduction
+    PEM       Proton exchange membrane               pi       Partial pressure of the
+                                                              reactant i                              The low-temperature proton exchange membrane fuel cell (PEMFC)
+                                                                (continued on next column)         stands out as a leading technology in the quest to decarbonize the
+
+
+    * Corresponding author.
+      E-mail address: aggarwal@hycenta.at (M. Aggarwal).
+
+https://doi.org/10.1016/j.ijhydene.2024.11.287
+Received 12 August 2024; Received in revised form 31 October 2024; Accepted 16 November 2024
+Available online 25 November 2024
+0360-3199/© 2024 The Authors. Published by Elsevier Ltd on behalf of Hydrogen Energy Publications LLC. This is an open access article under the CC BY license
+(http://creativecommons.org/licenses/by/4.0/).
+M. Aggarwal et al.                                                                                           International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+mobility sector [1–3]. Renowned for its environmental benefits,                      considering factors such as oxygen diffusion, oxygen reduction reaction,
+impressive power density, and exceptional efficiency, the PEMFC has                  and proton transport effects. Their findings confirm that CEGR posi­
+already gained widespread adoption. Nevertheless, the restricted freeze              tively impacts the durability at low current.
+start behaviour [4–7] and limited useful lifetime [8–10] pose challenges                 With regard to freeze start optimization, Toyota [24] presents a
+for PEMFC-powered vehicles, constraining their potential applications.               concept for rapid start-up, which increases the concentration over­
+    The limited freeze start performance challenges the use of fuel cell             voltage by limiting the supply air, reducing thereby the cell efficiency
+vehicles in winter and in freeze zones. Optimizing the freeze start, which           and thus generating more waste heat. However, reducing the cell
+involves starting the FC at temperatures below freezing and reaching the             voltage by limiting the supply air alone can lead to instability and
+operating temperature, would expand the range of applications for the                increased degradation due to the lack of water removal and poorer ox­
+PEM fuel cell [11,12]. The Department of Energy (DOE) aims therefore                 ygen distribution [25,26].
+for a self-start capability at − 30 ◦ C, an assisted start at − 40 ◦ C, and              The importance of CEGR during a freeze start in this study is based on
+achieving 50 % of the rated output power within 30 s at − 20 ◦ C [13].               the potential that waste heat can be increased without additional
+    Moreover, the durability of the PEM fuel cell is a prerequisite for a            degradation or instabilities and that additional heat can be recovered by
+commercial breakthrough. Fuel cells utilized in vehicles endure severe               recirculating the warm exhaust gas.
+conditions, including sustaining open circuit voltage (OCV), idling,                     As described in our previous publication [27] and in Ref. [28], the
+handling dynamic loads, start-up and shutdown procedures, operating                  presence of nitrogen in the cathode supply air of the stack lowers the
+at maximum power, managing overload situations, and enduring freeze-                 oxygen partial pressure, which leads to a significantly increased con­
+thaw cycles [14–16]. To achieve the target useful lifetime of 8000 h for             centration overvoltage and a drop in the stack voltage.
+light-duty vehicles and 30,000 h for heavy-duty trucks, it is therefore                  Nevertheless, it is still largely unexplored to what extent oxygen
+necessary to avoid these harsh operating conditions and mitigate their               stoichiometry can be reduced to achieve a cell voltage reduction without
+effects [17].                                                                        irreversible degradation.
+    This study explores the innovative concept of cathode exhaust gas                    In general, an oxygen stoichiometry lower than one, a phenomenon
+recirculation (CEGR) to enhance freeze start performances of PEM fuel                termed cathode starvation or oxygen starvation, generates hot spots on
+cells and minimize their idle power. To our knowledge, there is no                   the polymeric membrane, triggers polarity reversal, accelerates the
+known study that designs a complete CEGR system for mobility appli­                  degradation of the catalyst metal and causes corrosion of the carbon
+cations, including a possible operating strategy, control model, and risk            carrier [29–31]. However, oxygen starvation is not considered as critical
+analysis, while demonstrating the optimization potential for freeze starts           for the cell degradation as hydrogen starvation [32].
+and idling through simulation. This study attempts to close this research                Gerard et al. [33] confirm that oxygen starvation should be avoided
+gap.                                                                                 at all costs during dynamic load jumps and high current densities, but
+    In general, a CEGR system integrated into the air supply system of the           emphasise that low oxygen stoichiometry is permissible under low
+fuel cell extracts warm, oxygen-depleted, and humid air from the                     current density and steady-state conditions.
+exhaust gas path and feeds it into the fresh air mass flow. This increases               Zamel et al. [34] show the characteristic comma-shaped polarization
+the temperature and relative humidity and reduces the oxygen con­                    curves for oxygen stoichiometries below 1. Under stationary conditions,
+centration of the stack supply air.                                                  when the theoretically limited current density is reached and the cell
+    Kim et al. [18] analyse the CEGR for self-humidification and describe            voltage drops further, they observe a subsequent recovery of the current
+two basic options for system architecture with CEGR.                                 density in the oxygen-depleted regions.
+Self-humidification can be used to eliminate the need for an external                    Bodner et al. [32] conduct experimental research on the induced
+humidifier, thereby reducing installation space, costs, mass, and system             degradation due to air starvation in a PEMFC using accelerated stress
+complexity. The system architecture options include recirculation of the             tests. They observe an enhancement in power density and
+exhaust gas before the air compressor with a control valve and recir­                cathode-active catalyst area after 100 cycles with a 10 s air starvation
+culation of the exhaust gas after the air compressor with an additional              period. However, they confirm that degradation emerged as the domi­
+recirculation compressor.                                                            nant phenomenon with longer starvation periods. A notably accelerated
+    The option with a control valve has the advantage of a simpler design            voltage decay rate is noted after 60 s.
+[18,19]. Recirculation with a recirculation compressor is associated                     This study proceeds under the assumption that reducing oxygen
+with less condensation when the recirculation air meets the fresh air and            stoichiometry, without compromising the fuel cell’s lifetime, is
+therefore offers advantages in self-humidification [20,21].                          permissible under stationary conditions, for a limited duration and with
+    Rodosik et al. [21] confirm experimentally that sufficient                       the usage of CEGR, ensuring well-distributed oxygen. It is assumed that
+self-humidification can be achieved by CEGR. Although this is associ­                maintaining an oxygen stoichiometry above 1 during idling is advisable,
+ated with a permanent reduction in cell voltage due to the lower oxygen              given the prolonged operation of CEGR in this state. Conversely, an
+concentration.                                                                       oxygen stoichiometry below 1 is considered acceptable during freeze
+    Zhang et al. [20] focus, in addition to self-humidification, on high             starts, if oxygen starvation is kept well below 60 s.
+potential limitation and are able to keep the single cell voltage below                  The study initiates with an outline of the development methodology,
+0.8 V at low currents.                                                               followed by a theoretical overview of the calculation of gas composition
+    In the literature, a cell voltage of 0.8 V is specified as the threshold         and cell voltage. Subsequently, the results section delineates the system
+value for voltage-dependent degradation and limits therefore the mini­               architecture, the relationship between gas composition and cell voltage,
+mal idling power. Above this voltage limit, there is increased degrada­              the potential during freeze starts and idling, and the control strategy.
+tion due to chemical ionomer degradation, chemical carbon corrosion                  Towards the end of the results section, a risk analysis is conducted,
+and platinum degradation. This voltage limit can occur both when idling              leading to the conclusion of the paper.
+and during start-stops [14,22].
+    Zhang et al. [20] also describe the water removal function with                  2. Methodology
+CEGR, which prevents flooding of the stack and allows oxygen to be
+better distributed along the flow channels.                                             Fig. 1 delineates the methodological framework employed
+    Liu et al. [23] conduct comprehensive measurements using electro­                throughout the design process of the CEGR. This process unfolds across
+chemical impedance spectroscopy (EIS) and distribution of relaxation                 three primary phases: System Requirements, Conceptualization, and
+times (DRT) with CEGR at low currents across various recirculation                   Development and Realization. The tools used are shown in the lower
+levels. This analysis effectively elucidates the polarization curve,                 section of the illustration.
+
+                                                                               475
+M. Aggarwal et al.                                                                                                International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+
+
+                                        Fig. 1. Methodological framework employed throughout the design process.
+
+
+    Based on the system requirements, the most important specifications
+                                                                                    Table 1
+for the vehicle are identified. Emphasis is placed on critical parameters
+                                                                                    System information.
+such as freeze start and idling within the designated operational domain.
+Furthermore, adherence to established standards about lifetime, fuel                  Variable                                    Symbol        Value              Unit
+
+efficiency, system integration and controllability is deemed imperative.              Stack current                               I             5 to 560           A
+    Transitioning to conceptualization, the system architecture for the               Stack cells                                 N             359                /
+                                                                                      Nominal active area                         A             250                cm2
+CEGR, encompassing all constituent elements, is formulated. This is
+                                                                                      Air stoichiometry                           λair          4.5 to 1.8         /
+followed by a simulation in which the gas composition and stack volt­                 Oxygen molar mass                           MO2           31.99880           g/mol
+ages are analysed. With the knowledge gained from these analyses, the                 Nitrogen molar mass                         MN2           28.01340           g/mol
+system components are specified and integrated.                                       Dry air molar mass                          MAir          28.96440           g/mol
+    The final phase of the design process involves testing the entire                 Faraday constant                            F             96485.33212        C/mol
+                                                                                      Volume fraction of oxygen in dry air        yO2           0.20946            /
+system, including single cell-, stack- and FCS-testing. However, it is
+                                                                                      Volume fraction of nitrogen in dry air      yN2           0.78084            /
+important to mention that testing procedures are not addressed within
+this study.
+                                                                                                                MAir
+3. Theory and calculations                                                          ṁfeed = ṁcons,O2 ⋅λair ⋅                                                            (1)
+                                                                                                              yO2 ⋅MO2
+3.1. Gas composition                                                                              I⋅N
+                                                                                    ṁcons,O2 =       ⋅MO2                                                                (2)
+                                                                                                  4⋅F
+    In this section, the methodology for calculating the oxygen demand,
+along with the gas composition, is elaborated. The following assump­                   The oxygen stoichiometry λO2 is introduced in equation (3), which
+tions are considered.                                                               represents the ratio of oxygen fed ṁfeed,O2 to oxygen consumed ṁcons,O2 .
+                                                                                            ṁfeed,O2
+1) 0D-quasi stationary calculations                                                 λO2 =                                                                                 (3)
+                                                                                            ṁcons,O2
+2) Air, hydrogen, and vapour are considered as ideal gas with constant
+   thermo-physical properties                                                          ṁfeed remains constant throughout the subsequent calculations for
+3) Condensation takes place once the dew point is reached. No evapo­                the respective current, see equation (4) and is irrespective of CEGR.
+   ration of liquid water takes place under the dew point.                          ṁfeed = f(I)                                                                         (4)
+4) The latent heat of condensation is included within the thermal
+   balance                                                                              To integrate CEGR into the calculations and facilitate better scaling,
+                                                                                    a characteristic parameter called the recirculation ratio XEGR [%] is
+    Calculation constants, along with system and component informa­                 defined in equation (5). This ratio represents the proportion of dry
+tion, are presented in Table 1 for reference and analysis.                          recirculated mass flow ṁrec to the total dry cathode mass flow ṁfeed , see
+    The air fed to the cathode ṁfeed is determined according to equation           Fig. 2.
+(1) by calculating the oxygen consumption ṁcons,O2 and multiplying it by                    ṁrec
+the air stoichiometry λair and dividing it by the molar mass and volu­              XEGR =          ⋅100                                                                  (5)
+                                                                                             ṁfeed
+metric fraction of air in oxygen. ṁcons,O2 is calculated according to Far­
+aday’s laws, which are given in equation (2).                                          The recirculation ratio XEGR provides insight into the amount of low-
+                                                                                    oxygen exhaust gas that is being recirculated. Variations in stack
+
+
+                                                                              476
+M. Aggarwal et al.                                                                                                         International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+                                                                                                According to this approach, the effective cell voltage Ucell is deter­
+                                                                                            mined by the reduction of the open circuit voltage OCV due to the
+                                                                                            connection of an electrical load and the resulting irreversible losses.
+                                                                                                These irreversible losses, also known as overvoltages, can be divided
+                                                                                            into activation overvoltage ηact , ohmic resistance overvoltage induced
+                                                                                            by electron resistance ηohm,el , ohmic resistance overvoltage induced by
+                                                                                            proton resistance ηohm,mem and concentration overvoltage ηconc . The
+                                                                                            calculation of the cell voltage is shown in equation (8).
+                                                                                            Ucell = OCV − ηact − ηohm,mem − ηohm,el − ηconc                                      (8)
+
+                                                                                               The OCV is determined by the difference between the standard
+                                                                                            voltage EN and the internal current density ηint using equation (9). EN ,
+                                                                                            calculated in equation (10),
+                                                                                               Considers the deviation from the standard state of the standard
+                                                                                            voltage E0 , which is calculated based on the free Gibbs energy
+                                                                                                  (     )
+                                                                                            ΔR G0m T, p0 in equation (11).
+                                                                                               The internal overvoltage ηint is determined by employing equation
+        Fig. 2. Recirculation valve and the definition of the mass flows.                   (12), which represents the losses due to the diffusion of hydrogen to the
+                                                                                            cathode and oxygen to the anode, alongside the consequent side
+operating conditions resulting from CEGR can be effectively represented                     reactions.
+based on this ratio.                                                                        OCV = EN − ηint                                                                      (9)
+     With CEGR, a mixture of oxygen-depleted air is fed into the fresh air
+path of the PEMFC, resulting in a decrease in oxygen and an increase in                                      (      √̅̅̅̅̅̅̅ )
+                                                                                                     R⋅T      pH2     p0
+nitrogen concentration. This necessitates an iterative calculation pro­                     EN = E −
+                                                                                                  0
+                                                                                                         ⋅ln      ⋅                                                            (10)
+                                                                                                     z⋅F       p0    pO2
+cess, as the recirculated air is interdependent with the air entering the
+stack, and vice versa. The iterative calculation begins with the specified                               (     )/
+total mass flow ṁfeed and the defined recirculation ratio, XEGR . These                    E0 = − ΔR G0m T, p0 (z ⋅ F)                                                        (11)
+parameters enable the determination of gas composition at a particular
+recirculation ratio based on the starting conditions with ambient air.                                  R⋅T       (    /       )
+                                                                                            ηint =             ⋅ln iint i0,cat                                                 (12)
+With each iteration, the oxygen content diminishes while the nitrogen                                αO2 ,red ⋅F
+concentration rises. This process repeats until the difference in gas                            The activation overvoltage ηact arises from the restricted reaction rate
+concentrations compared to the previous iteration step is less than 1/                      on the platinum catalyst at both the anode and cathode. ηact can be
+1000. Typically, stable gas concentrations are achieved after approxi­                      computed using equation (13).
+mately 13 iteration steps with a fixed-pointed method, indicating                                The ohmic overvoltage induced by electron resistance ηohm,el can be
+convergence of results. The iterative calculation equation for the mass                     determined using equation (14), while the ohmic overvoltage stemming
+flow of the supplied oxygen ṁfeed,O2 and the supplied nitrogen ṁfeed,N2                   from proton resistance ηohm,mem can be computed using equation (15).
+can be described using equations (6) and (7), where s denotes the iter­                                                      (         )                            (          )
+ation step. In these simplified calculations, the vapour content contained                              R⋅T                       i             R⋅T                      i
+                                                                                            ηact =                 ⋅ arcsinh             +                 ⋅arcsinh              (13)
+in the air and other gases are neglected. The primary focus is on the                              αH2 (ox,red) ⋅F             2⋅i0,an     αO2 (ox,red) ⋅F            2⋅i0,cat
+concentration ratio between oxygen and nitrogen, as these are the main                                   (                                                             )
+components that significantly impact the performance and efficiency of                                             δcat         δan        2⋅δGDL
+                                                                                            ηohm,el = i⋅ RBPP +            +           +            + 2 ⋅ Rc,GDL/BPP           (14)
+the system.                                                                                                        σelec       σelec       σGDL
+                                                     ]          [        ]
+                XEGR                                                 XEGR MO2 ⋅yO2                                   /
+ṁfeed,O2 (s) =      ⋅ [ṁfeed,O2 (s − 1) − ṁcons,O2 + ṁfeed ⋅ 1 −      ⋅                 ηohm,mem = (i ⋅ δmem ) σmem                                                        (15)
+                100                                                  100    Mair
+                                                                                (6)             The concentration overpotentials ηconc , also referred to as transport
+                                                                                            losses, arise from non-uniform conditions within the porous structure of
+                                                     [        ]
+                  XEGR                                    XEGR MN2 ⋅yN2                     the electrode, leading to insufficient reactant concentrations on the
+ṁfeed,N2 (s) =        ⋅ ṁfeed,N2 (s − 1) + ṁfeed ⋅ 1 −       ⋅              (7)
+                  100                                     100     Mair                      catalyst. The concentration overpotential can be computed using equa­
+                                                                                            tion (16). The empirical correction factor ξ1 considers the variation in
+                                                                                            the exchange current density i0 with decreasing oxygen concentration,
+3.2. Cell voltage analysis                                                                  the uneven current distribution within the porous electrode, and the low
+                                                                                            internal current density at high external current density [27].
+    The cell voltage analysis is conducted using a comprehensive PEM                                             (         )
+fuel cell system simulation model implemented in Matlab/Simulink®.                                       R⋅T          ilim
+                                                                                            ηconc = ξ1 ⋅     ⋅ln                                                  (16)
+This in-house developed model is divided into five subsystems: the                                       4⋅F       ilim − i
+cooling circuit model, the anode model, the cathode model, the stack
+model, and the electrical model. For cell voltage analysis, only the                        4. Results and discussion
+cathode model and the stack model are considered.
+    The cathode model employs a semi-stationary 0D approach with the                        4.1. System architecture
+same simplifications as explained in section 3.1.
+    The stack model with the calculations assessing the impact of over­                          The fundamental structure of an air supply system comprises an air
+voltages with CEGR on cell voltage is performed using output parame­                        filtration system, a (turbo-) compressor, a heat exchanger, a humidifier,
+ters from the cathode model. These computations are grounded in a                           a bypass valve for the humidifier, a bypass valve for the stack, cut-off
+quasi-stationary, semi-empirical 0D approach, following the methodol­                       valves for the stack, a pressure control valve, and a silencer.
+ogy outlined by Wallnöver-Orgis et al. [27].                                                    As outlined by Kim et al. [18] there are two distinct approaches to
+
+                                                                                      477
+M. Aggarwal et al.                                                                                           International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+implementing exhaust gas recirculation, depending on the utilization of             Table 2
+an additional recirculation compressor and the point at which recircu­              CEGR valve specifications.
+lated exhaust air is introduced into the fresh air stream.                           Variable                             Value                             Unit
+    The configuration involving a control valve and the introduction of
+                                                                                     Max. Flow rate                       130                               g/s
+recirculated air upstream of the air compressor presents several ad­                 Media temperature                    − 30 to 85                        ◦
+                                                                                                                                                              C
+vantages. Notably, it eliminates the need to pressurize exhaust air to a             Relative humidity                    5–100                             %
+higher level, thus obviating the necessity for an extra compressor. This             Inlet pressure                       657 to 3000                       mbar(a)
+translates to cost savings, reduced spatial requirements, and diminished             Service life                         >8000                             h
+                                                                                     Response time                                                          ms
+mass. Moreover, precise regulation of exhaust gas volume is achievable
+                                                                                                                          <200
+                                                                                     Power supply                         9–16                              V
+through the control valve, enabling variable utilization of CEGR across              Air leakage                          <1                                g/s
+all operational states.
+    However, one disadvantage of this configuration is the need for more
+complex water management. In the control valve configuration, cold                  effectively removing water droplets from the air mixture along with any
+ambient air encounters warm, humid exhaust air, leading to condensa­                water wall film or accumulation, all while maintaining minimal pressure
+tion that can potentially impair the functionality and longevity of the             loss. Centrifugal separators prove highly effective for the required mass
+compressor. This can occur due to increased wear on the blades from                 flow.
+droplet fogging and corrosion of the roller bearings. Therefore, it is                  However, removing the separated water presents challenges, as
+crucial to remove liquid water from the system.                                     pressure losses from the air filter, pipework, and the CEGR valve result
+    Conversely, managing humidity is less challenging in the architec­              in negative pressure within the water separator relative to ambient
+ture where recirculation occurs after the air supply compressor. Here, a            pressure.
+larger quantity of vapour can be directly fed into the stack, making this               Consequently, a collection tank equipped with a level sensor and a
+architecture well-suited for self-humidification purposes.                          pump for water discharge becomes necessary. Considering the low mass
+    However, as self-humidification is not the focus of this study and              flow, high efficiency, and simple design requirements, a diaphragm
+factors such as installation space, costs, mass, and controllability are of         pump is the preferred choice.
+primary importance, the design without an additional recirculation
+compressor is favoured.                                                             4.2. Gas composition
+    The defined system architecture includes the necessary CEGR com­
+ponents: a recirculation valve, a water separator, a collecting tank, and a             This section elucidates the computational findings regarding the gas
+diaphragm pump, as illustrated in Fig. 3.                                           composition of the stack supply air with exhaust gas recirculation. Fig. 4
+    At the core of the CEGR system lies the recirculation valve, pivotal in         illustrates the impact of the recirculation ratio XEGR on the oxygen
+governing the proportion of fresh air to recirculated exhaust gas. Engi­            stoichiometry across a range from 0 % to 45 %.
+neered as a 3/2-way valve, it facilitates a direct link between the two                 In the upper graph, representing standard operation without recir­
+streams. Crucially, the valve must withstand deionized water with a low             culation XEGR = 0 %, the oxygen stoichiometry aligns with the manu­
+pH value (3–5). Further important specifications for the valve are                  facturer’s specified values. Upon activating exhaust gas recirculation,
+detailed in Table 2.                                                                the oxygen stoichiometry diminishes, evidenced by the concurrent
+    Efficient water separation is imperative for the required water                 downward shift of the function graphs with increasing recirculation
+separator. It should achieve a separation efficiency of at least 90 %,              ratio. Notably, at a current density exceeding 0.5 A/cm2, an oxygen
+                                                                                    stoichiometry of λO2 = 1 is attained at a recirculation ratio of 45 %.
+
+
+
+
+                                                  Fig. 3. Architecture of the air supply system with CEGR.
+
+                                                                              478
+M. Aggarwal et al.                                                                                                International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+
+
+Fig. 4. Influence of the recirculation ratio XEGR from 0 % to 45 % on the oxygen         Fig. 6. Correlation between recirculation ratio XEGR and oxygen stoichiometry
+stoichiometry λO2.                                                                       λO2 for individual current densities.
+
+    Fig. 5 illustrates the segment corresponding to a current density of                 of a low recirculation ratio on oxygen stoichiometry is minimal. How­
+less than 0.4 A/cm2. At lower current densities, a considerably higher                   ever, increasing the recirculation ratio at this current level results in a
+degree of recirculation is necessary to reach an oxygen stoichiometry of                 significant decrease in oxygen stoichiometry. Conversely, at current
+λO2 = 1. This heightened requirement can be attributed to the specified                  densities >0.5 A/cm2, a less pronounced correlation between recircu­
+high supply air mass flow rate. For instance, at a current density of 0.1                lation ratio and oxygen stoichiometry is observed.
+A/cm2, up to 82 % of the stack supply air must be sourced from recir­
+culation to achieve λO2 = 1. The correlation between oxygen stoichi­
+ometry and recirculation ratio is then examined individually for each                    4.3. Cell voltage
+current density.
+    Fig. 6 illustrates this relationship and serves as the foundation for                    Fig. 7 a) illustrates the breakdown of the cell voltage without exhaust
+subsequent control development, wherein the necessary recirculation                      gas recirculation, considering an ambient temperature of 25 ◦ C with a
+ratio is derived from the required oxygen stoichiometry.                                 stationary observation of the cathode model. The cell voltage is broken
+    It is evident that at a low current density of <0.1 A/cm2, the impact                down starting with the Nernst voltage, then subtracting internal, acti­
+                                                                                         vation, electrical, membrane resistance, and concentration over­
+                                                                                         voltages. During normal operation, the cell voltage remains above 0.85
+                                                                                         V at low current densities and decreases with increasing current density
+                                                                                         down to 0.59 V at 2.24 A/cm2.
+                                                                                             When incorporating exhaust gas recirculation at a controlled oxygen
+                                                                                         stoichiometry of λO2 = 1.1, a notable decrease in cell voltage is
+                                                                                         noticeable. Fig. 7 b) demonstrates the breakdown of the cell voltage with
+                                                                                         CEGR and an oxygen stoichiometry of λO2 = 1.1. It is noteworthy that
+                                                                                         the cell voltage can consistently be maintained below the critical limit of
+                                                                                         0.8 V, and as the current density increases, the cell voltage diminishes,
+                                                                                         approaching zero.
+                                                                                             Fig. 7 c) illustrates the cumulative difference between individual
+                                                                                         losses with and without exhaust gas recirculation. At low currents, this
+                                                                                         reduction in voltage is attributed to the decrease in the Nernst voltage
+                                                                                         and the concurrent increase in internal, activation, and concentration
+                                                                                         overvoltages. However, at higher currents, the rapid increase in con­
+                                                                                         centration overvoltage primarily leads to the decline in cell voltage.
+                                                                                             The correlation between cell voltage and XEGR is mainly attributed to
+                                                                                         the decreasing oxygen partial pressure pO2 . Changes in stack supply air
+                                                                                         temperature are not considered in stationary operation. However, an
+                                                                                         increase in relative humidity contributes to an improvement in the
+                                                                                         membrane resistance, which results in a reduction in this overvoltage.
+                                                                                             The rapid increase of concentration overvoltage ηconc is a result of the
+                                                                                         restricted concentration of reactants on the catalyst, triggered by the
+                                                                                         reduced oxygen partial pressure of the cathode supply air. ηconc steadily
+Fig. 5. Influence of the recirculation ratio XEGR from 45 % to 82 % on the               rises with XEGR and i until it ultimately reaches the limiting current
+oxygen stoichiometry λO2.                                                                density ilim , after which it diminishes towards zero.
+
+                                                                                   479
+M. Aggarwal et al.                                                                                               International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+
+
+Fig. 7. Simulation results of the influence of CEGR on cell voltage. Breakdown of the cell voltage without CEGR is illustrated in (a), the breakdown of the cell voltage
+with CEGR at λO2 = 1.1 in (b), the accumulated difference of the individual overvoltages from (a) and (b) is shown in (c) and the correlation between oxygen
+stoichiometry λO2 and cell voltage for individual current densities in (d).
+
+
+    The correlation between oxygen stoichiometry and cell voltage can
+be derived for each current density. Fig. 7 d) illustrates this relationship
+for current densities ranging from 0.1 A/cm2 to 2.24 A/cm2. Particularly
+at high current densities, there is a significant decline in cell voltage
+with decreasing oxygen stoichiometry. At low current densities, there is
+a continual decrease in cell voltage as oxygen stoichiometry decreases.
+These correlations between cell voltage and oxygen stoichiometry hold
+significant importance for the ongoing analysis of exhaust gas recircu­
+lation in the context of control and operating strategy development.
+Based on these correlations, an effective control system can be devised to
+optimize idling and freeze starts.
+
+4.4. Freeze start
+
+    A freeze start procedure incorporating CEGR aims to optimize the
+generation of waste heat. This optimization serves to accelerate freeze
+starts while concurrently mitigating the potential for heightened
+degradation or voltage instabilities.
+    Fig. 8 illustrates the potential waste heat generation of the fuel cell
+stack, once with an oxygen stoichiometry of λO2 = 1.1 and once without
+exhaust gas recirculation. The figure shows that at λO2 = 1.1 especially
+at high current densities, the potential for increased waste heat gener­
+ation through elevation of the concentration overvoltage is evident. At a               Fig. 8. Cell voltage and generated heat with (λO2 = 1.1) and without (XEGR =
+                                                                                        0) CEGR conditions can lead to degradation of the catalyst and membrane [22].
+current density of 2 A/cm2, the generated waste heat could be increased
+from
+    156 kW–180 kW (relative increase of +15 %) and at a current density                 the battery is limited, thus restricting the permitted FC electrical power
+of 2.08 A/cm2, the generated waste heat could be increased from 164                     output. The positive effect of CEGR is enhanced under this restriction.
+kW to 275 kW (relative increase of +68 %).                                              Due to the lower cell voltage, a higher current density can be maintained
+    However, operating the cell in the region of the limiting current                   with the same power output as without CEGR, thereby reinforcing the
+density (greater than 2 A/cm2) can cause irreversible damage to the fuel                generated waste heat. However, waste heat must be increased at a low
+cell components. These.                                                                 current density, necessitating a lower oxygen stoichiometry. In this
+    At low system temperatures, the electrical input and output power of                system, the power limit is set at 10 kW. This is representative for a freeze
+
+                                                                                  480
+M. Aggarwal et al.                                                                                              International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+start in a vehicle where no driving power is requested.
+    A thermodynamic simulation with an active CEGR strategy in­
+vestigates freeze starts from - 30 ◦ C. In this simulation an oxygen stoi­
+chiometry below 1 is allowed to maintain the cell voltage at 0.2 V,
+ensuring the stack power does not exceed 10 kW, see Fig. 9. The model
+accounts oxygen stoichiometries below 1 by proportionally reducing the
+active cell area.
+    Results, shown in Fig. 10, indicate in the first 30 s no effect of exhaust
+gas recirculation at temperatures below 10 ◦ C. This observation stems
+from the presumption that ice formation already reduces the active cell
+surface at subzero temperatures. However, once the ice melts, the in­
+fluence of exhaust gas recirculation becomes significant.
+    The absence of the oxygen reactant on the cathode side results in 4.6
+times faster heat-up to operating temperature compared to a system
+without exhaust gas recirculation. The required operating temperature
+of 60 ◦ C can be reached in around 50 s, whereas without CEGR, a freeze
+start takes up to 230 s.
+
+
+4.5. Idling
+
+    Two primary objectives are pursued during idling. Firstly, the aim is
+to reduce the fuel cell degradation, especially platinum oxidation, by
+operating at a cell voltage lower than 0.8 V and minimizing the number                 Fig. 10. Comparison of the freeze start-up time to operating temperature with
+of start-stop cycles [22]. Secondly, hydrogen consumption is to be                     and without exhaust gas recirculation.
+minimized thanks to the possibility of lowering the minimum stack
+power output.
+    Fig. 11 demonstrates the potential for power reduction during idle
+operation. The minimum current density is constrained by the critical
+voltage threshold of 0.85 V. Operating below this limit permits a
+decrease in the minimum idle current density, provided no other sub­
+system imposes limitations.
+    In the stationary simulation, a cell voltage below 0.8 V could
+consistently be attained up to a current density of 0.02 A/cm2. This
+indicates, that the minimal stack power can be decreased from 9.2 kW to
+1.7 kW, equaling the BoP consumption and therefore reaching an overall
+FCS net zero power output. This prevents the fuel cell from switching off
+when the battery is fully charged, thereby extending its useful lifetime.
+    In addition, hydrogen consumption is proportional to the current
+density. A reduction in current density from 0.12 A/cm2 to 0.02 A/cm2,
+representing an 83 % decrease, corresponds to a hydrogen saving of
+
+
+
+
+                                                                                       Fig. 11. Cell voltage and stack power with CEGR (λO2 = 1.1) and without
+                                                                                       CEGR (XEGR = 0) and additional labelling of the minimum permissible stack
+                                                                                       power for both cases and the hydrogen saving potential by reducing the cur­
+                                                                                       rent density.
+
+
+                                                                                       0.094 gH2/s.
+
+
+                                                                                       4.6. Control system concept
+
+                                                                                           The control concept of CEGR is similar to the approach outlined in
+                                                                                       Ref. [26] and is shown in Fig. 12. Depending on the strategy for idling or
+                                                                                       freeze starts, the fuel cell system’s necessary current and voltage are
+                                                                                       specified and XEGR is derived accordingly.
+                                                                                           For a freeze start, the maximum output power, Pmax , must be defined
+                                                                                       based on the system temperature and the vehicle’s power requirements.
+                                                                                       In this study, Pmax is set at 10 kW, assuming the vehicle is stationary
+Fig. 9. Comparison of the cell voltage during a freeze start with and without          during the freeze start, see equation (17). If the vehicle is in motion, the
+exhaust gas recirculation.                                                             power requirement would be higher, thereby raising this power limit
+
+                                                                                 481
+M. Aggarwal et al.                                                                                                International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+
+
+Fig. 12. Control of the exhaust gas recirculation system, consisting of an operating strategy, the simulation results from sections 4.2 and 4.3 and a PID controller for
+the cell voltage.
+
+
+and amplifying the impact of CEGR. Pmax and the temperature-                             proposed solutions. Risks were identified based on typical operating
+dependent maximum current Imax , directly determine the cell voltage                     conditions of PEM fuel cells found in the literature, supplemented by
+Umin to be achieved through CEGR, given in equations (18) and (19).                      team brainstorming. A comprehensive analysis of risk assessment and
+        (       )                                                                        risk management should be carried out as part of additional research
+Pmax = f T, Preq = 10 kW                                        (17)
+                                                                                         efforts on this topic.
+
+Imax = f(T)                                                                 (18)
+                                                                                         5. Conclusion
+         Pmax
+Umin =                                                                      (19)             The findings of this study corroborate the functionality and effec­
+       Imax ⋅A⋅N
+                                                                                         tiveness of the cathode exhaust gas recirculation (CEGR) system. The
+    During idling, XEGR varies based on the power demand from the fuel                   developed system has the potential to expand the operating range of the
+cell and auxiliary units (BoP). It makes sense to reduce the electrical                  PEM fuel cell, reduce the consumption of hydrogen, and prolong the fuel
+power by lowering the cell voltage when the battery is fully charged and                 cell’s useful lifetime.
+the required power is up to 9.2 kW, which corresponds to the minimal                         The defined system architecture focuses on controllability and in­
+idling power Pmin without CEGR, shown in Fig. 11. If the vehicle power                   cludes a water management system. The simulation results highlight the
+demand exceeds 9.2 kW, the system should operate at optimal cell ef­                     detailed impact of exhaust gas recirculation on overvoltages and the
+ficiency without CEGR. Idle mode maintains a constant cell voltage Uidle                 consequent cell voltage.
+of 0.79 V. Simulation results indicate that this voltage can be sustained                    In terms of freeze start capabilities, the CEGR system demonstrates
+with CEGR at any current up to 0.02 A/cm2. This knowledge is used to                     the potential for higher waste heat generation, achieving a freeze start
+determine the minimum current Imin in idling mode. The calculation of                    from − 30 ◦ C to operating temperature 4.6 times faster than a system
+the required power is given in equations (20)–(22).                                      without CEGR, in around 50 s. The system is particularly effective in
+Preq = Pvehicle + PBoP + PBat                                               (20)         reaching operating temperatures from above 0 ◦ C.
+                                                                                             In comparison to previous research on idle states, this study in­
+Uidle = 0.79 V                                                              (21)         troduces innovative concepts for hydrogen savings and the generation of
+                                                                                         zero-idle power, thus avoiding the need to shut down the fuel cell. A
+            Preq                                                                         reduction in hydrogen consumption of up to 83 % is achievable, with the
+Imin =                                                                      (22)
+         0.79 ⋅A⋅N                                                                       minimum idling power reduced from 9.2 kW to 1.7 kW. This approach
+    The necessary oxygen stoichiometry λO2 and recirculation ratio XEGR                  enhances efficiency and prolongs the fuel cell’s lifespan.
+are established by leveraging the defined currents and cell voltages                         The conducted risk analysis suggests areas for future research,
+outlined in the operating strategy. This process utilizes the simulation                 emphasizing the need for closer examination of the limits and duration
+results obtained in both section 4.2 and section 4.3.                                    of oxygen starvation. Additionally, practical tests across the full current
+    Using XEGR in conjunction with the valve characteristics and the                     density range are required to validate the simulation results and gather
+thermodynamic state variables of the fluids, the opening angle of the                    detailed estimates of the service life extension.
+recirculation valve can be calculated. The recirculation valve is then                       In further project work, short stack tests are therefore planned to
+controlled using a proportional-integral-derivative (PID) controller so                  validate the results and record the simulated characteristic curves.
+that the desired cell voltage is achieved.                                               Furthermore, comprehensive tests involving the entire fuel cell system
+    This control system requires further optimization to consider the                    will be undertaken to optimize control and operating strategies.
+influence of the back-pressure valve and the possible resulting reso­                        In conclusion, this study establishes a foundation for an optimized
+nance, as well as the dynamic effects of the cathode path and the related                CEGR system designed for freeze start and idle conditions, opening new
+time delays.                                                                             research fields, and providing impetus for further in-depth studies.
+
+                                                                                         CRediT authorship contribution statement
+4.7. Risk analysis
+                                                                                            Martin Aggarwal: Writing – review & editing, Visualization, Su­
+   This section describes the potential risks associated with the intro­                 pervision, Project administration, Methodology, Investigation, Formal
+duction of CEGR. Table 3 provides an overview of these risks, accom­                     analysis, Conceptualization. Daniel Valentin: Writing – review &
+panied by a brief description of their potential consequences and                        editing, Writing – original draft, Visualization, Software, Methodology,
+
+                                                                                   482
+M. Aggarwal et al.                                                                                                            International Journal of Hydrogen Energy 96 (2024) 474–484
+
+
+Table 3                                                                                          Declaration of competing interest
+Risk analysis for CEGR.
+  Risk               Description          Consequence             Countermeasures                    The authors declare that they have no known competing financial
+                                                                                                 interests or personal relationships that could have appeared to influence
+  Local oxygen       Local oxygen         Degradation of the      Electrochemical
+    starvation       starvation due to    fuel cell               flow simulation,               the work reported in this paper.
+                     low oxygen                                   tests on a single cell
+                     stoichiometry                                and a short stack,             Acknowledgment
+                     [35]                                         state of health
+                                                                  monitoring
+  Recirculating      Liquid water and     Shortening the          Water separators,
+                                                                                                    The COMET Centre HyCentA Research GmbH is funded within
+    humid air        air with high        service life of the     flow simulations,              COMET – Competence Centers for Excellent Technologies – by BMK,
+                     relative humidity    compressor rotor        coating and drying             BMAW as well as the co-financing federal provinces Styria, Upper
+                     are recirculated     and air-bearing         procedure during               Austria, Tyrol and Vienna. The COMET program is managed by FFG.
+                                                                  shut-down
+                                                                                                    The authors would like to thank the KLIEN and the FFG for funding
+  Recirculation      The recirculated     Increased               Selection of material
+    of acidic        water has an         corrosion of            to resist acid                 the project “HyFleet” as well as the BMK.
+    liquid           acidic pH value      components in the       conditions,                       Furthermore, gratitude is extended to the project partners for their
+                     between 3 and 7      fresh air path          nanoceramic                    technical and organizational support.
+                     [36]                                         electro-chemical
+                                                                  oxidation (ECO)
+  Recirculation      Hydrogen is          Degradation of the      Consideration in the
+                                                                                                 References
+    of hydrogen      introduced into      fuel cell, efficiency   operating strategy,
+                     the exhaust gas      losses                  cyclical flushing               [1] Pramuanjaroenkij A, Kakaç S. The fuel cell electric vehicles: the highlight review.
+                                                                                                      Int J Hydrogen Energy 2023;48(25):9401–25. https://doi.org/10.1016/j.
+                     through                                      with fresh air
+                                                                                                      ijhydene.2022.11.103.
+                     hydrogen-
+                                                                                                  [2] Al-okbi Y, Jweeg MJ, Atiya MA, Al-Dujele R. Design, analysis and development of a
+                     pumping and
+                                                                                                      proton exchange membrane in fuel cell. Journal of Engineering Research 2024.
+                     diffusion                                                                        https://doi.org/10.1016/j.jer.2024.07.019.
+                     processes, after                                                             [3] Kahraman H, Akın Y. Recent studies on proton exchange membrane fuel cell
+                     which it                                                                         components, review of the literature. Energy Convers Manag 2024;304:118244.
+                     undergoes                                                                        https://doi.org/10.1016/j.enconman.2024.118244.
+                     recirculation [37]                                                           [4] Chen J, He H, Yue H. A review of plateau environmental adaptation for proton
+  Heat               CEGR generates       System                  Consideration in the                exchange membrane fuel cells. Int J Hydrogen Energy 2024;50:744–64. https://
+   dissipation in    additional waste     overheating             design and control                  doi.org/10.1016/j.ijhydene.2023.09.014.
+   idle mode         heat                                         of thermal                      [5] Jiao K, Li X. Effects of various operating and initial conditions on cold start
+                                                                  management                          performance of polymer electrolyte membrane fuel cells. Int J Hydrogen Energy
+  Interactions of    Interaction          Vibrations,             Consideration in the                2009;34(19):8171–84. https://doi.org/10.1016/j.ijhydene.2009.07.102.
+    the EGR          between the          pressure surges,        control of the AP-              [6] Takahashi T, Kokubo Y, Murata K, Hotaka O, Hasegawa S, Tachikawa Y, et al. Cold
+                                                                                                      start cycling durability of fuel cell stacks for commercial automotive applications.
+    valve in the     recirculation        voltage peaks and       system, practical
+                                                                                                      Int J Hydrogen Energy 2022;47(97):41111–23. https://doi.org/10.1016/j.
+    cathode path     valve, the           oxygen shortages        tests at subsystem
+                                                                                                      ijhydene.2022.09.172.
+                     pressure control     that lead to            level                           [7] Luo Y, Jiao K. Cold start of proton exchange membrane fuel cell. Prog Energy
+                     valve and the        degradation or                                              Combust Sci 2018;64:29–61. https://doi.org/10.1016/j.pecs.2017.10.003.
+                     compressor speed     mechanical                                              [8] Colombo E, Baricci A, Bisello A, Guetaz L, Casalegno A. PEMFC performance decay
+                                          damage                                                      during real-world automotive operation: evincing degradation mechanisms and
+  Lowering the       Reduction of the     Not given               Design of the power                 heterogeneity of ageing. J Power Sources 2023;553:232246. https://doi.org/
+    cell voltage     cell voltage to a    functionality of        electronics for low                 10.1016/j.jpowsour.2022.232246.
+                     minimum              the electrical          voltages and                    [9] Li K, Hong J, Zhang C, Liang F, Yang H, Ma F, et al. Health state monitoring and
+                                          components              overlapping voltage                 predicting of proton exchange membrane fuel cells: a review. J Power Sources
+                                          (DCDC) and              levels                              2024;612:234828. https://doi.org/10.1016/j.jpowsour.2024.234828.
+                                          voltage overlaps                                       [10] Agyekum EB, Odoi-Yorke F, Abbey AA, Ayetor GK. A review of the trends,
+                                          with the battery                                            evolution, and future research prospects of hydrogen fuel cells – a focus on
+                                                                                                      vehicles. Int J Hydrogen Energy 2024;72:918–39. https://doi.org/10.1016/j.
+  Water              Failure and          Flooding and            Monitoring the
+                                                                                                      ijhydene.2024.05.480.
+   discharge         leakage of the       contamination of        functionality of the
+                                                                                                 [11] Liu P, Xu S. A review of low-temperature proton exchange membrane fuel cell
+   failure           diaphragm pump,      the cathode             diaphragm pump
+                                                                                                      degradation caused by repeated freezing start. Int J Hydrogen Energy 2023;48(22):
+                     overfilling of the   section                 and level sensor in                 8216–46. https://doi.org/10.1016/j.ijhydene.2022.11.114.
+                     collection tank                              the water collection           [12] Liu J, Chen H, Zhang T. Analysis of cold start characteristics in a PEMFC stack with
+                                                                  tank.                               different current loading modes. Int J Hydrogen Energy 2024;51:1456–76. https://
+                                                                                                      doi.org/10.1016/j.ijhydene.2023.06.303.
+                                                                                                 [13] Energy.gov. DOE Technical Targets for Fuel Cell Systems and Stacks for
+Investigation, Formal analysis, Data curation. Samuele Cappelli:                                      Transportation Applications. [April 03, 2024]; Available from: https://www.energ
+                                                                                                      y.gov/eere/fuelcells/doe-technical-targets-fuel-cell-systems-and-stacks-transpor
+Writing – review & editing, Visualization, Validation, Software, Meth­                                tation-applications.
+odology, Investigation, Formal analysis, Conceptualization. Thomas                               [14] Ren P, Pei P, Li Y, Wu Z, Chen D, Huang S. Degradation mechanisms of proton
+Loidl: Validation, Software, Investigation. Patrick Pertl: Writing – re­                              exchange membrane fuel cell under typical automotive operating conditions. Prog
+                                                                                                      Energy Combust Sci 2020;80:100859. https://doi.org/10.1016/j.
+view & editing, Supervision. Alexander Trattner: Writing – review &
+                                                                                                      pecs.2020.100859.
+editing, Supervision.                                                                            [15] Thiele P, Yang Y, Dirkes S, Wick M, Pischinger S. Realistic accelerated stress tests
+                                                                                                      for PEM fuel cells: test procedure development based on standardized automotive
+Declaration of generative AI and AI-assisted technologies in the                                      driving cycles. Int J Hydrogen Energy 2024;52:1065–80. https://doi.org/10.1016/
+                                                                                                      j.ijhydene.2023.08.292.
+writing process                                                                                  [16] Zhang S, Yuan X, Wang H, Mérida W, Zhu H, Shen J, et al. A review of accelerated
+                                                                                                      stress tests of MEA durability in PEM fuel cells. Int J Hydrogen Energy 2009;34(1):
+   During the preparation of this work the corresponding author used                                  388–404. https://doi.org/10.1016/j.ijhydene.2008.10.012.
+                                                                                                 [17] Energy.gov. Fuel Cell. [April 18, 2024]; Available from: https://www.energy.
+OpenAI’s ChatGPT-4 in order to improve language and readability. After                                gov/eere/fuelcells/fuel-cells.
+using this tool/service, the author reviewed and edited the content as                           [18] Kim BJ, Kim MS. Studies on the cathode humidification by exhaust gas
+needed and takes full responsibility for the content of the publication.                              recirculation for PEM fuel cell. Int J Hydrogen Energy 2012;37(5):4290–9. https://
+                                                                                                      doi.org/10.1016/j.ijhydene.2011.11.103.
+                                                                                                 [19] Xu L, Fang C, Hu J, Cheng S, Li J, Ouyang M, et al. Self-humidification of a polymer
+                                                                                                      electrolyte membrane fuel cell system with cathodic exhaust gas recirculation.
+
+
+
+
+                                                                                           483
+M. Aggarwal et al.                                                                                                               International Journal of Hydrogen Energy 96 (2024) 474–484
+
+     Journal of Electrochemical Energy Conversion and Storage 2018;15(2). https://                  [29] Wang Y, Li H, Feng H, Han K, He S, Gao M. Simulation study on the PEMFC oxygen
+     doi.org/10.1115/1.4038628.                                                                          starvation based on the coupling algorithm of model predictive control and PID.
+[20] Zhang Q, Tong Z, Tong S. Effect of cathode recirculation on high potential                          Energy Convers Manag 2021;249:114851. https://doi.org/10.1016/j.
+     limitation and self-humidification of hydrogen fuel cell system. J Power Sources                    enconman.2021.114851.
+     2020;468:228388. https://doi.org/10.1016/j.jpowsour.2020.228388.                               [30] Taniguchi A, Akita T, Yasuda K, Miyazaki Y. Analysis of degradation in PEMFC
+[21] Rodosik S, Poirot-Crouvezier J-P, Bultel Y. Impact of humidification by cathode                     caused by cell reversal during air starvation. Int J Hydrogen Energy 2008;33(9):
+     exhaust gases recirculation on a PEMFC system for automotive applications. Int J                    2323–9. https://doi.org/10.1016/j.ijhydene.2008.02.049.
+     Hydrogen Energy 2019;44(25):12802–17. https://doi.org/10.1016/j.                               [31] Niknezhadi A, Allué-Fantova M, Kunusch C, Ocampo-Martínez C. Design and
+     ijhydene.2018.11.139.                                                                               implementation of LQR/LQG strategies for oxygen stoichiometry control in PEM
+[22] Wallnöfer-Ogris E, Poimer F, Köll R, Macherhammer M-G, Trattner A. Main                           fuel cells based systems. J Power Sources 2011;196(9):4277–82. https://doi.org/
+     degradation mechanisms of polymer electrolyte membrane fuel cell stacks –                           10.1016/j.jpowsour.2010.11.059.
+     mechanisms, influencing factors, consequences, and mitigation strategies. Int J                [32] Bodner M, Schenk A, Salaberger D, Rami M, Hochenauer C, Hacker V. Air
+     Hydrogen Energy 2024;50:1159–82. https://doi.org/10.1016/j.                                         starvation induced degradation in polymer electrolyte fuel cells. Fuel Cell 2017;17
+     ijhydene.2023.06.215.                                                                               (1):18–26. https://doi.org/10.1002/fuce.201600132.
+[23] Liu Z, Xu S, Shi L. Research on PEMFC cathode circulation under low-load                       [33] Gerard M, Poirot-Crouvezier J-P, Hissel D, Pera M-C. Oxygen starvation analysis
+     conditions and its optimal control in FCV power system for long-term durability.                    during air feeding faults in PEMFC. Int J Hydrogen Energy 2010;35(22):
+     Int J Hydrogen Energy 2024;61:1015–27. https://doi.org/10.1016/j.                                   12295–307. https://doi.org/10.1016/j.ijhydene.2010.08.028.
+     ijhydene.2024.02.254.                                                                          [34] Zamel N, Hanke-Rauschenbach R, Kirsch S, Bhattarai A, Gerteisen D. Relating the
+[24] Kota Manabe, Yoshiaki Naganuma, Yasuhiro Nonobe, Mikio Kizaki, Tomoya                               N-shaped polarization curve of a PEM fuel cell to local oxygen starvation and
+     Ogawa. Development of fuel cell hybrid vehicle rapid start-up from sub-freezing                     hydrogen evolution. Int J Hydrogen Energy 2013;38(35):15318–27. https://doi.
+     temperatures. In: SAE international.                                                                org/10.1016/j.ijhydene.2013.09.130.
+[25] Jiang H, Xu L, Fang C, Zhao X, Hu Z, Li J, et al. Experimental study on dual                   [35] Meng K, Chen B, Zhou H, Shen J, Tu Z. Experimental investigation on voltage
+     recirculation of polymer electrolyte membrane fuel cell. Int J Hydrogen Energy                      response characteristics of hydrogen-oxygen proton exchange membrane fuel cells
+     2017;42(29):18551–9. https://doi.org/10.1016/j.ijhydene.2017.04.183.                                under gas starvation. Energy Convers Manag 2022;268:115973. https://doi.org/
+[26] Cheng S, Li J, Xu L, Ouyang M. Air supply system model with exhaust gas                             10.1016/j.enconman.2022.115973.
+     recirculation for improving the life of fuel cell:1–6. https://doi.org/10.1109/I               [36] Hou K-H, Lin C-H, Ger M-D, Shiah S-W, Chou H-M. Analysis of the corrosion
+     TEC-AP.2014.6941250.                                                                                behavior of Al alloy bipolar plate for proton exchange membrane fuel cell (PEMFC)
+[27] Wallnöfer-Ogris E, Pertl P, Trattner A. Quasi-stationary UI-characteristic model of a              under operating thermal conditions. Int J Green Energy 2012;9(1):71–83. https://
+     PEM fuel cell–Evaluating the option of self-humidifying operation. Int J Hydrogen                   doi.org/10.1080/15435075.2011.621474.
+     Energy 2020;45(56):32464–77. https://doi.org/10.1016/j.ijhydene.2020.08.254.                   [37] Tao H, Yang K, Wang B, Hou B, Wu K, Qin Z, et al. Numerical study of gas crossover
+[28] Qi Y, Espinoza-Andaluz M, Thern M, Andersson M. Polymer electrolyte fuel cell                       effect on hydrogen-oxygen proton exchange membrane fuel cell. Int J Heat Mass
+     system level modelling and simulation of transient behavior. eTransportation                        Tran 2024;234:126060. https://doi.org/10.1016/j.
+     2019;2:100030. https://doi.org/10.1016/j.etran.2019.100030.                                         ijheatmasstransfer.2024.126060.
+
+
+
+
+                                                                                              484
+

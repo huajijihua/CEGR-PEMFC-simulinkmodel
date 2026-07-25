@@ -1,0 +1,463 @@
+                                         ITEC Asia-Pacific 2014 1569956135
+
+
+
+       Air Supply System Model with Exhaust Gas
+     Recirculation for Improving the Life of Fuel Cell
+                               Siliang CHENG1, Jianqiu LI2,Liangfei XU3, Minggao OUYANG4
+           1 Tsinghua University , chengsl12@mails.tsinghua.edu.cn; 2 Tsinghua University, lijianqiu@tsinghua.edu.cn; 3 Tsinghua University,
+                                                             xuliangfei@tsinghua.edu.cn;
+                                                   4 Tsinghua University, ouymg@tsinghua.edu.cn
+
+    Abstract—This paper presents an air supply system model                    that the humidity control during operation is quite important
+with the exhaust gas recirculation (EGR) function. High                        to extend the life of PEMFC.
+potential is one of the key factors for degradation of proton
+exchange membrane fuel cell. The harmful high voltage always                       Research conducted by the Japanese, mainly by Nissan
+appears when the fuel cell works at small load. The output                     and Toyota, show that the high voltage is a mortal threat to
+voltage is greatly affected by the oxygen stoichiometric at the                the durability of PEMFC. During load cycling and idling
+cathode. The high voltage can be lowered down by controlling                   operation, changes in the electric potential and the holding of
+the oxygen stoichiometric in a suitable range. Based on this                   a high potential oxidize and reduce Pt. As a result, the surface
+concept, an air supply system model with EGR is proposed and                   of some Pt particles dissolves to produce an ion state. The
+modeled. A feasible control strategy for lowering the output                   dissolution of Pt reduces the Pt surface area compared with
+voltage is also deployed. Simulation results of the model show                 the initial condition, which causes performance to decline.[5]
+that, the oxygen ration in the inlet air can be greatly reduced, as            And test data presents in [1] tells that the higher the voltage is,
+well as the output voltage.                                                    the shorter the PEMFC life is. When the voltage is ranging
+                                                                               from 0.65V to 0.85V, the life of PEMFC is six times longer
+    Keywords—proton exchange membrane fuel cell;exhaust gas                    than the case of ranging from 0.65V to open circuit voltage.
+recirculation; high voltage; oxygen stoichiometric; control
+strategy                                                                           A typical polarization curve is showed in figure 1. The
+                                                                               data comes from the test of the fuel cell from Sunrise in 2012,
+                        I.     INTRODUCTION                                    the rated power of this stack is 50 kW. We can clearly see
+                                                                               from the curve that when the fuel cell is operating at low
+    Nowadays, due to the fast development of economy, we                       current density, the potential is high, especially when the
+are facing great energy and environment problems.                              current density is lower than 100 mA/cm2. According to [6],
+    The past and future trends for the consumption and                         the reason of this phenomenon is that the activation loss,
+discovery of conventional oil had been conducted. And the                      ohmic loss, concentration loss are all decreased with the
+results showed that consumption exceeded discovery in 1980                     decrease of current density. Especially, the activation loss is
+and it is unlikely that there will be any sudden increase in the               quite nolinear, it will decrease sharply with the current
+future.[1]                                                                     density at low load condition.
+    According to [1], the increase of CO2 emission will cause                     The stack is made of 520 cells, and each cell has a 300cm2
+lots of environment problems, such as the rise of the sea level                membrane. So the output power of the stack is more than 12
+and the rise of the global temperature. So, the necessity for                  kW, which is about 25% of the rated power of the stack,
+immediate cuts in CO2 is an urgent and long-term issue.                        when the current density is 100 mA/cm2. Figure 2 shows the
+                                                                               time weighting of different load rate for a fuel cell engine
+     Therefore, we desperately need a revolution in vehicle                    used for the bus which is worked for the World Expo in
+energy source. Proton exchange membrane fuel cell(PEMFC)                       Shanghai.
+has been considered an ideal alternative for internal
+combustion engine in recent years because of its typical                           The data in figure 2 shows that there is a big chance that
+advantages like high efficiency, zero emission and low                         the load rate of the fuel cell is under 20%. So the harmful
+temperature operation. However, PEMFC durability,                              high potential condition lasts long during working. Thus, the
+especially under a wide range of operational conditions, is                    optimization is necessary.
+still one of the current limitations preventing its wide scale                     The study in this paper focused on getting the output
+commercialization as a practical power source.[2] Thus great                   voltage under control. First, the mechanism of high voltage
+efforts have been made to improve the durability of PEMFC.                     and the mitigation strategy are introduced and the concept of
+    In [3], lots of degradation mechanisms and mitigation                      using oxygen stoichiometric to get the output voltage under
+strategies are summarized. The failure modes based on                          control is promoted. Then an air supply system model with
+electrochemistry of different components, like membrane,                       EGR which can flexibly control the amount of air and oxygen
+catalyst layer, gas diffusion layer, are described in detail and               is built. Finally, a feasible control strategy based on the model
+the mitigation strategies are promoted based on material                       is designed.
+improvement.
+   The effect of humidity and oxygen partial pressure on
+degradation of catalyst is studied in [4]. The result informs us
+
+
+
+
+         Authorized licensed use limited to: Wuhan University. Downloaded on March 26,2026 at 07:09:10 UTC from IEEE Xplore. Restrictions apply.
+
+                                                                           1
+                                                                                                            emphasize the key point, some reasonable assumptions are
+                        0.95                                                                                listed below:
+
+                               0.9
+                                                                                                                                    Air
+ Cell Voltage (V)
+
+
+
+
+                                                                                                                                compressor                         Supply manifold
+                        0.85                                                                                                                        Humidifier
+
+                                                                                                                                                                    H 2O
+                               0.8                                                                                                                                   O2
+                                                                                                                                                                     N2
+
+                        0.75                                                                                                                                              O2
+
+                                                                                                                                                Return pipe
+                               0.7                                                                                                        At2                      H 2O
+                                          0          10        20         30          40          50                                                Condenser
+                                                              Power （ kW)                                       Exhaust pipe
+                                                                                                                                   At1                              H 2O
+                                      Fig1. A typical polarization curve of PEMFC                                                                                    O2
+                                                                                                                                                                     N2
+
+                                      8                                                                                                  Return manifold            Fuel cell stack
+
+
+                                      6                                                                                Fig3. Simplified air supply model with EGR
+                    Time weight (%)
+
+
+
+
+                                                                                                                 1.   The ideal gas law is employed for the gas mixture.
+                                                                                                                 2.   The effect of the cooling subsystem is ignored, so the
+                                      4
+                                                                                                                      temperatures of the whole system are regarded as a
+                                                                                                                      constant.
+                                      2                                                                          3.   The effect of hydrogen supply subsystem is ignored,
+                                                                                                                      the pressure of anode channel is considered as the
+                                                                                                                      same with the cathode channel.
+                                      0                                                                          4.   The humidifier and condenser are regarded as ideal
+                                      -50                 0         50            100            150                  components, so the humidity can accurately satisfy
+                                                              Load rate (%)                                           the demand.
+
+                                       Fig2. Time weighting of different load rate                               5.   Lumped model is used for every cavity.
+                                                                                                                                          Nomenclature
+                                               II.        MODELING PROCEDURE                                              R                         universal gas constant
+   [7] tells the relationship between air stoichiometry and                                                               P                              pressure(bar)
+concentration loss. When the stoichiometry of air is smaller                                                              t                                 time(s)
+than 1.1, the concentration loss rises quickly.                                                                           V                              volume(m3)
+                                                                                                                          W                          mass flow rate(g s-1)
+    However, the ability of taking away the generated water                                                               T                            temperature(K)
+dropped with the reducing of air supply, so flooding at                                                                   M                       gas molar mass(kg mol-1)
+cathode flow channel may occur. Therefore, in order to                                                                    At                      throttle opening area(m2)
+achieve the goals of both lowering the potential and avoiding                                                             k                      ratio of specific heat of air
+the flooding, the amount of oxygen and air supply should be                                                                                               current(A)
+decoupled. The decoupling could be realized by adding
+                                                                                                                          I
+                                                                                                                          F                   faraday constant(96485C mol-1)
+exhaust gas recirculation to the air supply subsystem, the                                                                m                                mass(kg)
+simplified physical model is showed in figure 3.                                                                          x                             molar fraction
+   By using EGR, the amount of oxygen could be changed                                                                     λ                         stoichiometric ratio
+without changing the amount of air. Also, the amount of                                                                                     Subcripts
+oxygen could be flexibly controlled by accurately control the                                                             in                                  inlet
+opening area of the two throttles.                                                                                        out                                outlet
+                                                                                                                          ca                                cathode
+    This model is focused on the air supply subsystem, so the
+characteristics of other subsystems like hydrogen supply                                                                  an                                 anode
+system are ignored. To simplify the mathematic model and                                                                  ds                             down stream
+                                                                                                                          us                               upstream
+
+
+
+
+                                      Authorized licensed use limited to: Wuhan University. Downloaded on March 26,2026 at 07:09:10 UTC from IEEE Xplore. Restrictions apply.
+
+                                                                                                        2
+           air                            air                                  showed in figure 4. The red line stands for the demanded air
+          atm                        atmosphere                                amount and the green line stands for the actual air amount.
+           O2                          oxygen
+           H2                         hydrogen                                                    300
+          H2O                           water
+           vap                          vapor                                                     250
+           sat                        saturation                                                                    Actual air flow rate
+                                                                                                                    Demanded air flow rate
+           sm                      supply manifold
+
+
+
+
+                                                                                 Flow rate(g/s)
+                                                                                                  200
+            rp                       return pipe
+            cp                       compressor
+          hum                         humidifier                                                  150
+
+           con                        condenser
+    The pressure equation of every cavity can be expressed                                        100
+
+as[8]
+                                                                                                  50
+                    dP RT
+                      =   (Win − Wout )                              (1)
+                    dt VM                                                                          0
+                                                                                                        0    5      10       15      20      25   30    35   40
+    The throttle flow equation can be expressed as[8]                                                                             time(s)
+       C D AtPus Pds 1k 2k         Pds kk−1 12                                                    Fig.4 The control effect of the PI controller for the
+    W=          ( ) {        [1 − ( ) ]}                          (2-1)                                              compressor
+           RT Pus       k −1       Pus
+                                                                               B. Gas mixture model
+     P        2 kk−1
+when ds > (      ) ,or                                                             Because of the import of EGR, the molar mass of the gas
+     Pus    k +1                                                               being sucked into the compressor M mixair is different from
+
+                 CD AtPus        1
+                               2 2( k −1)
+                                              k +1                              M air . The calculation of M mixair will be described later.
+         W=             ×k (     2
+                                  )                              (2-2)
+                     RT      k +1                                                 The molar fraction of vapor in the gas after the
+                                                                               compressor and before humidifier can be expressed as
+        Pds      2 kk−1
+when        ≤(      ) .                                                                                                    Psat (Tatm ) × RH 0
+        Pus    k +1                                                                                         xvap_atm =                                            (5)
+                                                                                                                                   Patm
+A. Air compressor model                                                                   where Psat (Tatm ) means the saturated vapor pressure at
+    The air compressor model from [9] is used in this model.
+                                                                               ambient temperature, RH 0 means the humidity of the
+Nerual network technique is used for MAP interpolating and
+                                                                               atmosphere. The molar fraction of vapor in the gas after the
+extrapolating. However, the model represented in [9] used the
+                                                                               humidifier can be expressed as
+downstream pressure and the motor voltage as inputs, so the
+air flow rate could not automatically satisfy the demand. The                                                              Psat (Thum ) × RHc
+relationship between the amount of reacted oxygen and the                                                   xvap _ hum =                                          (6)
+output current can be expressed as[8]                                                                                              Psm
+                                            n× I                                          where Psat (Thum ) means the saturated vapor pressure at
+                  mO2 ,reacted = M O2 ×                            (3)
+                                            4F                                 the set temperature, RHc means the set humidity.
+where n stands for the number of cells. Thus, the amount of
+                                                                                          Usually, compared to xvap _ hum , xvap_atm is quite small,
+air needed can be calculated with the expression below:
+                                                                               so the total flow rate would not be influenced much if we just
+                                                                               put xvap_atm to zero. Thus, the followed modeling process
+             λ × mO ,reacted × M air        λ × M air       n× I
+    mair =          2
+                                        =               ×        (4)           would ignore the effect of xvap_atm .
+                  M O2 × 0.21                 0.21          4F
+                                                                                          The flow rate after the humidifier can be expressed as
+    Based on (3) and (4), a PI controller was added to the
+compressor model to change the input from motor voltage to                                                           (1-xvap_hum ) × M mixair +xvap_hum × M h2o
+the output current. Therefore the air amount can be accurately                 Whum_out =Whum_in ×                                                                      (
+controlled. And by setting the value of λ , the model can                                                                         (1-xvap_hum ) × M mixair
+satisfy different working condition. The control effect is                     7)
+
+
+
+
+         Authorized licensed use limited to: Wuhan University. Downloaded on March 26,2026 at 07:09:10 UTC from IEEE Xplore. Restrictions apply.
+
+                                                                           3
+      where    Whum_in is flow rate that comes from the                                     from the condenser. And the molar fraction can be expressed
+                                                                                            as
+compressor.
+                                                                                                         Wca _ out            xo2 _ out
+   Then, after the humidifier, there is no gas mixture in the                               xo2 _ rp =                ×                       ×
+supply manifold, but in the stack, the component of gas                                                  Wcon _ out       (1 − xvap _ out )
+should be paid grate attention to.
+                                                                                                              ( xo2 _ out × M O2 + (1 − xo2 _ out ) × M N 2 )
+    Due to the effect of EGR, the flow rate of inlet oxygen is
+connected to the flow rate and oxygen molar fraction of                                     xvap _ out × M H 2O + xo2 _ out × M O2 + (1 − xo2 _ out − xvap _ out ) × M N 2
+return pipe gas. So the expression can be written as                                        (13)
+                                  Wrp                                                          When the molar fraction of oxygen is calculated, the
+Wo2 _ ca _ in = Whum _ in × (            ×                                                  molar mass of return pipe gas can be expressed as
+                                  Wcp
+                                                                                                                  1
+               xo 2 _ rp × M o2                      1 − Wrp       0.21× M o2               M rp _ air =                     ( xo _ out × M o2 + (1 − xo2 _ out ) × M N2 )
+                                                +              ×                )                           (1 − xvap _ out ) 2
+xo 2 _ rp × M o2 + (1 − xo2 _ rp ) × M N 2             Wcp            M air                 (14)
+(8)                                                                                            After getting the molar mass of the return pipe gas, the
+      Similarly, the flow rate of nitrogen can be expressed as                              molar mass of the mixed gas that enters the air compressor
+                                                                                            mentioned before can be expressed as
+                                   Wrp
+WN2 _ ca _ in = Whum _ in × (            ×                                                                                                 Wcp
+                                   Wcp                                                                           M mixair =
+                                                                                                                                   Wcp − Wrp    Wrp
+          (1 − xo 2 _ rp ) × M N2                    1 − Wrp       0.79 × M N 2                                                              +
+                                                 +             ×                    )                                                M air     M rp _ air
+xo 2 _ rp × M o2 + (1 − xo2 _ rp ) × M N 2             Wcp            M air
+                                                                                            (15)
+(9)
+    Here, the humidity of the gas in the stack is assumed to be                             C. Stack voltage model
+saturated. Thus the total mass of gas in the cathode channel                                    The stack voltage model presented in [8] is used for
+can be expressed as                                                                         calculating the voltage in this paper. Generally, the stack
+                                                                                            voltage Vcell is made of four parts: open circuit voltage Ecell ,
+        mca = ∫ (Wo2 _ ca _ in − Wo2 _ ca _ out − Wo2 _ con ) +
+                                                                                            activation loss Vact , ohmic loss Vohm and concentration loss
+                                                     Pca _ sat × Vca × M h2 o               Vconc . The expression can be written as[8]
+        ∫ (W  N 2 _ ca _ in   − WN2 _ ca _ out ) +
+                                                             R ×T
+                                         (10)                                                                         Vcell = Ecell − Vact − Vohm − Vconc
+                                                                                            (16)
+      where Wo2 _ con stands for the consumed oxygen. The total
+flow rate at the cathode outlet can be calculated by[8]                                         The open circuit voltage is slightly affected by
+                                                                                            temperature and gas pressure. The activation loss is a function
+                     Wca_out =Cca _ out (Pca − Prm )                                        of current density. The ohmic loss is determined by current
+                                                                                            density and temperature. The concentration loss is highly
+(11)                                                                                        related to the gas pressure and gas component. The detailed
+    The pressure ratio of oxygen and nitrogen in the cathode                                calculation is presented in [8]..
+channel can be calculated by using equation (1), then the
+outlet flow rate of oxygen and nitrogen can be calculated by                                                           III.      CONTROL STRATEGY
+the combination of equation (10) and equation (11).                                            Based on the model described in Part II, a control method
+   The condenser is just the opposite of the humidifier. The                                showed in figure 5 was conducted to achieve the goal of
+flow rate at the outlet can be expressed as                                                 lowering the voltage.
+
+Wcon _ out = Wca _ out ×                                                                        According to the current demand I, the mass flow rate of
+                                                                                            the compressor Wcp and the pressure at the outlet of the
+          ( xo2 _ out × M O2 + (1 − xo2 _ out − xvap _ out ) × M N2 )                       compressor Pcp, the total opening area of two throttles can be
+                                                                                            calculated. The object of this calculation is to maintain the
+xvap _ out × M H 2O + xo2 _ out × M O2 + (1 − xo2 _ out − xvap _ out ) × M N 2
+                                                                                            pressure of the air supply system.
+(12)
+                                                                                                When the cell voltage is higher than the reference voltage
+   Then the oxygen molar fraction of the exhaust gas is                                     Vref, the control strategy would be activated. First, a look up
+exactly the oxygen molar fraction of the gas that comes out                                 table is used for calculating the feedforward recirculation rate.
+                                                                                            And the recirculation rate will be modified by a PI controller,
+
+
+
+
+           Authorized licensed use limited to: Wuhan University. Downloaded on March 26,2026 at 07:09:10 UTC from IEEE Xplore. Restrictions apply.
+
+                                                                                        4
+whose input is the difference between the real cell voltage
+and the reference voltage.
+
+
+
+
+                                                                                                                          Flow rate(g/s) Flow rate(g/s)
+                                                                                                                                                          300
+                                                                      Oxygen
+                                                                   concentration                                                                          200
+
+                                                                                                                                                          100
+
+                                                                                                                                                           0
+                                                                                                                                                                0   2   4     6   8      10      12   14   16   18   20
+                                                                                      +             Recirculation
+ Vcell                                                                                                                                                    150
+                                                                                           +            rate
+                                                                                                                                                          100
+
+                                                                                                                                                          50
+
+   Vref                                          +          PI controller                           Opening area                                           0
+                                             -                                                                                                                  0   2   4     6   8      10      12   14   16   18   20
+                                                                                                      of each                                              1
+
+
+
+
+                                                                                                                              Voltage(V)
+                                                                                                      throttle
+ Wcp                                                                                   Total                                                              0.5
+                                                                                     opening
+                                                         Related
+             I                                                                        area of                                                              0
+                                                        Equations                                                                                               0   2   4     6   8      10      12   14   16   18   20
+                                                                                        two                                                                                            time(s)
+  Pcp                                                                                throttles
+                                                                                                                                                                            Fig.7 Surge condition
+                                        Fig. 5 Control strategy of lowering the voltage
+                                                                                                                            Once when the average cell voltage reaches 0.8V, the
+    On the other hand, a PI controller based on the difference
+                                                                                                                        control strategy is activated. The EGR throttle opens and the
+of reference voltage and the real time voltage Vcell is used to
+                                                                                                                        flow rate of return gas rises, as showed by the red line in
+guarantee the control accuracy of the strategy.
+                                                                                                                        subfigure2. At the same time, the flow rate of the oxygen will
+                                                                                                                        be lower than that without EGR, thus causing the fallen of the
+                                                         IV.       SIMULATION RESULT                                    average cell voltage. As the load continued to decrease, the
+     In this part, two conditions are taken into consideration.                                                         flow rate of return gas keep rising, in order to keep the
+One is called small load condition and the other is surge                                                               average cell voltage below 0.8V. When the load stop
+condition. The small load condition, which has been                                                                     changing, the flow rate of return gas will be a constant that
+described in Part I, is the most common reason of causing                                                               makes sure the average cell voltage is below 0.8V.
+high voltage. The surge condition occurs when the fuel cell
+                                                                                                                            Fig.7 shows a typical result of surge condition. The
+stack is suffering blooding. Then the voltage would rise
+                                                                                                                        meaning of each line is the same to Fig.6. When surge occurs
+because of the increase of air supply, and sometimes the
+                                                                                                                        at a relatively small load, the average cell voltage may
+voltage would be higher than the reference voltage.
+                                                                                                                        exceeds the reasonable range. As showed in subfigure1, when
+     A typical result of small load condition is showed in                                                              the stack suffers blooding, the actual air supply increase to a
+Fig.6. Subfigure1 represents the decrease of air supply, which                                                          large amount ignoring the fact that the load of the stack keeps
+is equivalent to the decrease of current density. When the                                                              a constant. Since the oxygen supply is far more than the
+current density reduces from 0.3A/cm2 to 0.1A/cm2, the                                                                  demand, the flow rate of return gas needs to be large, as
+average cell voltage, which is represented by the green line in                                                         showed by the red line in subfigure2. In subfigure3, the gap
+subfigure3, will be higher than 0.8V, which is the reference                                                            between two voltage line is not so significant because when
+voltage, without EGR.                                                                                                   oxygen is supplied to a certain extent, the effect of oxygen
+                                                                                                                        stoichiometric to average cell voltage is so small.
+                                                                                                                            In these two conditions described above, it can be clearly
+  Flow rate(g/s) Flow rate(g/s)
+
+
+
+
+                              150
+
+                              100                                                                                       seen that the model runs well and the average cell voltage can
+                                                     Actual air flow rate
+                                  50                 Demanded air flow rate
+                                                                                                                        be controlled below 0.8V.
+                                   0
+                                        0        2      4      6       8      10      12       14   16   18    20
+                                                                                                                                                                             V.       CONCLUSION
+                                  30
+                                                                                                                            It has been confirmed that the high voltage of PEMFC
+                                  20                 Oxygen Without EGR
+                                                     Oxygen With EGR
+                                                                                                                        during small loading is harmful to the durability, and the
+                                  10
+                                                     Return Gas                                                         voltage is highly related to the oxygen stoichiometric. Getting
+                                   0                                                                                    the oxygen stoichiometric under control is the key of
+                                        0        2      4      6       8      10      12       14   16   18    20
+                                   1
+                                                                                                                        lowering the voltage.
+     Voltage(V)
+
+
+
+
+                                                                                                                            Based on the concept described above, an air supply
+                                  0.5                Vfc With EGR                                                       system model with EGR has been built. The simulation
+                                                     Vfc Without EGR
+                                                                                                                        results showed that the apply of EGR can greatly contribute
+                                   0
+                                        0        2      4      6       8      10      12       14   16   18    20       to lowering the output voltage, thus improving the durability
+                                                                           time(s)                                      of PEMFC.
+                                                        Fig.6 Small load condition
+
+
+
+
+                                            Authorized licensed use limited to: Wuhan University. Downloaded on March 26,2026 at 07:09:10 UTC from IEEE Xplore. Restrictions apply.
+
+                                                                                                                    5
+    A feasible control strategy is proposed in part III, the
+strategy can guarantee that the voltage is limited to the                      [1]  Noto H, Kondo M, Otake Y, et al. Development of fuel cell hybrid
+reference voltage.                                                                  vehicle by Toyota—durability[C]//SAE World Congress. 2009: 01-
+                                                                                    1002.
+    Simulation result of tow typical conditions are presented                  [2] Wu J, Yuan X Z, Martin J J, et al. Proton exchange membrane fuel cell
+in part IV. Results showed that the model runs well and the                         degradation under close to open-circuit conditions: Part I: In situ
+strategy can actually make the average cell voltage lower than                      diagnosis[J]. Journal of Power Sources, 2010, 195(4): 1171-1176.
+0.8V.                                                                          [3] Wu J, Yuan X Z, Martin J J, et al. A review of PEM fuel cell
+                                                                                    durability: Degradation mechanisms and mitigation strategies[J].
+    However, there is still more work to do. First, the stack                       Journal of Power Sources, 2008, 184(1): 104-119.
+voltage model should be improved. It can only reflex the                       [4] Bi W, Sun Q, Deng Y, et al. The effect of humidity and oxygen partial
+effect of oxygen pressure but not the effect of oxygen                              pressure on degradation of Pt/C catalyst in PEM fuel cell[J].
+                                                                                    Electrochimica Acta, 2009, 54(6): 1826-1833.
+stoichiometric. Then after the improving of the voltage model,
+                                                                               [5] Shimoi R, Aoyama T, Iiyama A. Development of fuel cell stack
+the control strategy could be accurately verified using the                         durability based on actual vehicle test data: current status and future
+model. And some experiment should be done to further                                work[C]//SAE World Congress. 2009:01-1014.
+confirm the model.                                                             [6] J.Larminie and A.Dicks, Fuel cell systems explained. New York:
+                                                                                    Wiley,2003.
+                       ACKNOWLEDGMENT                                          [7] Manabe K, Naganuma Y, Ogawa T, et al. Development of fuel cell
+                                                                                    hybrid vehicle rapid start-up from sub-freezing temperatures[C]//SAE
+   The authors Siliang CHENG, Jianqiu LI, Liangfei XU,                              World Congress. 2010:01-1092.
+Minggao OUYANG appreciate the support of the Grand No.                         [8] Pukrushpan J T, Stefanopoulou A G, Peng H. Control of fuel cell
+61004075 of NSFC (National Natural Science Foundation of                            power systems: principles, modeling, analysis and feedback
+China), Grand No. 2013BAG16B01 and 2012DFA81190 of                                  design[M]. Springer Verlag, 2004.
+MoST (Ministry of Science and Technology of China), Grand                      [9] Bao Cheng. Modeling and control of vehivular PEM fuel cell
+No. Z131110001513101 BMSTC (Beijing Municipal Science                               systems[D]. Beijing: Department of Automotive Engineering,
+                                                                                    Tsinghua University, 2005.
+and Technology Commission). The comments and feedbsck
+                                                                               [10] Kim B J, Kim M S. Studies on the cathode humidification by exhaust
+from reviewers are also highly appreciated.                                         gas recirculation for PEM fuel cell[J]. International Journal of
+                                                                                    Hydrogen Energy, 2012, 37(5): 4290-4299.
+                                                                               [11] Naganuma Y, Manabe K, Imanishi H, et al. Development of system
+                           REFERENCES                                               control for rapid warm-up operation of fuel cell[C]//SAE World
+                                                                                    Congress. 2012:01-1230.
+
+
+
+
+         Authorized licensed use limited to: Wuhan University. Downloaded on March 26,2026 at 07:09:10 UTC from IEEE Xplore. Restrictions apply.
+
+                                                                           6
+

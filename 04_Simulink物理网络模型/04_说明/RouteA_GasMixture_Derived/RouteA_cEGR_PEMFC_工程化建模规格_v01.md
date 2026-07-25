@@ -99,7 +99,7 @@ v10 物理热初态生成协议：
 
 当瞬态 `MaxStep` 与初态生成时的求解器历史不一致时，Simulink 可能丢弃 solver history 后恢复 operating-point 物理状态；该预期 warning 必须保留在结果审计中，不得当作模型拓扑通过或失败的替代证据。
 
-低电流初态是热启动参考，不是任意模型 workspace 气热边界的无条件兼容状态。当前策略把可安全复用的研究命令与初态字段分开：前者继续热启动，后者自动退回冷态或在 `hot` 策略下提前拒绝。任何 checksum warning 后的“部分加载”都不属于可接受结果。
+低电流初态是热启动参考，不是任意模型 workspace 气热边界的无条件兼容状态。当前策略把可安全复用的研究命令与初态字段分开：前者继续热启动，后者在物理不兼容时明确拒绝，只有研究者显式选择 `cold` 才冷态运行。任何 checksum warning 后的“部分加载”都不属于可接受结果。
 
 ## 7. 脚本职责与运行工作流
 
@@ -121,9 +121,9 @@ v10 物理热初态生成协议：
 
 2026-07-22 脚本核心收口后，活动目录保留统一 runner、通用输入/KPI/账本辅助、统一初态生成/挂载/提升链、模型读回辅助和唯一 cEGR unittest。旧 demo 完整实现、重复初态 wrapper、独立观测标记脚本和独立 cEGR 测试实现移至 `99_历史归档/2026-07-22_Stage1_Script_Core_Split/`；活动目录只保留同名 demo 兼容薄 wrapper。不得再新建按负载、策略或电边界复制的 runner。
 
-离线长任务由用户在 MATLAB GUI 执行。调用者可显式设置 `resultFile`，runner 只保存不含原始 `SimulationOutput` 的紧凑结果；用户确认完成后再由 agent 读取 KPI、失败栈或结果文件审计。不得因交互超时缩短正式矩阵、降低精度或重复发起同一长任务。三分支初态生成始终串行，因为它们依赖同一模型、同一 Simscape 缓存和前一分支候选；不得对它们并行化。
+MATLAB GUI 离线交接是例外，不是交互超时兜底。只有同时满足以下准入条件才交给用户执行：流程和输入输出契约固定；agent 已使用同一模型、参数链、求解器设置和同一入口亲自完成代表性 case 的端到端运行并确认无报错；预计运行至少约 `30 min` 或数小时，且通常包含 `10` 个以上工况或等量级正式矩阵/敏感性扫描；命令、结果路径和验收判据可以直接粘贴执行。仅有 Code Analyzer、`model_check` 或装配无报错不能替代亲自运行证据。未达到门槛时，agent 必须继续执行或拆分验证。
 
-长任务的固定交接顺序是：agent 先生成单一 `boundaryType` 的 `studyCfg` 和 `resultFile`，用户在 MATLAB 中执行 `run_routeA_electrical_boundary_study(studyCfg)`，用户确认计算结束后 agent 只读 `study.execution`、`study.summaryTable`、失败栈和紧凑结果文件。agent 不在交互超时后轮询、打断、缩短或重复发起正式计算。
+v10 低负载物理热初态的生成、Current/Power/Voltage 三分支候选、原子提升、兼容性审计和必要短 smoke 是当前实施任务，由 agent 自己串行完成，不得交给用户；三分支依赖同一模型、Simscape 缓存和前一分支候选，不得并行化。通过门禁的正式大规模 study 才采用固定交接顺序：agent 先生成单一 `boundaryType` 的 `studyCfg` 和 `resultFile`，用户在 MATLAB 中执行 `run_routeA_electrical_boundary_study(studyCfg)`，完成后 agent 只读 `study.execution`、`study.summaryTable`、失败栈和紧凑结果文件。agent 不在交互超时后轮询、打断、缩短或重复发起正式计算。
 
 当案例数大且已通过单例 smoke 时，可选择 `executionMode="parallel"`。该模式使用 `parsim`，默认申请 2 个 worker、上限 4 个；所有案例先在客户端构造独立 `SimulationInput`，worker 不修改 `.slx`。并行不是正式矩阵的前置条件；若已有并行池不足所需数量或超过 4，脚本停止并要求用户显式调整，不擅自关闭或重建用户的池。
 
@@ -142,4 +142,4 @@ v10 物理热初态生成协议：
 
 ## 9. 当前门禁
 
-模型已具备 I/P/V 三分支、cEGR 物理支路、Source_Conditioner、动态吹扫接收端、22 列运行命令 profile 和持久观测信号。2026-07-24 的结构读回确认阴极 N2/O2/H2O、阳极 H2/N2 的官方 Reservoir/Mass Flow Rate Source/Constant Volume Chamber/Pressure Source 物理调理链；阳极调理器通过官方 `Local Restriction (FC)` 接回原 Fuel Tank/PRV 共用节点，避免新增短管热容。模型已显式 `save_system` 并编译通过，保存状态 `Dirty=off`；相关 MATLAB 脚本 Code Analyzer 均为 0 个问题，22 列 profile 自检通过。v10 初态 MAT 尚未生成，当前 `RouteA_platform_default_initial_state.mat` 和 v09 正式 600 s 结果均未覆盖、未重跑；没有 v10 MOP 前的直接冷态 smoke 在湿气体网络初始化阶段未收敛，不作为通过证据。v09 矩阵仍只作冻结审计证据，v10 初态生成须由用户在 MATLAB GUI 串行执行长任务后再审计。当前仍须单独推进显式液水库存、液水输运/排液和分离效率能力，不能把气相 WM-L1+ 通过外推为完整液水设备能力。
+模型已具备 I/P/V 三分支、cEGR 物理支路、Source_Conditioner、动态吹扫接收端、22 列运行命令 profile 和持久观测信号。2026-07-24 的结构读回确认阴极 N2/O2/H2O、阳极 H2/N2 的官方 Reservoir/Mass Flow Rate Source/Constant Volume Chamber/Pressure Source 物理调理链；阳极调理器通过官方 `Local Restriction (FC)` 接回原 Fuel Tank/PRV 共用节点，避免新增短管热容。模型已显式 `save_system` 并编译通过，保存状态 `Dirty=off`；相关 MATLAB 脚本 Code Analyzer 均为 0 个问题，22 列 profile 自检通过。v10 初态 MAT 尚未生成，当前 `RouteA_platform_default_initial_state.mat` 和 v09 正式 600 s 结果均未覆盖、未重跑；没有 v10 MOP 前的直接冷态 smoke 在湿气体网络初始化阶段未收敛，不作为通过证据。v09 矩阵仍只作冻结审计证据，v10 初态生成应由 agent 继续串行执行并审计；只有通过离线长任务门禁的正式大规模研究才交给用户 GUI 执行。当前仍须单独推进显式液水库存、液水输运/排液和分离效率能力，不能把气相 WM-L1+ 通过外推为完整液水设备能力。

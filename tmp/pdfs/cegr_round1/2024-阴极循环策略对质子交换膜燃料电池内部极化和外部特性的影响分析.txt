@@ -1,0 +1,1229 @@
+                                                                    Journal of Power Sources 598 (2024) 234165
+
+
+                                                                     Contents lists available at ScienceDirect
+
+
+                                                                  Journal of Power Sources
+                                                          journal homepage: www.elsevier.com/locate/jpowsour
+
+
+
+
+Analysis of the influence of cathode recirculation strategy on proton
+exchange membrane fuel cell from internal polarization and external
+characteristics perspectives
+Ze Liu a, b, Mingyang Yang a, b, Sichuan Xu a, b, *
+a
+    School of Automotive Studies, Tongji University, Shanghai, 201804, China
+b
+    Clean Energy Automotive Engineering Research Center, Tongji University, Shanghai, 201804, China
+
+
+
+
+H I G H L I G H T S
+
+• A systematic study of cathode recirculation on PEMFC under low-load conditions.
+• The polarization process at various recirculation strategies are identified by DRT.
+• Cathode circulation has positive prospects in vehicle self-humidifying PEMFC system.
+
+
+
+A R T I C L E I N F O                                       A B S T R A C T
+
+Keywords:                                                   Cathode recirculation provides a new solution to the accelerated degradation of proton exchange membrane fuel
+Proton exchange membrane fuel cell                          cells (PEMFCs) due to low humidity and high potential at low load conditions. Analyzing the internal impact
+Cathode recirculation                                       mechanisms is basis for a more appropriate use of this technology. This paper presents a systematic investigation
+Electrochemical impedance spectroscopy
+                                                            of the mechanisms by which key operating parameters of the cathode recirculation, including current density,
+Distribution of relaxation times
+Characterization analysis
+                                                            cathode recirculation ratio, and stoichiometry of the fresh air path, affect the internal and external properties of
+                                                            PEMFCs. The voltage suppression effect and humidification effect under different cathode recirculation strategies
+                                                            are first analyzed. Then, as a novelty, the distribution of relaxation times (DRT) method is used to deconvolve
+                                                            electrochemical impedance spectra and qualitatively resolve the polarization impedance under different stra­
+                                                            tegies. DRT is enabled to separate up to five polarization processes with different time constants and assign them
+                                                            to oxygen diffusion, oxygen reduction reaction and proton transport processes affected by the cathode recircu­
+                                                            lation. Finally, DRT quantified the change in ohmic impedance due to cathode recirculation and confirmed the
+                                                            effect of external humidity changes. This work provides a more in-depth insight into internal mechanisms of
+                                                            cathode recirculation in PEMFCs, and especially provides a comprehensive theoretical basis for the development
+                                                            of idle controllers for automotive PEMFCs in terms of improved durability.
+
+
+                                                                                                 widespread commercialization fuel cell vehicles (FCV) today [4–6].
+                                                                                                     Low relative humidity and high potential are two main problems in
+1. Introduction
+                                                                                                 PEMFC system under low load conditions, especially in the state-of-the-
+                                                                                                 art self-humidifying system, where humidifying absolutely relies on the
+    Proton exchange membrane fuel cells (PEMFCs) in recent years have
+                                                                                                 self -produced water and hydrogen recirculation mechanisms, and
+received considerable attention in recent years due to its excellent per­
+                                                                                                 where the amount of water produced is usually insufficient [7]. Mean­
+formance such as high efficiency, high energy density, low noise and no
+                                                                                                 while, high potential under low load conditions causes key materials
+pollution, and is considered as one of the most promising solutions for
+                                                                                                 rapid decay [8]. All of these could irreversibly and rapidly reduce the
+on-board power systems [1–3]. However, variable and complex oper­
+                                                                                                 durability of the PEMFC. Therefore, it is essential to research and
+ating conditions of automobiles lead to key materials of PEMFC (e.g.
+                                                                                                 develop optimization strategies to improve the service life of PEMFC as
+catalysts and carbon supports) rapid and irreversible degradation, which
+                                                                                                 long as possible. Equipping PEMFC with cathode recirculation draws on
+consequently makes the durability of PEMFC a major challenge for the
+
+
+    * Corresponding author. School of Automotive Studies, Tongji University, Shanghai, 201804, China.
+      E-mail address: xusctj@163.com (S. Xu).
+
+https://doi.org/10.1016/j.jpowsour.2024.234165
+Received 12 November 2023; Received in revised form 27 January 2024; Accepted 30 January 2024
+Available online 9 February 2024
+0378-7753/© 2024 Elsevier B.V. All rights reserved.
+Z. Liu et al.                                                                                                          Journal of Power Sources 598 (2024) 234165
+
+
+
+    Abbreviations                                                                 Symbol
+                                                                                  i          Current density
+    PEMFC       Proton exchange membrane fuel cell                                φ          Cathode recirculation ratio
+    PEM         Proton exchange membrane                                          λ0         Fresh air path stoichiometry
+    EGR         Exhaust gas recirculation                                         R0         Ohmic resistance
+    EIS         Electrochemical impedance spectroscopy                            Rpol       Polarization impedanc
+    AC          Alternating current                                               λ          Regularization coefficient
+    ECM         Equivalent circuit model                                          W          Mass flow
+    RL          Resistor-inductor                                                 τ          Time constant
+    DRT         Distribution of relaxation times                                  ω          Angle frequency
+    MEA         Membrane electrode assembly                                       g(τ)       Distribution function of relaxation times
+    Pt          Platinum                                                          ZDRT (f)   DRT fitted impedance
+    PTFE        Polytetrafluoroethylene                                           ZRe        Real part of the impedance
+    DC          Direct current                                                    ZIm        Imaginary part of impedance
+    ORR         Oxygen reduction reaction                                         ΔRe        Residual of the real part
+    KK          Kramers-Kronig                                                    ΔIm        Residual of the imaginary part
+    RH          Relative humidity
+    T           Temperature
+
+
+
+the anode recirculation principle of the PEMFC and the exhaust gas                dynamics of PEMFC equipped with cathode recirculation, especially
+recirculation (EGR) principle of the internal combustion engine, which            from the combination perspective of internal polarization and external
+could effectively address the above-discussed two problems by reason­             characteristics.
+ably designing the cathode recirculation strategy when PEMFCs suffer                  Electrochemical impedance spectroscopy (EIS) is a suitable in-situ
+from low variable loads conditions. Cathode recirculation involves                technique for recording and evaluating polarization processes with in­
+reintroducing the exhaust gases from the cathode outlet into the cathode          dividual time constants [17]. EIS have so far been widely applied to
+inlet, where they mix with fresh air. The optimization effects of this            identify different loss process in PEMFC due to its ease of offline and
+process can be explained from two perspectives. Firstly, a significant            online application attributes. It is convenient to characterize internal
+amount of water vapor in the exhaust gases humidifies the dry fresh air,          loss changes in PEMFC caused by different operating parameters and
+thereby increasing the intake humidity under low-load conditions.                 components such as humidity, current density, stoichiometry, and
+Secondly, the concentration of oxygen in the mixed intake air decreases           membrane and electrolyte resistance and so on [18]. Yuan et al. [19]
+as a result of mixing the exhaust gases with fresh air. Since the level of        detailed review the application of AC impedance technique on PEM fuel
+oxygen concentration directly determines the magnitude of the PEMFC               cell, especially in the in situ impedance measurements. Tang et al. [20]
+voltage, high voltage under low-load conditions is suppressed. Yang               further review recent works in the use of EIS for the measurement,
+et al. [9] in their study firstly report a cascaded cell group architecture       monitoring, diagnosis and optimization of PEMFC performance. Hong
+that allows cathode reaction gas of the previous cell to humidify the next        et al. [21] propose a novel approach to online AC impedance measure­
+one. Kim [10] in their study report the effect of humidification by               ment at high frequency of PEM fuel cell stack for the accurate water
+cathode exhaust recirculation and results show that cathode recircula­            content estimation. Zhang et al. [22] establishes a framework for online
+tion effectively improve the ability of self-humidifying, although slightly       electrochemical diagnosis of on-board PEMFC, and results show that
+reduce performance in normal conditions compare with traditional                  optimized electrochemical impedance spectroscopy based on dynamic
+external humidifier. Rodosik et al. [11] investigate the impact of hu­            multi-frequency analysis is the best diagnostic method for online
+midification by cathode exhaust gases recirculation on a 5 kW PEMFC               application.
+system for automotive applications, and results show that medium and                  The main method nowadays for analyzing the impedance spectrum
+high recirculation ratio is more suitable for long term performance               information of PEMFC is the equivalent circuit model (ECM) using
+stability. Zhang et al. [12] analyze the effect of operation parameters on        complex nonlinear least square fit approximation [23]. This model
+water transport of PEMFC through building a cathode recirculation                 typically consist of a series of electronic components such as resistances,
+model. They declare that the maximum relative humidity reach to 60%               capacitors, and inductors. Through assigning appropriate values to the
+at medium current density. Liu et al. [13] study a dual-ejector recircu­          electrical components in order to fit experiment data and quantitatively
+lation PEMFC stack performance, and results show that dual-cycle mode             analyze impedance more accurately [24]. Niya et al. [25] review the
+alleviate the gas shortage problem during dynamic loading compared to             applications of EIS in PEM fuel cell modeling and diagnosis, and discuss
+dead anode and cathode mode. Zhao et al. [14] investigate dynamic                 the critical points that can be misinterpreted in the ECM method in the
+characteristics of dual-cycle PEMFC system, they find cathode recircu­            field of PEMFC. Pivac et al. [26] discuss the inductive phenomena at low
+lation achieve more even distribution of water in membrane, and oxygen            frequencies of PEMFC using equivalent circuit models. Yuan et al. [27]
+concentration difference between inlet and outlet is smaller. Liu et al.          investigate the effect of various operating conditions on impedance
+[15] studies the dynamic performance of cathode recirculation at high             spectra of low temperature fuel cell, and quantitatively analyze polari­
+current density conditions, and find that the liquid water can be                 zation process using ECM method. Xiao et al. [28] explore the impact of
+removed promptly, thereby reducing the risk of flooding and improve               drying faults on PEMFC under different operating condition, and the EIS
+the consistency of the single-cells. Liu et al. [16] further explore the          results are identified parametrically using the RL equivalent circuit
+control issue of cathode recirculation on high power on-board PEMFC               model to obtain ohmic, charge transfer and mass transfer impedance
+system, they design a high effective adaptive controller achieve accu­            values.
+racy voltage adjustment through control pump speed. Indeed, although                  However, ECM analysis method requires a priori knowledge of the
+numerous studies recently explore cathode recirculation’s performances            physical electrochemical processes of the object [26]. There is an inev­
+in PEMFC. However, it still lack effective and deep experimental veri­            itable challenge: the EIS model of the object is not always accurately
+fication. There is still a lack of a valid explanation of the internal            known, and the model itself may change in response to internal or
+
+                                                                              2
+Z. Liu et al.                                                                                                             Journal of Power Sources 598 (2024) 234165
+
+
+external factors. Moreover, ECM struggles with evaluating polarization             2) A 5 × 5 single cell is widely tested on a fuel cell test bench to
+processes with close time constants (processes overlapping in the fre­                investigate the effect of cathode recirculation strategy on PEMFC’s
+quency domain), which easily leads to incorrect model assumptions and                 performance, including air stoichiometry, cathode recirculation
+fitting results [29,30]. In this light, a model-free, without prior knowl­            ratio, and current density.
+edge method, distribution of relaxation times (DRT), is proposed and is            3) Combined with external characterization, the DRT method is used to
+widely used for analyzing EIS data. DRT method have obtain successful                 quantify the internal polarization process of PEMFC under different
+experiences in field of lithium-ion batteries, super capacitors and solid             cathode strategies to provide more comprehensive parsing and
+oxide fuel cells [31–33]. Recently, DRT method also realizes successful               insights.
+transfer application on polymer electrolyte membrane fuel cells. Weiβ
+et al. [34] analyze the impedance spectrum of a HT-PEMFC, and allocate             2. Experiment setup and procedure
+the DRT peaks to loss mechanisms inside the fuel cells. Bevilacqua er al
+[35]. explore the impact of anode operating conditions on polarization             2.1. Tested MEA and experiment bench
+loss of a HT-PEMFC using DRT method. Heinzmann et al. [36] reveal
+anode contributions that usually are hidden by the dominating cathode                  A 25 cm2 commercial membrane assembly (MEA) is used in this
+contributions in loss process through DRT deconvolution. Kwon et al.               study, the Pt loading of the anode is 0.1 mg/cm2 and the Pt loading of
+[37] used RT-based impedance analysis method to determine the                      the cathode is 0.3 mg/cm2. The flow channels at both sides are
+degradation rate of carbon corrosion reaction of PEMFC. Zhao et al. [38]           serpentine channels in parallel wherein the PTFE gaskets (thickness:
+measures the impedance of the PEMFC stack using multi-channel                      100 μm) are used for sealing. All experiments are conducted on the
+impedance test system, and use the DRT to guide the establishment of               Greenlight G20 test station, its schematic diagram and actual test bench
+the ECM and analyze its local sensitivities to working conditions.                 are shown in Fig. 1. The pure hydrogen is supplied through hydrogen
+     For PEMFC, the internal polarization process is generally dominated           storage tanks, and the compressed air is provided by a compressor. The
+by the cathode side, and although the anode also contributes to the                mass flow rate and inlet gas pressure for the anode and cathode were
+extent, it is usually neglected. The focus of this study is on the effect of       determined by mass flow controllers and backpressure valves, respec­
+the cathode recirculation strategy on the PEMFC, and therefore it is               tively. The inlet gas can directly be supplied to the single cell or be
+extremely essential to analyze the changes in internal dynamics. The               humidified by the bubble humidifier. The temperature of cell is adjusted
+main contents and contributions of this study are as follows:                      by the water bath, and a thermocouple placed at the cathode provides
+                                                                                   the real-time temperature measurement, which could be regarded as
+1) Taking the rule that the total inlet mass flow rate at the cathode side         whole-cell temperature during the operation. Additionally, the electro­
+   is constant, the cathode recirculation ratio is changed to achieve the          chemical workstation, Gamry Interface 5000E, is used to measure EIS.
+   effects of humidification and voltage suppression under low load                The frequency range in this study is from 10 kHz to 0.1 kHz, and the
+   conditions.                                                                     amplitude is picked to be 8% of DC load to achieve a linear measure.
+
+
+
+
+                                   Fig. 1. Schematic, physical and MEA pictures of the experimental single-cell test station.
+
+                                                                               3
+Z. Liu et al.                                                                                                                         Journal of Power Sources 598 (2024) 234165
+
+
+2.2. Experiment procedures and activation                                                  increase, this is because the accumulation of liquid water in the channel
+                                                                                           at high current densities challenges the transport of oxygen, thus
+    In this study, the total intake mass flow in cathode side is kept                      increasing the mass transfer resistance. Moreover, the radius of the
+constant. This means that a fresh air path stoichiometry (λ0 ) is deter­                   impedance arc in the medium-frequency region first decreases and then
+mined when recirculation is not applied, and its corresponding air mass                    increases. One possible reason is that the low catalyst activity and low
+flow is the baseline. Varying inlet air humidity and oxygen mass flow by                   oxygen concentration at small current density leads to high charge
+adjusting the cathode recirculation ratio (φ). The cathode recirculation                   transfer resistance, which improves with increasing current density.
+ratio is defined as shown in Equation (1). Since the air for the test bench                However, as the current density continue to increase, the reduction of
+is supplied in a straight line way and the exhaust gases are discharged                    active site caused by flooding and the rapid consumption of oxygen
+directly to the atmosphere. Therefore, this work adopt a gas supply way                    increase the charge transfer resistance again.
+that simulates the inlet gas conditions of cathode recirculation by strict
+                                                                                                Wcycle
+theoretical calculations. Three main assumptions are made: 1) the vapor                    φ=                                                                                 (1)
+                                                                                                Wfresh
+in the outlet gas is saturated, 2) only oxygen, nitrogen and vapor are
+recirculated, and 3) all gases are treated as ideal gases and follow the
+                                                                                           psat (Tdew ) = RHinlet ⋅psat (Tst )                                                (2)
+ideal gas law. Specifically, the ratio of oxygen, nitrogen, and water
+vapor at the inlet under different φ is recalculated according to the law                  log10 psat (Tst ) = − 2.1794 + 2.95 × 10− 2 (Tst − 273.15)
+of conservation. There are two gas supply line: one feeds the dry air mass
+flow corresponding to the total oxygen mass flow, the other feeds                             − 9.1837 × 10− 5 (Tst − 273.15)2 + 1.4454 × 10− 7 (Tst − 273.15)3               (3)
+additional nitrogen mass flow, and the humidity (water vapor mass                                      ⎧
+flow) is regulated by a humidifier under corresponding dew point                                       ⎨0     no recirculation
+temperature. The dew point temperature of humidifier are calculated as                     RHinlet =        φ                                                                 (4)
+                                                                                                       ⎩           recirculation
+                                                                                                           1+φ
+Equations (2) and (3). Cathode relative humidity is calculated as
+Equations (2)–(4), the amount of dry air and additional nitrogen is
+calculated by equations (5) and (6). More detailed derivation of Eq. (1)
+to Eq. (6) can be accessed in the Supplementary Material.
+
+
+
+                                          ⎡                                                   ⎤
+                                                                               0.79M N2
+              nI⋅λ0 ⋅(0.21MO2 + 0.79MN2 ) ⎢              λ0 − 1 − φ                     + 1⎥
+                                                                                                                                                                              (5)
+                                                                                0.21MO2
+Wnormal,air =                            ⋅⎢
+                                          ⎣ 1 + (             )           ⋅ φ ⋅            ⎥
+                     4F⋅0.21⋅(1 + φ)              0.79MN2                          1+ω ⎦
+                                                  0.21MO
+                                                          + 1 ⋅λ0 − 1 − φ
+                                                       2
+
+
+
+
+    Since this paper is concerned with the effect of cathode recirculation
+on PEMFC under low load conditions, the current density is set in the                                    0.79MN2         nI⋅λ0 ⋅(0.21MO2 + 0.79MN2 )⋅φ
+region of low current density. The detailed experiment conditions in this                  Wadd,N2 =             ⋅                  [(         )           ]                  (6)
+                                                                                                         0.21MO2                       0.79M
+work is shown in Table 1. Before conducting experiment, the fuel cell is                                          4F⋅0.21⋅(1 + ω)⋅ 0.21MON2 + 1 ⋅λ0 − 1 − φ
+                                                                                                                                           2
+
+activated for 4 h, with the current density set to 1.8 A/cm2 and 100%
+humidification to ensure stable performance output during the experi­                      Where, Wcycle is the circulated gas mass flow, Wfresh is the fresh gas mass
+ment. The initial electrochemical performance after activation is shown                    flow, Psat (T) is the saturated vapor pressure under temperature T, RHinlet
+in Fig. 2. In Fig. 2(a), we measure the I–V and power curves of the fuel                   is the relative humidity at cathode inlet, Wnormal,air the dry air mass flow
+cell in loaded and reduced load modes, respectively. The maximum                           corresponding to the total oxygen mass flow, Wadd,N2 additional nitrogen
+voltage error is within 5% in both modes and the maximum power                             mass flow, λ0 is the excess oxygen ratio of the fresh air path.
+density over 1W/cm2, which indicates the stability of the fuel cell in
+current situation. Fig. 2(b) shows the impedance information, we mea­                      3. Analysis method
+sure the EIS when the current density is 0.3A/cm2, 0.9A/cm2, 1.3A/cm2,
+1.6A/cm2 and 2.0 A/cm2. The entire electrochemical impedance spec­                         3.1. Kramers-Kronig valid
+trum consists of ohmic impedance (R0) and polarization impedance
+(Rpol). Inductive phenomena (the part below zero on the y-axis in Fig. 2                       In order to correct physical quantities from impedance spectra, the
+(b)) is observed in the high frequency band and the low frequency band.
+The inductive features at high frequencies do not represent the physical
+and chemistry of the PEMFC, and its occurrence can be explained by the                     Table 1
+cables and wires of the test system [39]. The inductive features at low                    Operating conditions in this study.
+frequencies occur for a variety of reasons. The most widespread expla­
+                                                                                             Parameters                                    Values                      Unit
+nations are that it is related to the side reactions with intermediate
+                                                                                             Current density                               0、0.05、0.1、0.15、0.2         A/
+species, the water transport properties and carbon monoxide poisoning,
+                                                                                                                                                                       cm2
+but so far these explanations seem to remain ambiguous [26]. In the                          Cathode stoichiometry without recirculation   2、3、4、5
+subsequent discussion of DRT in this study, we ignore the inductive                          Cathode recirculation ratio                   0、0.2、0.4、0.6、0.8、          \
+information irrelevant to capacitive dependent dynamics.                                                                                   1
+    R0 remain essentially constant at different current density. Gener­                      Cell temperature                              60                          ◦
+                                                                                                                                                                         C
+                                                                                             Cathode/anode back pressure                   0.2                         Mpa
+ally, ohmic loss is principally determined by the ionic resistance, 100%
+                                                                                             Hydrogen mass flow                            0.07                        SLPM
+humidification in test process leads to membrane is fully wet so that the                    Cathode/anode inlet temperature               60                          ◦
+                                                                                                                                                                         C
+proton transfer resistances is almost unchanged. As the current density                      Relative humidity at anode                    100                         %
+increases, the radius of the impedance arc in the low-frequency region                       Flow mode of Cathode and anode                Counter-flow                \
+
+
+                                                                                       4
+Z. Liu et al.                                                                                                                          Journal of Power Sources 598 (2024) 234165
+
+
+
+
+                                         Fig. 2. The initial electrochemical performance after activation.(a) polarization curve, (b) EIS.
+
+
+spectra must exhibit very high quality and must not contain errors. An                       ⎧                                  ∫∞
+                                                                                                                                            g(τ)
+effective way to ensure the validity of EIS data is to perform a Kramers-                    ⎪
+                                                                                             ⎪
+                                                                                             ⎨ Z(ω) = R0 + Zpol (ω) = R0 + Rpol
+                                                                                             ⎪                                                    dτ
+Kronig transformation [40]. The KK test relate the real part of the                                                                       1 + jωτ
+                                                                                                                                                                           (11)
+                                                                                                                                   0
+                                                                                                                      ∫∞
+impedance spectrum of a linear, time-invariant and causal system to its                      ⎪
+                                                                                             ⎪
+                                                                                             ⎪               where,        g(τ)dτ = 1
+                                                                                             ⎩
+imaginary part and vice versa [41]. The relevant equations are shown in                                               0
+Equations (7) and (8).
+           ∫                                                                                 Where, R0 represents the ohmic resistence and Rpol is the polarization
+          2 ∞ ω′⋅ZIm (ω′) ′                                                                  resistance. τ is the characteristic time constant of the relaxation, g(τ) is
+ZRe (ω) =                dω                                           (7)
+          π 0 ω2 − ω′2                                                                       the distribution function of relaxation times, j is a plural unit, ω is an
+                     ∫∞                                                                      angular frequency. Generally, since the frequency data is often collected
+                 2        ω⋅ZRe (ω′) ′                                                       on the logarithmic scale with a given number frequencies per decade,
+ZIm (ω) = −                         dω                                             (8)
+                 π 0      ω2 − ω′2                                                           the complex impedance fitted by the DRT model can be rewritten as
+                                                                                             follows [42]:
+Where, ZRe (ω) represents the real part of the impedance, ZIm (ω) is the                                                       ∫∞
+imaginary part, ω is the angle frequency. A sufficiently general model is                    ZDRT (f ) = R0 + Rpol (f ) = R0 +
+                                                                                                                                   γ(ln τ)
+                                                                                                                                             dln τ                  (12)
+used fitting impedance spectra where contains a series connection of an                                                         0 1 + i2πf τ
+ohmic resistor and RC-elements. In order to judge the reproducibility of
+a measured impedance spectrum by the fitted equivalent circuit model,                        Where γ(ln τ) = τg(τ), it’s a suitable function that describes the time
+the residual Δ is calculated:                                                                relaxation characteristics of the electrochemical system studied. ZDRT (f)
+                                                                                             is the fitted impedance of DRT model and f is the frequency. In this
+                          ̂ Re (ω)
+                ZRe (ω) − Z                                                                  study, we use DRTtools an open source software developed by the
+ΔRe (ω) =                                                                          (9)
+                      |Z(ω)|                                                                 Ciucci’s research group [44,45], to perform DRT analysis of the
+                                                                                             measured impedance data.
+                          ̂ Im (ω)
+                ZIm (ω) − Z
+ΔIm (ω) =                                                                        (10)
+                      |Z(ω)|
+                                                                                             3.3. DRT solution setup
+Where |Z(ω)| is the absolute value of the measured impedance and Z(    ̂ ω)
+                                                                                                The DRT method can decompose each contribution to the impedance
+is fitted impedance. In this work, KK tool [42] is used to prove the
+                                                                                             spectrum and show each process by the peaks in the DRT spectrum.
+effectiveness of EIS data. Generally, if the largest residual is less than
+                                                                                             However, overlap may sometimes occur. Commonly, the number and
+1%, it is considered to pass the KK validation. Fig. 3(a) shows the
+                                                                                             shape of identifiable peaks highly depend on the regularization
+impedance spectrum of a working condition point in this experiment,
+                                                                                             parameter λ. Therefore, it is essential to assess the proper value of λ to
+and the illustrated frequency range is from 0.1 Hz to 10 kHz. Fig. 3(b)
+                                                                                             obtain accuracy and meaningful distribution functions. Fig. 3(c) shows
+shows the relative residual between Kramers-Kronig model and experi­
+                                                                                             the peak distribution of DRT under different λ that changes from 10− 1 to
+ment EIS data. The relative residual in the evaluated frequency range is
+                                                                                             10− 6. It can be found that three peak are identified when λ = 10− 1 and
+less than 1%. Based on this criteria, all EIS data in this study satisfy the
+                                                                                             10− 2, and with the decrease of λ, the number of peaks increase. It is clear
+KK test validity.
+                                                                                             that all polarization processes can be broken down by decreasing the λ.
+                                                                                             In contrast, higher λ may ignore some process which have close time
+3.2. DRT theory
+                                                                                             constant. As the λ continue to decrease to too small value such as λ =
+                                                                                             10− 5 and 10− 6, the number of peaks remains constant while the distri­
+    The DRT method is more adept at quantitative analysis of polariza­
+                                                                                             bution of peaks becomes sharper, which increase the risk of oscillation.
+tion processes, and the relaxation time distribution of electrochemical
+                                                                                             The reconstructed Nyquist plots and corresponding residual (calculated
+systems is extracted by the inverse convolution technique to achieve the
+                                                                                             by Eqs 10 and 11) are shown in Fig. 3(d–f). It is obvious that the re­
+separation and resolution of highly overlapping physicochemical pro­
+                                                                                             siduals decrease with lower λ but do not become better for λ values
+cesses in EIS. The relationship between the complex impedance and the
+                                                                                             below 10− 4. Therefore, the optimal λ value is set to 10− 4 in this study.
+relaxation time distribution function is shown in Equation (11) [43]:
+                                                                                             Moreover, the full width at half maximum (FWHM) coefficient of the
+                                                                                             Gaussian discretization is another critical parameter. Fig. 3(g) shows the
+                                                                                             sensitivity of the DRT analysis results to the FWHM coefficient. It can be
+                                                                                             observed that when the FWHM coefficient is too small (0.2), the DRT
+                                                                                             results are overly smooth and neglect certain peaks. Conversely, when
+
+                                                                                         5
+Z. Liu et al.                                                                                                            Journal of Power Sources 598 (2024) 234165
+
+
+                    (a)                                  (b)                                            (c)
+
+
+
+
+                                                                                                f
+                     (d)                                   (e)                                                (f)
+
+
+
+
+                                                                 (h)                                            (i)
+
+
+
+                           (g)
+                f
+
+
+
+
+Fig. 3. Analysis of impedance data. (a) Nyquist plot of impedance data, (b) Kramers-Kronig test residuals, (c) DRT results against various λ, (d) Reconstructed
+Nyquist plots against various λ, (e) Corresponding residuals of real parts, (f) Corresponding residuals of imaginary parts,(g) DRT results against various FWHM
+coefficient of Gaussian discretization, (h) and (i) are corresponding residuals of real and imaginary parts.
+
+
+the FWHM coefficient is too large (0.8 and 1.0), oscillations occur in the         value. Fig. 4(b) shows the change in relative humidity as φ increases. As
+peaks resolved by the DRT, leading to distorted results. Therefore,                φ increases, the cathode inlet relative humidity increases due to the
+setting the FWHM coefficient to 0.5 is an optimal choice. Fig. 3(h–i)              increase in water vapor brought back from the exhaust gas. It is worth
+depict the residuals of the real and imaginary parts under different               noting that the humidification ramp decreases with increasing φ, and φ
+FWHM coefficients, further confirming the accuracy of the results shown            = 0.6 serves as a critical point.
+in Fig. 3(a).                                                                          Fig. 4(c–f) shows the sensitivity analysis of the current density to the
+                                                                                   φ at different λ0 . At fixed λ0 , the voltage continues to decrease as the φ
+4. Results and discussion                                                          increases, demonstrating the effectiveness of cathode recirculation on
+                                                                                   voltage suppression. The drop in output voltage becomes more sensitive
+4.1. External characteristics analysis                                             to changes in φ as the current density increases. As shown in Fig. 4(d–f),
+                                                                                   when the current density is less than 0.1 A/cm2, the φ is increased to 2.0
+    Fig. 4 represents the effect of cathode recirculation on the external          before the output voltage is suppressed to within 0.8 V. This value is
+characteristics of the PEMFC including output voltage and cathode inlet            commonly used nowadays as a control threshold for fuel cells operating
+relative humidity. As shown in Fig. 4(a), the effect of fresh air stoichi­         at low load conditions in order to reduce the degradation caused by high
+ometry (λ0 ) on the output voltage of the fuel cell in the non-recirculation       potential. Additionally, at a fixed current density, the voltage drop effect
+mode is first explored, Four different (λ0 are analyzed in detail, which           carried by the cathode recirculation ratio (φ) decreases as λ0 increases.
+represent four different baseline cathode mass flow conditions for sub­            The suppression of high potentials by cathode recirculation owes to the
+sequent recirculation experiments. At each current density, the output             fact that the increase in φ decreases the partial pressure of oxygen as
+cell voltage first rises and then falls with the increase of λ0 . Generally,       well as the oxygen content inside the fuel cell. Whereas at large fresh air
+small λ0 leads to insufficient supply or uneven distribution of oxygen             path stoichiometry, although the oxygen partial pressure decreases with
+thus affecting the output voltage, and too large λ0 leads to an increase in        increasing φ, the increase in overall oxygen content offsets some of the
+air flow rate exacerbating membrane drying inside the fuel cell thus               decreasing effect. This results in a decrease in voltage drop rate for the
+causing a voltage drop. Therefore, λ0 = 3 can be considered as the best            same variation range of φ at large λ0 . In order to more visually quantify
+
+
+                                                                               6
+Z. Liu et al.                                                                                                                                                                                                                                                   Journal of Power Sources 598 (2024) 234165
+
+                                   1.00
+                                                (a)                                                                                                                                                                                            (c)
+                                                                                                                                                    (b)                                                                                                                      0=2
+                                                                                                                                        70                                                                                           0.95
+
+                                   0.95                                                                                                                                                                                              0.90
+                                                                                                                                        60
+
+
+
+
+                                                                                                                Relative humidity (%)
+                                                                                                                                                                                                                                     0.85
+                                   0.90                                                                                                 50
+
+
+
+
+                                                                                                                                                                                                                  Cell Voltage (V)
+                Cell Voltage (V)
+
+
+
+                                                                                                                                                                                                                                     0.80
+                                                                                                                                        40
+                                   0.85
+                                                                                                                                                                                                                                     0.75
+                                                                                                                                        30
+                                   0.80
+                                                                                                                                                                                                                                     0.70
+                                                                                                                                        20
+
+                                                                                                                                                                                                                                     0.65
+                                   0.75
+                                                                                                                                        10
+                                                                                                                                                                                                                                     0.60
+                                   0.70                                                                                                  0
+                                                      0           0.05        0.1        0.15   0.2                                          0.0          0.2         0.4        0.6          0.8          1.0                          0.00          0.05            0.10          0.15    0.20
+
+                                                                   Current density (A/cm2)                                                                                                                                                                    Current density (A/cm2)
+
+
+
+
+                                                                             0=3                                                                                                                                                                                0=5
+                                         0.95       (d)                                                                   0.95                     (e)                 0=4                                                     0.95           (f)
+
+
+                                         0.90
+                                                                                                                          0.90                                                                                                 0.90
+                                                                                                       Cell Voltage (V)
+                      Cell Voltage (V)
+
+
+
+
+                                                                                                                                                                                                            Cell Voltage (V)
+                                         0.85
+                                                                                                                          0.85                                                                                                 0.85
+
+
+                                         0.80
+                                                                                                                          0.80                                                                                                 0.80
+
+
+                                         0.75
+
+                                                                                                                          0.75                                                                                                 0.75
+
+                                         0.70
+                                             0.00          0.05            0.10         0.15    0.20                                     0.00             0.05          0.10           0.15         0.20                               0.00          0.05          0.10            0.15    0.20
+
+                                                                     Current density (A/cm2)                                                                     Current density (A/cm2)                                                                     Current density (A/cm2)
+
+
+Fig. 4. Variation of external characteristics of PEMFC against different cathode recirculation strategy. (a) The Effect of λ0 on voltage under no-recirculation con­
+ditions, (b) The contribution of φ to the relative humidity of the cathode inlet, (c)–(f) The effect of φ on voltage at different current density under different
+λ0 conditions.
+
+
+                                                      Table 2
+                                                      Variations in voltage suppression due to φ at different current densities and λ0
+
+
+
+
+the effect of the cathode recirculation, Table 2 counts the amount of                                                                                                          condition. Fig. 5 shows the Nyquist plots of the impedance test at
+output voltage suppression as the recirculation ratio is increased from                                                                                                        different current densities and their corresponding DRT distributions
+0 to 1.                                                                                                                                                                        when the fresh path air stoichiometry ratio is set to 3.0.
+                                                                                                                                                                                   As shown in Fig. 5(a–c), at each current density, two distinct semi­
+                                                                                                                                                                               circles can be directly observed across the impedance curve, whose
+4.2. Effect of cathode recirculation strategy on polarization processes
+                                                                                                                                                                               radius increases and gradually shifts to the left as the cathode recircu­
+                                                                                                                                                                               lation ratio (φ) increases. This indicates that the polarization resistance
+4.2.1. Variation of φ at different current densities
+                                                                                                                                                                               (Rp) gradually increases with increasing φ while the ohmic resistance
+   This work conducts a series of cathode recirculation experiments at
+                                                                                                                                                                               (R0) has an opposite trend. The corresponding DRT distributions of
+low load conditions with current density ranging from 0 to 0.2A/cm2. To
+                                                                                                                                                                               polarization process are further given in Fig. 5(e–f), and it is clear that,
+ensure measurement stability, the EIS test excludes open circuit
+
+                                                                                                                                                                        7
+Z. Liu et al.                                                                                                                                                                                                     Journal of Power Sources 598 (2024) 234165
+
+    1.5                                                                         1.0                                                           1.0                                                                 1.0
+                                                                                            (b)             i = 0.1A/cm2                                               i = 0.15A/cm2                                          (d)                  0.2A/cm2
+                (a)         i = 0.05A/cm2                                                                                                                 (c)
+
+    1.2                                                                         0.8                                                           0.8                                                                 0.8
+
+
+
+
+                                                                                                                                          )
+)
+
+
+
+
+                                                                           )
+
+
+
+
+                                                                                                                                                                                                              )
+                                                                                                                                          2
+                                                                                                                                              0.6
+2
+
+
+
+
+                                                                           2
+
+
+
+
+                                                                                                                                                                                                              2
+    0.9                                                                         0.6                                                                                                                               0.6
+
+
+
+
+    0.6                                                                         0.4                                                           0.4                                                                 0.4
+
+
+
+
+    0.3                                                                         0.2                                                           0.2                                                                 0.2
+
+
+
+
+    0.0                                                                         0.0                                                           0.0                                                                 0.0
+          0.0         0.3           0.6              0.9      1.2        1.5          0.0         0.2     0.4       0.6         0.8     1.0         0.0          0.2   0.4        0.6           0.8         1.0         0.0          0.2    0.4        0.6      0.8   1.0
+                                                      2                                                              2                                                             2                                                                    2
+                                                          )                                                              )                                                             )                                                                    )
+
+
+                                     1.5                                                                                                             1.2
+                                                                               i = 0.05A/cm2                                                                                               i = 0.1A/cm2
+                                                       (e)                                                                                                       (f)
+                                                                                                                                                     1.0
+
+
+
+                                     1.0                                                                                                             0.8
+                             )
+
+
+
+
+                                                                                                                                          )
+                            2
+
+
+
+
+                                                                                                                                          2
+                                                                                                                                                     0.6
+                             (lnf
+
+
+
+
+                                     0.5                                                                                                  (lnf       0.4
+
+
+
+                                                                                                                                                     0.2
+
+
+
+                                     0.0                                                                                                             0.0
+                                           0.1                 1                10                  100          1000           10000                      0.1          1                  10               100                 1000        10000
+                                                                                  Frequency (Hz)                                                                                            Frequency (Hz)
+
+
+                                                                                                                                                     1.0
+
+                                                 (g)                                    i = 0.15A/cm       2                                                                                           i = 0.2A/cm2
+                                 1.0                                                                                                                             (h)
+                                                                                                                                                     0.8
+                                 0.8
+                        )
+
+
+
+
+                                                                                                                                          )
+                        2
+
+
+
+
+                                                                                                                                          2
+
+
+
+
+                                                                                                                                                     0.6
+                                 0.6
+                        (lnf
+
+
+
+
+                                                                                                                                          (lnf
+
+
+
+
+                                                                                                                                                     0.4
+                                 0.4
+
+
+
+                                 0.2                                                                                                                 0.2
+
+
+
+
+                                 0.0                                                                                                                 0.0
+                                                 1                  10                      100           1000               10000                                1          10                       100                     1000         10000
+                                                                                Frequency (Hz)                                                                                              Frequency (Hz)
+
+Fig. 5. Effect of φ and current density on impedance spectra and polarization processes when λ = 3.0. (a)–(d) impedance spectra for changes in φ at different current
+density; (e)–(h) corresponding DRTs.
+
+
+compared to the two semicircles of the Nyquist plot, the DTR method                                                                            mainly related to proton transfer. An increase in the cathode recircula­
+decomposes five peaks at different eigenfrequency which indicates five                                                                         tion ratio raises the relative humidity of the inlet gas, which conse­
+different polarization dynamics processes. The distribution of the five                                                                        quently increases the water content of the membrane, thus decreasing
+peaks can be divided into three parts, including the low frequency (P1),                                                                       the proton transfer impedance. Therefore, P1–P5 show downward trend.
+the middle frequency (P2), and the high frequency (P3–P5). Under each                                                                          On the other hand, the increase in cathode recirculation ratio decreases
+current density, P2 dominates the polarization process, and followed by                                                                        the oxygen partial pressure as well as the oxygen content in the cathode,
+P1. This suggests that at low load conditions, oxygen reduction reaction                                                                       which increases the charge transfer impedance as well as the mass
+(ORR) is the primary loss mechanism, followed by oxygen mass transfer                                                                          transfer impedance, and thus resulting in a continuous increase in P1
+(MT). With the gradual rise of φ from 0 to 1, P1 and P2 exhibit an up­                                                                         and P2. The combined effect of these two aspects explains the mecha­
+ward trend, in contrast to the gradual decline of P3–P5. This can be                                                                           nism behind the ability of cathode recirculation to suppress high
+revealed by two effects brought about by the cathode recirculation. On                                                                         voltages.
+the one hand, the high-frequency polarization losses in PEMFCs are                                                                                 Additionally, at fixed φ, when the current density increases from
+
+                                                                                                                                          8
+Z. Liu et al.                                                                                                                                                                                                         Journal of Power Sources 598 (2024) 234165
+
+    1.6                                                                              1.0                                                          0.9                                                                 0.8
+
+                (a)                    0=2                                                                           0=3                                                                                                                        0=5
+                                                                                                                                                                                  0=4
+                                                                                                 (b)                                                           (c)                                                                (d)
+    1.4
+
+                                                                                     0.8
+    1.2                                                                                                                                                                                                               0.6
+
+                                                                                                                                                  0.6
+    1.0
+)
+
+
+
+
+                                                                             )
+
+
+
+
+                                                                                                                                              )
+
+
+
+
+                                                                                                                                                                                                                  )
+2
+
+
+
+
+                                                                             2
+
+
+
+
+                                                                                                                                              2
+
+
+
+
+                                                                                                                                                                                                                  2
+                                                                                     0.6
+
+    0.8                                                                                                                                                                                                               0.4
+
+                                                                                     0.4
+    0.6
+                                                                                                                                                  0.3
+
+    0.4                                                                                                                                                                                                               0.2
+                                                                                     0.2
+
+    0.2
+
+
+    0.0                                                                              0.0                                                          0.0                                                                 0.0
+          0.0     0.2   0.4      0.6         0.8   1.0         1.2   1.4   1.6             0.0         0.2     0.4     0.6      0.8      1.0            0.0                 0.3                 0.6           0.9           0.0           0.2   0.4             0.6   0.8
+                                                   2                                                                    2                                                               2                                                               2
+                                                       )                                                                    )                                                               )                                                               )
+
+
+
+
+                                       3.0                                                                                                               1.2
+                                                   (e)                                                   0=2                                                          (f)
+                                       2.5                                                                                                               1.0
+
+
+
+                                       2.0                                                                                                               0.8
+                              )
+
+
+
+
+                                                                                                                                              )
+                          2
+
+
+
+
+                                                                                                                                              2
+                                       1.5                                                                                                               0.6
+                              (lnf
+
+
+
+
+                                                                                                                                              (lnf
+                                       1.0                                                                                                               0.4
+
+
+
+                                       0.5                                                                                                               0.2
+
+
+
+                                       0.0                                                                                                               0.0
+                                                           1                    10                      100          1000             10000                          1              10                      100                    1000         10000
+                                                                                       Frequency (Hz)                                                                                                 Frequency (Hz)
+
+
+
+                                       1.2                                                                                                               1.2
+
+                                                   (g)                                                        0=4
+                                                                                                                                                                     (h)
+                                       1.0                                                                                                               1.0
+
+
+
+                                       0.8                                                                                                               0.8
+                                                                                                                                              )
+                          )
+
+
+
+
+                                                                                                                                              2
+                          2
+
+
+
+
+                                       0.6                                                                                                               0.6
+                                                                                                                                              (lnf
+                          (lnf
+
+
+
+
+                                       0.4                                                                                                               0.4
+
+
+
+                                       0.2                                                                                                               0.2
+
+
+
+                                       0.0                                                                                                               0.0
+                                                   1                       10                          100           1000             10000                          1              10                      100                    1000         10000
+                                                                                       Frequency (Hz)                                                                                                 Frequency (Hz)
+
+Fig. 6. Effect of φ and λ0 on impedance spectra and polarization processes when i = 0.1A/cm2. (a)–(d) impedance spectra for changes in φ at different λ0 ; (e)–(h)
+corresponding DRTs.
+
+
+0.05A/cm2 to 0.1A/cm2, there is a significant drop both in P1 and P2.                                                                              4.2.2. Variation of φ at different λ0
+Whereas, they remain essentially unchanged with further increase in the                                                                                In addition to the coupling of the current density and the recircula­
+current density. This may be attributed to the fact that at a constant                                                                             tion ratio, the combination of the recirculation ratio (φ) and the stoi­
+stoichiometric ratio, the relatively low oxygen content at 0.05A/cm2                                                                               chiometric ratio of the fresh air path (λ0 ) also plays an important role in
+results in a restricted oxygen reduction reaction (ORR) and a large mass                                                                           influencing the effect of cathode recirculation. Fig. 6 shows the effect of
+transfer impedance, whereas when the current densities are in the range                                                                            variation of φ and λ0 on the polarization process of PEMFC at current
+of 0.1A/cm2 to 0.2A/cm2, the oxygen content is sufficient to support                                                                               density of 0.1A/cm2. As shown in Fig. 6(a)–(d), The impedance spectra
+both processes smoothly.                                                                                                                           are differently affected by φ at different λ0 . When λ0 = 2, the radius of
+                                                                                                                                                   the second circle gradually exceeds the radius of the first circle as φ
+                                                                                                                                                   increases. However, the first semicircle is always larger than the second
+
+
+                                                                                                                                              9
+Z. Liu et al.                                                                                                                                                                                                  Journal of Power Sources 598 (2024) 234165
+
+
+semicircle as λ0 increases further. At each fixed φ, the radius of both                                                                 sharply. This finding also explains why the voltage drop is more sensi­
+semicircles gradually decrease as λ0 increases. In addition, The trend of                                                               tive to the increase of the φ at small λ0 (as shown in Fig. 4(c)). As the λ0
+the impedance spectrum brought about by φ under each different λ0 is                                                                    increases, the polarization process is dominated by P2 and the eigen­
+exactly the same as in Fig. 5. Accordingly, Fig. 6(e)–(f) qualitatively give                                                            values continue to increase with the increase of φ. P2 is affected by
+the results of DRT analysis at different five eigenfrequencies. At λ0 = 2,                                                              charge transfer, whereas an increase in the φ limits the oxygen reduction
+P1 gradually dominates the polarization process with respect to P2 as φ                                                                 reaction thereby increasing P2. Under each λ0 , the high-frequency part
+increases, with the inflection point at φ = 0.6. the oxygen diffusion                                                                   after P2 decomposes the three processes from P2 to P5, which is difficult
+impedance gradually becomes the main contributor in this case, espe­                                                                    to observe in Nyquist plot. Moreover, at fixed φ, the change in λ0 also has
+cially at large recirculation ratios, the mass transfer impedance increases                                                             an effect on the polarization process. Specifically, with the increase of
+
+
+    6                                                             1.5                                                                1.4                                                                       1.2
+                                                                                                      0=3                                                       0=4                                                                          0=5
+            (a)                0=2                                            (b)                                                                 (c)                                                                      (d)
+                                                                                                                                     1.2
+    5                                                                                                                                                                                                          1.0
+                                                                  1.2
+
+                                                                                                                                     1.0
+    4                                                                                                                                                                                                          0.8
+)
+
+
+
+
+                                                              )
+
+
+
+
+                                                                                                                                )
+
+
+
+
+                                                                                                                                                                                                           )
+2
+
+
+
+
+                                                              2
+
+
+
+
+                                                                                                                                2
+
+
+
+
+                                                                                                                                                                                                           2
+                                                                  0.9
+                                                                                                                                     0.8
+
+    3                                                                                                                                                                                                          0.6
+
+                                                                                                                                     0.6
+                                                                  0.6
+    2                                                                                                                                                                                                          0.4
+                                                                                                                                     0.4
+
+                                                                  0.3
+    1                                                                                                                                                                                                          0.2
+                                                                                                                                     0.2
+
+
+
+    0                                                             0.0                                                                0.0                                                                       0.0
+        0         1       2         3             4       5   6         0.0         0.3         0.6         0.9      1.2      1.5          0.0          0.2    0.4    0.6   0.8           1.0      1.2   1.4         0.0         0.2   0.4         0.6           0.8   1.0   1.2
+                                          2                                                                  2                                                                    2                                                                      2
+                                              )                                                                  )                                                                    )                                                                      )
+
+
+
+
+                                                                                                                                                 1.8
+
+                                          (e)                                  0=2                                                                            (f)                         0=3
+                              20                                                                                                                 1.6
+
+                                                                                                                                                 1.4
+
+                              15                                                                                                                 1.2
+                                                                                                                                    )
+                      )
+
+
+
+
+                                                                                                                                    2
+                      2
+
+
+
+
+                                                                                                                                                 1.0
+                                                                                                                                    (lnf
+                      (lnf
+
+
+
+
+                              10                                                                                                                 0.8
+
+                                                                                                                                                 0.6
+
+                               5                                                                                                                 0.4
+
+                                                                                                                                                 0.2
+
+                               0                                                                                                                 0.0
+                                    0.1               1           10                  100              1000          10000                             0.1            1                   10             100                 1000            10000
+                                                                        Frequency (Hz)                                                                                                          Frequency (Hz)
+
+
+
+                              1.8                                                                                                                1.8
+
+                                                                  0=4                                                                                                                     0=5
+                              1.6                                                                                                                1.6
+
+                              1.4                                                                                                                1.4
+
+                              1.2                                                                                                                1.2
+                                                                                                                                    )
+                      )
+
+
+
+
+                                                                                                                                    2
+                      2
+
+
+
+
+                              1.0                                                                                                                1.0
+                                                                                                                                    (lnf
+                      (lnf
+
+
+
+
+                              0.8                                                                                                                0.8
+
+                              0.6                                                                                                                0.6
+
+                              0.4                                                                                                                0.4
+
+                              0.2                                                                                                                0.2
+
+                              0.0                                                                                                                0.0
+                                    0.1               1           10                      100          1000           10000                            0.1            1                   10             100                 1000            10000
+                                                                        Frequency (Hz)                                                                                                          Frequency (Hz)
+
+Fig. 7. Effect of λ0 on impedance spectra and polarization processes at different current density when φ = 1.0. (a)–(d) impedance spectra for changes in current
+density at different λ0 ; (e)–(h) corresponding DRTs.
+
+                                                                                                                                10
+Z. Liu et al.                                                                                                                        Journal of Power Sources 598 (2024) 234165
+
+
+λ0 , the increase of oxygen concentration in the cathode relieves the                       impedance inside the fuel cell, it is therefore necessary to analyze the
+oxygen diffusion resistance as well as promotes the ORR, which results                      change in ohmic resistance (R0 ). Fig. 8 demonstrates the R0 for different
+in the gradual decrease of the two peaks P1 and P2. However, for the                        current densities, cathode recirculation ratios, and fresh air path stoi­
+P3、P4 and P5 process, the change in oxygen concentration has little                         chiometry conditions fitted by the DRT method. Specifically, Fugure 8
+effect on them, as it is mainly related to the anodic reaction and proton                   (a) shows the variation of R0 at different current densities and φ. At fixed
+transport.                                                                                  current density, the R0 shows a decreasing trend with increasing φ. This
+                                                                                            is attributed to the fact that the increase in the recirculation ratio in­
+4.2.3. Effect of current density and λ0                                                     creases the humidity of the cathode, which reduces the membrane
+    Fig. 7 shows the effect of changes in current density on the polari­                    impedance as well as the contact impedance between the layers. This
+zation process for different fresh air path stoichiometry conditions. In                    trend also corresponds to the phenomenon of the impedance spectrum
+this case, the cathode recirculation ratio is set uniformly at 1.0. As                      shifting to the left (in Fig. 5). However, it is evident that the rate of
+shown in Fig. 7(a)–(d), the Nyquist plot shows that the ohmic internal                      decrease in R0 decreases with increasing φ, the critical point is at φ =
+resistance hardly varies with the current. Although an increase in cur­                     0.6. Meanwhile, the R0 is almost constant when φ exceeds 1.0. At a fixed
+rent produces more water, the selected conditions are concentrated in                       φ, the ohmic resistance decreases with increasing current density, which
+low load conditions with limited water production, so humidification is                     can be attributed to the increase in water production at high densities. In
+mainly provided by the cathode recirculation. Therefore, the ohmic                          addition, at large φ, the ohmic resistance is more sensitive to changes in
+impedance is not sensitive to the change in current density. However,                       current. This is because the high humidity at large φ in combination with
+the effect of changes in current density on the polarization process is                     the high water production at high current density further reduces the
+different at various λ0 . The limited information on the Nyquist plot can                   ohmic resistance.
+be further identified in the DRT calculations shown in Fig. 7(e)–(f).                           Fig. 8(b) shows the quantitative results of ohmic resistence for
+When λ0 = 2.0, P1 at low frequencies dominates the polarization process                     different λ0 and φ conditions when the current density is fixed at 0.1A/
+and becomes more pronounced with increasing current density. This                           cm2. The phenomenon of a gradual decrease of R0 with increasing φ is
+demonstrates that at φ = 1, a large cathode recirculation ratio greatly                     reproduced under each λ0 . The amount of reduction in ohmic resistance
+affects oxygen transport and diffusion at small λ0 , and as the current                     caused by the change in φ is more significant for large λ0 conditions.
+density increases, oxygen starvation becomes more severe due to the                         Specifically, as λ0 increases from 2 to 5, the decrease in ohmic imped­
+increase in oxygen consumption, resulting in a sharply larger P1.                           ance due to the change in φ is 0.006, 0.012, 0.017, and 0.021 Ω cm2.
+Moreover, the adjacent P3 to P5 peaks are almost negligible compared to                     Although the range of φ is the same, more water vapor is brought back at
+P1 and P2. The above information also corresponds to the radius of the                      high λ0 , which causes more reduction in ohmic resistance. Additionally,
+two arcs observed in the impedance spectrum shown in Fig. 7(a).                             at a fixed φ, the ohmic resistance gradually increases as λ0 increases (as
+    When λ0 is increased, as shown in Fig. 7(f–h), P2 completely domi­                      shown by the black arrow). This can be attributed to the increase in flow
+nates the polarization process and does not change with the change of                       rate, blowing the internal channels and membranes as well as the con­
+current density. At fixed λ0 (3、4 or 5), The process P2 strongly de­                        tact surfaces drier, resulting in an increase in ohmic resistance.
+creases with increasing current density, which is exactly opposite to the
+trend at small λ0 . This suggests that in this case, the reduction of oxygen                5. Conclusion
+caused by cathodic recirculation has little effect on the P2 process, since
+oxygen consumption is very low at such a small current density. In fact,                        In this experiment, the performance of the cathode recirculation of a
+the current dependence of P2 and its decrease at higher current densities                   PEMFC under small load conditions is investigated. The mechanism of
+is related to charge transfer kinetics and can be described by Ref. [39].                   the cathode recirculation’s influence on PEMFC performance is revealed
+Furthermore, peaks P3 to P5 at high frequency have a tendency to                            in detail from the perspective of combining the external characteristics
+decrease with increasing current density, which is attributed to the in­                    with the internal polarization process. The DRT method resolves the
+crease in water production at high densities reducing the proton trans­                     information of the electrochemical impedance spectra, which shows
+port resistance.                                                                            some obvious advantages over the ordinary Nyquist plots. The main
+                                                                                            findings of this paper are as follows:
+
+4.3. Quantitative analysis of R0 under different cathode recirculation                         (1) The cathode recirculation significantly increases the relative
+strategies                                                                                         humidity at the cathode inlet, which increases with the increase
+                                                                                                   of the recirculation ratio (φ), but the rate of increase gradually
+    The contribution of the cathode recirculation strategy to the polari­                          decreases, φ = 0.6 can be considered as a critical point. The use of
+zation process has been assigned in detail by DRT calculations. In order                           cathode recirculation for suppressing high voltages under low
+to further characterize the effect of cathode recirculation on the entire
+
+
+
+
+                Fig. 8. Effect of cathode recirculation on ohmic resistance. (a) Variation of φ at different current density, (b) Variation of φ at different λ0 .
+
+                                                                                       11
+Z. Liu et al.                                                                                                                                Journal of Power Sources 598 (2024) 234165
+
+
+        load conditions has been shown to be feasible, but in conjunction                        [8] L. Castanheira, L. Dubau, M. Mermoux, G. Berthomé, N. Caqué, E. Rossinot, et al.,
+                                                                                                     Carbon corrosion in proton-exchange membrane fuel cells: from model
+        with specific strategies. The voltage drop caused by the increase
+                                                                                                     experiments to real-life operation in membrane electrode assemblies, ACS Catal. 4
+        in the φ is more apparent at higher densities. Additionally,                                 (7) (2014) 2258–2267.
+        different fresh air path stoichiometries (λ0 ) can induce different                      [9] T. Yang, P. Shi, C. Du, Study on self-humidified PEMFC with reactant recirculation,
+        cathode recirculation performance changes. The voltage drop due                              Electrochim. Acta 51 (26) (2006) 5618–5625.
+                                                                                                [10] B.J. Kim, M.S. Kim, Studies on the cathode humidification by exhaust gas
+        to cathode recirculation decreases with increasing λ0 .                                      recirculation for PEM fuel cell, Int. J. Hydrogen Energy 37 (5) (2012) 4290–4299.
+    (2) Under the cathode recirculation strategy, DRT is able to separate                       [11] S. Rodosik, J.P. Poirot-Crouvezier, Y. Bultel, Impact of humidification by cathode
+        up to five polarization processes with distinctive time constants,                           exhaust gases recirculation on a PEMFC system for automotive applications, Int. J.
+                                                                                                     Hydrogen Energy 44 (25) (2019) 12802–12817.
+        whereas only two arcs can be observed in the Nyquist plots.                             [12] Q. Zhang, Z. Tong, S. Tong, Effect of cathode recirculation on high potential
+        Combining the variations introduced by cathode recirculation,                                limitation and self-humidification of hydrogen fuel cell system, J. Power Sources
+        the low-frequency P1 process is related to oxygen diffusion, the                             (2020) 468.
+                                                                                                [13] Y. Liu, Z. Tu, S.H. Chan, Performance analysis and dynamic characteristics of a
+        mid-frequency P2 process is related to oxygen reduction re­                                  proton exchange membrane fuel cell with dual recirculation pumps for air-free
+        actions, and the remaining high-frequency processes (P3 to P5)                               applications, J. Power Sources (2023) 566.
+        can be assigned to proton transport processes.                                          [14] X. Zhao, L. Xu, C. Fang, H. Jiang, J. Li, M. Ouyang, Study on voltage clamping and
+                                                                                                     self-humidification effects of pem fuel cell system with dual recirculation based on
+    (3) As the φ increases, the ohmic impedance (R0 ) continues to                                   orthogonal test method, Int. J. Hydrogen Energy 43 (33) (2018) 16268–16278.
+        decrease, the R0 is almost constant when φ exceeds 1.0, which                           [15] Y. Liu, Z. Tu, S.H. Chan, Water management and performance enhancement in a
+        explains the changes brought about by changes in humidity. The                               proton exchange membrane fuel cell system using optimized gas recirculation
+                                                                                                     devices, Energy (2023) 279.
+        ohmic impedance continuously increase with increasing λ0 , and
+                                                                                                [16] Z. Liu, S. Xu, S. Guo, High-potential control for durability improvement of the
+        the reduction in ohmic impedance under higher λ0 is greater for                              vehicle fuel cell system based on oxygen partial pressure regulation under low-load
+        the same range of variation of φ.                                                            conditions, Int. J. Hydrogen Energy 47 (76) (2022) 32607–32627.
+                                                                                                [17] H. Yuan, H. Dai, X. Wei, P. Ming, Internal polarization process revelation of
+                                                                                                     electrochemical impedance spectroscopy of proton exchange membrane fuel cell
+CRediT authorship contribution statement                                                             by an impedance dimension model and distribution of relaxation times, Chem. Eng.
+                                                                                                     J. (2021) 418.
+    Ze Liu: Writing – original draft, Methodology, Investigation, Formal                        [18] J. Lee, H. Salihi, J. Lee, H. Ju, Impedance modeling for polymer electrolyte
+                                                                                                     membrane fuel cells by combining the transient two-phase fuel cell and equivalent
+analysis, Data curation, Conceptualization. Mingyang Yang: Valida­                                   electric circuit models, Energy (2022) 239.
+tion, Investigation. Sichuan Xu: Writing – review & editing, Supervi­                           [19] X. Yuan, H. Wang, J. Colinsun, J. Zhang, AC impedance technique in PEM fuel cell
+sion, Resources, Conceptualization.                                                                  diagnosis—a review, Int. J. Hydrogen Energy 32 (17) (2007) 4365–4380.
+                                                                                                [20] Z. Tang, Q.-A. Huang, Y.-J. Wang, F. Zhang, W. Li, A. Li, et al., Recent progress in
+                                                                                                     the use of electrochemical impedance spectroscopy for the measurement,
+Declaration of competing interest                                                                    monitoring, diagnosis and optimization of proton exchange membrane fuel cell
+                                                                                                     performance, J. Power Sources (2020) 468.
+                                                                                                [21] P. Hong, L. Xu, H. Jiang, J. Li, M. Ouyang, A new approach to online AC impedance
+    The authors declare that they have no known competing financial                                  measurement at high frequency of PEM fuel cell stack, Int. J. Hydrogen Energy 42
+interests or personal relationships that could have appeared to influence                            (30) (2017) 19156–19169.
+the work reported in this paper.                                                                [22] X. Zhang, T. Zhang, H. Chen, Y. Cao, A review of online electrochemical diagnostic
+                                                                                                     methods of on-board proton exchange membrane fuel cells, Appl. Energy (2021)
+                                                                                                     286.
+Data availability                                                                               [23] Ö. Atlam, G. Dündar, A practical equivalent electrical circuit model for proton
+                                                                                                     exchange membrane fuel cell (PEMFC) systems, Int. J. Hydrogen Energy 46 (24)
+                                                                                                     (2021) 13230–13239.
+    Data will be made available on request.
+                                                                                                [24] A.M. Dhirde, N.V. Dale, H. Salehfar, M.D. Mann, T.-H. Han, Equivalent electric
+                                                                                                     circuit modeling and performance analysis of a PEM fuel cell stack using
+Acknowledgments                                                                                      impedance spectroscopy, IEEE Trans. Energy Convers. 25 (3) (2010) 778–786.
+                                                                                                [25] S.M. Rezaei Niya, M. Hoorfar, Study of proton exchange membrane fuel cells using
+                                                                                                     electrochemical impedance spectroscopy technique – a review, J. Power Sources
+   This work was financially supported by the National Key R&D Pro­                                  240 (2013) 281–293.
+gram of China (Grant No. 2017YFB0102802).                                                       [26] I. Pivac, F. Barbir, Inductive phenomena at low frequencies in impedance spectra of
+                                                                                                     proton exchange membrane fuel cells – a review, J. Power Sources 326 (2016)
+                                                                                                     112–119.
+Appendix A. Supplementary data                                                                  [27] H. Yuan, H. Dai, P. Ming, X. Wang, X. Wei, Quantitative analysis of internal
+                                                                                                     polarization dynamics for polymer electrolyte membrane fuel cell by distribution
+   Supplementary data to this article can be found online at https://doi.                            of relaxation times of impedance, Appl. Energy 303 (2021).
+                                                                                                [28] F. Xiao, T. Chen, Z. Gan, R. Zhang, The influence of external operating conditions
+org/10.1016/j.jpowsour.2024.234165.                                                                  on membrane drying faults of proton-exchange membrane fuel cells, Energy (2023)
+                                                                                                     285.
+References                                                                                      [29] K. Ruan, L. Yang, H. Sun, G. Sun, Distribution of relaxation times: a method for
+                                                                                                     measuring air flow distribution in high-temperature proton exchange membrane
+                                                                                                     fuel cell stacks, J. Power Sources 523 (2022).
+ [1] J. Liang, Y. Li, R. Wang, J. Jiang, Cross-dimensional model of the oxygen transport
+                                                                                                [30] D. Zhu, Y. Yang, F. Pei, T. Ma, High-precision identification of polarization
+     behavior in low-Pt proton exchange membrane fuel cells, Chem. Eng. J. (2020)
+                                                                                                     processes of distribution of relaxation times by polarization curve model for proton
+     400.
+                                                                                                     exchange membrane fuel cell, Energy Convers. Manag. (2022) 268.
+ [2] L. Fan, Z. Tu, S.H. Chan, Recent development in design a state-of-art proton
+                                                                                                [31] Y. Zhang, Y. Chen, M. Yan, F. Chen, Reconstruction of relaxation time distribution
+     exchange membrane fuel cell from stack to system: theory, integration and
+                                                                                                     from linear electrochemical impedance spectroscopy, J. Power Sources 283 (2015)
+     prospective, Int. J. Hydrogen Energy 48 (21) (2023) 7828–7865.
+                                                                                                     464–477.
+ [3] C.W. Wu, W. Zhang, X. Han, Y.X. Zhang, G.J. Ma, A systematic review for structure
+                                                                                                [32] Y. Zhang, Y. Chen, M. Li, M. Yan, M. Ni, C. Xia, A high-precision approach to
+     optimization and clamping load design of large proton exchange membrane fuel
+                                                                                                     reconstruct distribution of relaxation times from electrochemical impedance
+     cell stack, J. Power Sources (2020) 476.
+                                                                                                     spectroscopy, J. Power Sources 308 (2016) 1–6.
+ [4] D.A. Langlois, A.S. Lee, N. Macauley, S. Maurya, M.E. Hawley, S.D. Yim, et al.,
+                                                                                                [33] D.A. Osinkin, An approach to the analysis of the impedance spectra of solid oxide
+     A rejuvenation process to enhance the durability of low Pt loaded polymer
+                                                                                                     fuel cell using the DRT technique, Electrochim. Acta (2021) 372.
+     electrolyte membrane fuel cells, J. Power Sources 396 (2018) 345–354.
+                                                                                                [34] A. Weiß, S. Schindler, S. Galbiati, M.A. Danzer, R. Zeis, Distribution of relaxation
+ [5] Z. Zhou, L. Ye, D. Qiu, L. Peng, X. Lai, Experimental investigation and decoupling
+                                                                                                     times analysis of high-temperature PEM fuel cell impedance spectra, Electrochim.
+     of voltage losses distribution in proton exchange membrane fuel cells with a large
+                                                                                                     Acta 230 (2017) 391–398.
+     active area, Chem. Eng. J. (2023) 452.
+                                                                                                [35] N. Bevilacqua, M.A. Schmid, R. Zeis, Understanding the role of the anode on the
+ [6] N. Rajalakshmi, K.S. Dhathathreyan, Catalyst layer in PEMFC
+                                                                                                     polarization losses in high-temperature polymer electrolyte membrane fuel cells
+     electrodes—fabrication, characterisation and analysis, Chem. Eng. J. 129 (1–3)
+                                                                                                     using the distribution of relaxation times analysis, J. Power Sources (2020) 471.
+     (2007) 31–40.
+                                                                                                [36] M. Heinzmann, A. Weber, E. Ivers-Tiffée, Advanced impedance study of polymer
+ [7] Q. Zhang, Z. Tong, S. Tong, Z. Cheng, Self-humidifying effect of air self-
+                                                                                                     electrolyte membrane single cells by means of distribution of relaxation times,
+     recirculation system for proton exchange membrane fuel cell engines, Renew.
+                                                                                                     J. Power Sources 402 (2018) 24–33.
+     Energy 164 (2021) 1143–1155.
+
+
+                                                                                           12
+Z. Liu et al.                                                                                                                                      Journal of Power Sources 598 (2024) 234165
+
+[37] J. Kwon, P. Choi, S. Jo, H. Oh, K.-Y. Cho, Y.-K. Lee, et al., Identification of electrode        [42] M. Schönleber, Kramers-Kronig Validity Test Lin-KK for Impedance Spectra, (n.d.).
+     degradation by carbon corrosion in polymer electrolyte membrane fuel cells using                      https://www.iam.kit.edu/wet/english/Lin-KK.php.
+     the distribution of relaxation time analysis, Electrochim. Acta (2022) 414.                      [43] H. Schichlein, A.C. Müller, M. Voigts, A. Krügel, Deconvolution of electrochemical
+[38] L. Zhao, J. Hong, J. Xie, S. Jiang, X. Wei, P. Ming, et al., Investigation of local                   impedance spectra for the identification of electrode reaction mechanisms in solid
+     sensitivity for vehicle-oriented fuel cell stacks based on electrochemical impedance                  oxide fuel cells, J. Appl. Electrochem. 32 (8) (2002) 875–882.
+     spectroscopy, Energy (2023) 262.                                                                 [44] T.H. Wan, M. Saccoccio, C. Chen, F. Ciucci, Influence of the discretization methods
+[39] S. Cruz-Manzo, R. Chen, P. Rama, Inductive effect on the fuel cell cathode                            on the distribution of relaxation times deconvolution: implementing radial basis
+     impedance spectrum at high frequencies, J. Fuel Cell Sci. Technol. 9 (5) (2012).                      functions with DRTtools, Electrochim. Acta 184 (2015) 483–499.
+[40] M. Schönleber, D. Klotz, E. Ivers-Tiffée, A method for improving the robustness of             [45] F. Ciucci, C. Chen, Analysis of electrochemical impedance spectroscopy data using
+     linear kramers-kronig validity tests, Electrochim. Acta 131 (2014) 20–27.                             the distribution of relaxation times: a bayesian and hierarchical bayesian approach,
+[41] B. Boukamp, A linear kronig-kramers transform test for immitance data validation,                     Electrochim. Acta 167 (2015) 439–454.
+     J. Electrochem. Soc. 142 (1995) 1885–1894.
+
+
+
+
+                                                                                                 13
+

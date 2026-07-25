@@ -1,0 +1,31 @@
+{
+  "output_file": "E:\\agentwork_pemfc_cEGR_0519\\04_Simulink物理网络模型\\05_汇报\\assets\\routea_cegr_pemfc_system_architecture_v01.png",
+  "summary_file": "E:\\agentwork_pemfc_cEGR_0519\\04_Simulink物理网络模型\\05_汇报\\assets\\routea_cegr_pemfc_system_architecture_v01.json",
+  "http_status": 200,
+  "elapsed_s": 88.29,
+  "proxy_enabled": true,
+  "request": {
+    "model": "gpt-image-2",
+    "prompt": "Use case: scientific-educational\nAsset type: PowerPoint system architecture illustration\n\nPrimary request:\nCreate a clean, professional engineering systems schematic of an integrated\ncathode exhaust gas recirculation PEM fuel-cell system. A Simulink top-level\nmodel is only an architecture reference; do not reproduce a software interface,\nblocks, wires, or labels.\n\nScene/backdrop:\nPure white or very light neutral background, suitable for a technical\nmanagement presentation.\n\nSubject and flow:\nPlace a PEM fuel-cell stack at the center as the system anchor.\nShow a blue cathode air path: ambient air -> compressor -> intercooler ->\nhumidifier and mixer -> cathode inlet of the stack.\nShow a blue cathode exhaust path: stack cathode outlet -> exhaust splitter.\nOne branch exits through a back-pressure control element. The other branch is\na clearly visible cathode exhaust gas recirculation loop: exhaust -> water\nseparation icon -> controllable cEGR valve -> return to the upstream mixer\nbefore the compressor.\nShow a restrained red hydrogen path: hydrogen supply -> anode conditioning and\nrecirculation unit -> stack anode -> purge or recirculation return.\nShow a teal thermal-management loop: stack cooling ports -> coolant pump and\nradiator -> stack cooling ports.\nShow a yellow electrical path: stack electrical output -> controlled electrical\nload and performance measurement.\nShow a small gray supervisory controller connected with thin dashed\ncommand/measurement lines to the compressor, cEGR valve, back-pressure\ncontrol, humidifier, cooling loop, and electrical load.\n\nStyle/medium:\nHigh-end scientific and engineering infographic, physically plausible equipment\nicons, clean vector-like 3D hybrid illustration, not photorealistic, not a\nsoftware screenshot.\n\nComposition/framing:\nBalanced square composition with generous whitespace around the modules for\nlater PowerPoint labels. Make the cEGR loop visually prominent but keep the\nfuel-cell stack as the largest central object. Use clear directional arrows and\navoid crossing pipes where possible.\n\nColor palette:\nBlue for cathode air and cEGR, restrained red for hydrogen, teal for coolant,\nyellow for electricity, gray for control signals, and dark graphite for the\nstack. Use restrained professional colors, no gradients, no decorative\nbackground elements.\n\nText:\nNo readable text, no equations, no numbers, no logos, no watermark. Leave\nclean blank spaces near the main modules for manual Chinese labels in\nPowerPoint.\n\nConstraints:\nTechnically plausible PEMFC system architecture. Do not show vehicles, people,\nflames, clouds, fantasy equipment, excessive sensors, or detailed internal\nstack chemistry. Do not imply that compressor efficiency, water-separation\nefficiency, DCDC hardware, or other unverified component capabilities have\nalready been validated.\n",
+    "size": "2048x2048",
+    "quality": "high",
+    "n": 1
+  },
+  "response_keys": [
+    "created",
+    "data",
+    "quality",
+    "size",
+    "usage"
+  ],
+  "data0_keys": [
+    "b64_json"
+  ],
+  "image": {
+    "format": "PNG",
+    "mode": "RGB",
+    "width": 1254,
+    "height": 1254,
+    "bytes": 1223725
+  }
+}

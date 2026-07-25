@@ -1,0 +1,86 @@
+function metadata = routeA_generate_platform_default_initial_state(userCfg)
+% Generate the fresh Current candidate for the Route A I/P/V state bundle.
+%
+% The candidate is conditioned from model time zero at low current, zero
+% cEGR, and normal purge operation. The shared precondition helper selects a
+% repeated post-purge quiet phase only after its required physical metrics
+% pass the 0.5 percent stability gate. This function does not promote the
+% formal bundle; promotion remains an explicit atomic step.
+
+if nargin < 1 || isempty(userCfg)
+    userCfg = struct();
+end
+if ~isstruct(userCfg) || ~isscalar(userCfg)
+    error('RouteA:CurrentInitialStateConfig', ...
+        'userCfg must be a scalar struct.');
+end
+
+scriptDir = fileparts(mfilename('fullpath'));
+modelDir = fullfile(scriptDir, '..', '..', '01_模型', ...
+    'RouteA_GasMixture_Derived');
+model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
+modelFile = fullfile(modelDir, [model '.slx']);
+candidateFile = fullfile(modelDir, ...
+    'RouteA_platform_default_initial_state_candidate_mode1_current.mat');
+oldDir = pwd;
+addpath(scriptDir);
+addpath(modelDir);
+cd(modelDir);
+cleanup = onCleanup(@() routeA_restore_model_and_folder( ...
+    model, modelFile, oldDir));
+
+cfg = defaultCurrentConfig();
+cfg = mergeKnownFields(cfg, userCfg);
+[routeA_initial_state, metadata, audit] = ...
+    routeA_prepare_parameter_consistent_initial_state( ...
+    model, modelFile, struct(), cfg);
+if ~audit.periodic.passed
+    error('RouteA:CurrentInitialStateQuietWindow', ...
+        'The Current candidate did not pass the post-purge quiet-window gate.');
+end
+
+metadata.schema = 'RouteA_platform_default_initial_state_v09_mode1_current';
+metadata.candidateSource = ...
+    "routeA_generate_platform_default_initial_state";
+metadata.loadInputType = "Current";
+metadata.targetCurrentA = metadata.physicalSummary.stackCurrent_A;
+metadata.stateClass = string(class(routeA_initial_state));
+routeA_initial_metadata = metadata;
+save(candidateFile, 'routeA_initial_state', ...
+    'routeA_initial_metadata', '-v7.3');
+assignin('base', 'routeA_platform_default_current_candidate_metadata', ...
+    routeA_initial_metadata);
+fprintf(['Saved Route A Current initial-state candidate after repeated ', ...
+    'post-purge quiet-window verification: %s\n'], candidateFile);
+clear cleanup;
+end
+
+function cfg = defaultCurrentConfig()
+cfg = struct( ...
+    'currentDensity_A_cm2', 0.1, ...
+    'targetAirEquivalentOer', 3, ...
+    'loadInputType', "Current", ...
+    'loadRampStartTime_s', 0.5, ...
+    'loadRampDuration_s', 120, ...
+    'solver', "VariableStepAuto", ...
+    'relativeTolerance', 1e-3, ...
+    'absoluteTolerance', 1e-3, ...
+    'maxStep_s', 5, ...
+    'checkpointStopTime_s', 3600, ...
+    'probeStopTime_s', 10000, ...
+    'postPurgeOffset_s', 100, ...
+    'postPurgeQuietWindow_s', 60, ...
+    'relativeVariationLimit', 0.005);
+end
+
+function result = mergeKnownFields(defaults, user)
+result = defaults;
+names = fieldnames(user);
+for idx = 1:numel(names)
+    if ~isfield(result, names{idx})
+        error('RouteA:CurrentInitialStateConfigField', ...
+            'Unsupported Current initial-state field: %s.', names{idx});
+    end
+    result.(names{idx}) = user.(names{idx});
+end
+end

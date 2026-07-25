@@ -1,0 +1,707 @@
+                                                                 Journal of Power Sources 468 (2020) 228388
+
+
+                                                                   Contents lists available at ScienceDirect
+
+
+                                                               Journal of Power Sources
+                                                       journal homepage: www.elsevier.com/locate/jpowsour
+
+
+
+
+Effect of cathode recirculation on high potential limitation and
+self-humidification of hydrogen fuel cell system
+Qinguo Zhang a, b, c, Zheming Tong a, b, c, *, Shuiguang Tong a, b, c
+a
+  Ningbo Research Institute, Zhejiang University, Ningbo, 315100, China
+b
+  State Key Laboratory of Fluid Power and Mechatronic Systems, Zhejiang University, Hangzhou, 310027, China
+c
+  School of Mechanical Engineering, Zhejiang University, Hangzhou, 310013, China
+
+
+
+
+H I G H L I G H T S
+
+� A fuel cell system with cathode recirculation is built up based on a 30 kW stack.
+� The single cell voltage is limited to less than 0.8 V at low currents.
+� The cooperative working performance of different parameters is obtained.
+� Relative humidity can be controlled with the recirculation ratio from 25 to 90%.
+� The water removal function of the cathode circulation system was verified.
+
+
+A R T I C L E I N F O                                    A B S T R A C T
+
+Keywords:                                                The high potential at the start and stop of the stack, as well as the flooding and film drying phenomena that occur
+Proton exchange membrane fuel cell (PEMFC)               during operation, will seriously cause the performance degradation of PEMFC. In this study, the effects of the
+Cathode recycling                                        cathode cycle on the high-voltage limiting strategy and water management characteristics of the hydrogen fuel
+Voltage clamp
+                                                         cell system under different operating conditions was measured using the orthogonal test and the AC impedance
+Self-humidification
+                                                         measurement methods. The experimental results show that by reducing the fresh airflow and increasing the
+Voltage consistency
+                                                         amount of air recirculation, the oxygen concentration can be reduced and the single piece voltage can always be
+                                                         kept below 0.8 V under a small load. Air recirculation improves the relative humidity at the cathode inlet close to
+                                                         the humidifier, thereby improving the output performance of the stack and having better dynamic character­
+                                                         istics. Furthermore, air recirculation can also enhance the water removal capacity of the stack outlet under high
+                                                         power operation with less pump power, thereby significantly improves the consistency of the distribution of
+                                                         oxygen along the flow channel and increasing the durability of the stack. The conclusion can provide more
+                                                         specific guidance for fuel cell performance improvement and control optimization.
+
+
+
+
+1. Introduction                                                                               challenges that restrict its commercialization [3]. When the proton ex­
+                                                                                              change membrane fuel cells load changes, there will be a phenomenon
+    With its advantages of green, extreme endurance and high energy                           of response lag, overshoot, etc., resulting in a high potential. The high
+density, hydrogen fuel cell vehicles are becoming an important appli­                         potential (generally greater than 0.82 V) causes corrosion of the carbon
+cation area of hydrogen energy and are becoming one of the main                               support in the catalytic layer of the membrane electrode on the one
+development directions of new energy vehicles [1]. At present, many                           hand, and catalysis of platinum on the other hand, reducing the service
+companies and institutions have begun research on hydrogen fuel and                           life of the fuel cell [4]. When the fuel cell operates under dynamic
+development of fuel cell vehicles, with a focus on improving the power                        conditions such as frequent start-up, loading, load reduction, shutdown,
+density of fuel cells and extending their service life [2]. As the core                       etc., due to the sharp mutation of operating parameters (current density,
+component of the fuel cell, the membrane electrode assembly (MEA)                             gas flow, temperature, humidity, pressure, etc.), it is very easy to appear
+seriously affects the service life of the stack, which is one of the technical                local drying, flooding, reaction gas loss and other phenomena [5].
+
+
+
+    * Corresponding author. State Key Laboratory of Fluid Power and Mechatronic Systems, Zhejiang University, Hangzhou, 310027, China.
+      E-mail address: tzm@zju.edu.cn (Z. Tong).
+
+https://doi.org/10.1016/j.jpowsour.2020.228388
+Received 4 April 2020; Received in revised form 14 May 2020; Accepted 19 May 2020
+Available online 1 June 2020
+0378-7753/© 2020 Elsevier B.V. All rights reserved.
+Q. Zhang et al.                                                                                                          Journal of Power Sources 468 (2020) 228388
+
+
+Therefore, it is very important to study the effects of high potential             wall conditions. Houreh [25] investigated the effect of obstacle shape
+suppression methods and water management strategies on fuel cell                   and number on a membrane humidifier performance, and water transfer
+performance.                                                                       rate increases by 7.28% with one rectangular obstacle. Ramin [26]
+    Lin [6] proposed a two-phase auxiliary load strategy to avoid the              found that channels with two traps provide considerably higher current
+hydrogen/air boundary, but severe local starvation was observed during             densities, and also improve the distribution of oxygen and water over
+the shutdown, and corrosion occurred in the entrance area. Moreover,               the cathode catalyst, resulting in less cathodic overpotential across the
+high potential will cause the dissolution of platinum and its oxides,              cell. Kang [27] found that the water-removal capability of the ginkgo
+resulting in a decrease in the surface area of the catalyst [7]. Sharma [8]        flow field was superior to that of the parallel and net leaf flow fields, but
+found through experiments that after 1500 times of 0.1–1.0 V potential             inferior to that of the serpentine flow field. Bao [28] found that the air
+cycle, the catalyst layer area of the fuel cell decreased by 40%, and the          guidance effect of 3-D baffles contributes to the reactant transport, and a
+carbon corrosion rate of the catalyst layer increased with the increase of         separated liquid-gas transport phenomenon can was observed, which
+the upper limit potential, and the activity degradation of such catalysts          reduces the liquid coverage area on gas diffusion layer surface and
+during AST takes place. Dou [9] explored the anode catalyst carrier, and           provides a larger passage area for mass transfer. Yu [29] simulated the
+electrochemical tests showed that the electrochemical stability of                 dynamic process of liquid water moving through the gas diffusion layer
+Pt/SnO2 under high potential electrochemical oxidation and potential               by a 3D lattice Boltzmann model, and two through-plane distribution
+cycling was significantly higher than that of Pt/C. Senoo [10] found that          styles were analyzed regarding their impact on the liquid water’s flow
+Pt/Ta-SnO2-δ is more stable than commercial Pt/C in the high potential             behavior. It was found that there was a general dryness at the entrance
+region and can be used as an ideal high-endurance cathode material for             of the fuel cell, resulting in uneven distribution of current density on the
+fuel cells. Under idling conditions, oxygen and hydrogen will pass                 membrane electrode, shortening its service life. It is also feasible to
+through the proton exchange membrane to the anode and cathode,                     achieve self-humidification by adding hydrophilic porous polyester fi­
+respectively. Hydrogen peroxide generated at the anode causes perfo­               bers to the membrane and adding hydrophilic SiO2 particles to the
+ration of the membrane, causing hydrogen to flow directly from the                 catalyst layer [30–34]. However, compared with numerical simulation,
+anode to the cathode, thereby reducing the amount of proton exchange.              the experimental results are more reliable. Nowadays, there still lacks
+While membrane decomposition leads to catalyst poisoning and reduced               effective and feasible simulation methods for research work of fuel cell
+active area [11]. High potentials can also cause carbon corrosion of the           system quantitative analysis.
+bipolar plates, which can lead to severe corrosion of the coated metal                 In the existing researches: most studies have quantitatively analyzed
+plates, resulting in increased contact resistance and reduced stack                the trend of stack output voltage as inlet humidity changing, however,
+output performance [12,13]. For the durability problem at high poten­              there is no better way to solve the problem of self-humidification than
+tial, it is simpler and more versatile to reduce the stack decay rate by the       using a bulky humidifier; most studies elaborate on the attenuation
+voltage clamping control strategy compared to the improved material                caused by high potential during the start-stop process, but little atten­
+performance [14]. In the load cycle test, Nissan compared the decay rate           tion has been paid to how to suppress the high potential in addition to
+under voltage, showing that the voltage clamp can reduce the decay rate            reducing the start-stop times; Quantitative researches on the influence of
+and the lower the voltage of the upper clamp, the more the attenuation             cathode cycle on fuel cell high potential limit and self-humidification
+rate reduced. Compared with no voltage clamping control strategy, the              effect are still lacking.
+voltage decay rate can be reduced by 1/4 to 1/3 under the voltage clamp                Exhaust gas recirculation systems have been widely used and
+control strategy [15].                                                             intensively studied on conventional fuel engines, but it is puzzling that
+    Proton exchange membrane can achieve efficient proton conduction               there are no related applications on PEMFC systems [35–37]. Combined
+only when fully wetted, so humidification is critical to the efficiency and        with the current research status, the life of the membrane electrode is
+performance of fuel cell systems. However, due to the parasitic power              the primary factor affecting the durability of the fuel cell, and the high
+loss of the external humidifier, the system has high complexity, high cost         potential affects the service life of the catalyst to some extent. In view of
+and large volume; self-humidification is one of the key technologies for           the above deficiencies, in order to reduce the single piece voltage of the
+fuel cell research and development [16]. In recent years, some experi­             fuel cell under low current density conditions and realize the
+ments and numerical simulations have conducted to study the effects of             self-humidification function at high power, a PEMFC system test bench
+humidity on the transient performance of PEM fuel cells. Kim [17] tested           using cathode circulation was designed by referring to the waste recy­
+the gas recirculation system in five fuel cell low-pressure systems and            cling system of the fuel machine [38]. The cathode circulation system is
+found that increasing the recirculation ratio increased intake air hu­             designed according to the generator theory and self-humidification
+midity and reduced O2 concentration. Despite the use of a cathode                  strategy, and the effects of the amount of fresh air and the amount of
+recirculation structure, the dynamic characteristics of the system and             circulation on the high potential limit of the monolithic voltage is
+the boundary conditions of the voltage clamping and the application of             quantitatively analyzed. Based on orthogonal experiments, the function
+the control strategy to the engine are not studied. Zhang [18] studied a           of the circulating pump speed to suppress high potential was measured
+new cooling strategy for a PEM fuel cell stack using a three-dimensional           and qualitatively analyzed. The dynamic changes of humidification ca­
+multiphase non-isothermal model. Zhu [19] and Lin [20] found that the              pacity and water content were measured with the cathode cycle, and the
+single variable cross section serpentine flow field has the largest pres­          optimal combination under different load conditions and operating pa­
+sure drop and flow rate, resulting in minimal ice formation during the             rameters was qualitatively analyzed. The humidification capacity of the
+cold start process. Kim [21] developed a two-phase flow model of a                 cathode cycle was compared with that of an external humidifier, and the
+three-dimensional PEMFC complex flow field and added additional flow               benefits of the cathode cycle for the removal of liquid water from the
+resistance around the baffle to improve interfacial liquid water and mass          stack outlet were discussed in detail. The research results of this paper
+transfer. In addition, researchers also used the CFD method to quanti­             are based on the PEMFC cathode cycle system, which can provide
+tatively study the three-dimensional unsteady two-phase model on the               theoretical basis for the design of high-performance, long-life PEMFC
+cathode side to evaluate the effect of liquid water distribution on reac­          systems, and provide more specific guidance for control optimization.
+tant transport and current density distribution [22]. The flow field
+design plays an important role in pressure distribution, current density,          2. Mechanism of cathode circulation
+temperature, heat and water management, and Atyabi [23] found that
+the sinusoidal flow field has better drainage performance. S. Anyanwu                 Due to the large amount of water produced by the fuel cell during
+[24] reveal that the novel hybrid sinusoidal channel designs are                   operation, the cathode exhaust gas contains a large amount of high-
+consistent in terms of quicker water removal under varying hydrophilic             temperature water vapor, which can be used to directly wet the intake
+
+                                                                               2
+Q. Zhang et al.                                                                                                               Journal of Power Sources 468 (2020) 228388
+
+
+air. It can not only realize the self-humidification of the fuel cell, but also         and water vapor from the stack outlet to the inlet, and a stop valve is
+use the exhaust gas with a higher temperature to preheat the incoming                   installed at the cathode outlet to control the amount of circulating gas.
+air, to reduce the temperature difference distribution inside the stack. In             In addition, a hand valve is also installed behind the air compressor to
+addition, according to the Butler-Volmer equation, only the cathode                     limit the amount of fresh air during circulation, and the specific struc­
+over potential is considered, and the oxygen concentration is the ideal                 tural principle is shown in Fig. 1(a). Through the recycling of cathode
+control variable among the controllable factors affecting the voltage. In               gas, the concentration of oxygen in the intake air is reduced, and self-
+order to make the fuel cell model based on cathode cycle is easy to use in              humidification is realized at the same time, which has useful applica­
+the actual simulation and control system, make the following                            tion value. In order to obtain the change rule of the characteristics of the
+assumptions:                                                                            cathode cycle fuel cell system, a test system is built, which includes
+    (1) When high temperature and humidity exhaust gas are mixed with                   hydrogen system, air system, cooling system and other subsystems, as
+low temperature and humidity air, it is assumed that there is no                        shown in Fig. 1(b), and the configuration parameters of the stack used in
+condensation in the mixing process, that is, the enthalpy value of fresh                the test system are shown in Table 1.
+air and exhaust gas is equal to the enthalpy value of the mixed gas.
+Therefore, the concentration of the oxygen, nitrogen and water vapor                    3. Discussion
+components meet a simple linear relationship before and after mixing.
+(2) In the calculation process of the cathode cavity model, the pene­                   3.1. Voltage limiting effect with cathode circulation
+tration of nitrogen between the cathode and anode is not considered. (3)
+Assuming that the temperature of the exhaust gas after the air circula­                     According to the gradient step loading of 40A, the maximum and
+tion pump remains unchanged, the relationship between the pressure                      minimum are 400A and 40A, respectively; The time interval of each load
+ratio between the exhaust gas flow rate and the speed of the circulation                is about 100s, and the total test time is 2000s. It can be viewed in the
+pump in actual control can be obtained by querying the MAP chart.                       dynamic response test result of the fuel cell voltage shown in Fig. 2 that
+    According to the electrochemical theory, the cathode overpotential                  the voltage gradually decreases when the current is applied, and the
+equation is as follows [39]:                                                            voltage gradually increases when the load is reduced. In addition, the
+                                                                                        response time and minimal regulation of the fuel cell are not the same
+ηc ¼ Vcell þ ifc ðRohm þ Rcon Þ   U0c                                         (1)
+                                                                                        under the same step current. In order to reduce the degradation of the
+Where, Vcell is the average voltage, U0c is the cathode equilibrium po­                 membrane electrode performance caused by high potential, the voltage
+tential, Rohm and Rcon are the ohmic and contact impedances,                            should be limited to less than 0.8 V during the start-stop phase. There­
+respectively.                                                                           fore, when the stack current is less than 100A, the monolithic voltage is
+   Membrane water content [39]:                                                         more than 0.8 V, which is a range of limited voltage.
+                                                                                            After the circulation pump is turned on, the exhaust valve of the
+     �
+        ð0:5139λ 0:326Þe1268 ​ ð1=303:15 1=Tfc Þ ; λ > 1                                outlet is closed and the opening of the intake valve is reduced, so that the
+σm ¼                                                                (2)
+         0:1879λe1268 ​ ð1=303:15 1=Tfc Þ    ;λ � 1                                     exhaust gas and a small amount of fresh air is mixed before the cathode
+                                                                                        inlet and then enter the stack together. After a gradient test time of 800
+     The cathode exchange current density is:                                           s, the oxygen concentration at the cathode inlet can be gradually
+                      ! �            �                                                  reduced from the initial 18.6%–11%, and continues to decrease with the
+      s0 s ref CO2          αc
+ifc ¼      ic;s   ref
+                       exp      F ηc                                          (3)       increase of the circulating pump speed until it drops to 3%, as shown in
+        s0      C O2       RTfc
+                                                                                        Fig. 3a. This is because as the circulating pump speed increases, the
+                                                                                        exhaust gas recirculation rate continues to increase, resulting in a
+Where, s is the liquid water saturation of the catalyst layer. CrefO2 is the            continuous decrease in the oxygen concentration at the cathode inlet.
+reference oxygen concentration.                                                         Subsequently, due to the low oxygen concentration of the stack, the
+    In the cathode circulation system, the cathode inlet pipe is connected              control system is forced to shut down, so the oxygen concentration must
+to the outlet end of the air circulation pump, and the inlet airflow of the             have a certain range limit, preferably not less than 5%. When the stack
+inlet pipe is the sum of the airflow of the compressor and the air cir­                 operates at low current as shown in Fig. 3b, if the air intake valve is
+culation pump:                                                                          always in full open state, the change of average voltage per slice will be
+                                                                                        very small even if the amount of circulating air is increased, and the
+Wto ¼ Wfre þ Wre                                                              (4)
+                                                                                        cathode circulation system will not play a role of limiting potential. As
+Where, Wfre is the fresh air mass flow rate, Wre is the recirculated air                the circulation pump is turned on, the exhaust gas is mixed with fresh air
+mass flow rate, and Wsm_in is the total intake air mass flow rate after                 before the cathode inlet, the oxygen concentration at the cathode inlet
+mixing.                                                                                 decreases from the beginning, and the smaller the opening of the intake
+    The theoretical calculation formula of relative air humidity is as                  valve, the lower the oxygen concentration, as shown in Fig. 3(c). This is
+follows [40]:                                                                           explained by the fact that the smaller the opening of the intake valve is,
+                                                                                        the less the amount of fresh air is, so the higher the proportion of the
+log psat ðTÞ ¼ 2:953 � 10 2 � T         9:1837 � 10 5 � T 2 þ 1:4454 � 10 7 � T 3       amount of recycling is. After the internal circulation, the concentration
+     2:1794                                                                             will reach a balance state, and the single cell voltage will also reduce,
+                                                                              (5)       but the change of voltage has obvious delay. The change in oxygen
+                                                                                        concentration at the cathode outlet throughout the process was so great
+           psat ðTca_hm Þ                                                               that when the valve opening was 0.8, 0.6 and 0.4, respectively, the
+RHtheo ¼              �                                                       (6)       corresponding oxygen concentration decreased by 16%, 14% and 11%.
+            psat Tfc
+                                                                                        It can also be seen that the intake valve opening degree is changed from
+    It can be observed in Eq. (1) and Eq. (3) that the relationship between             0.8 to 0.4, the single cell voltage is lowered from 0.9 V to 0.8 V, and as
+the voltage of fuel cell and oxygen concentration can be realized by                    the fresh air excess coefficient is lowered, the rate of voltage drop be­
+reducing the oxygen concentration of intake air in order to reduce the                  comes large. A rapid drop in voltage indicates that the change of oxygen
+voltage of the fuel cell. At the same time, the cathode circulation                     concentration at the cathode inlet is less affected by the air recirculation
+structure is designed to make full use of the large amount of water                     system, while it is more affected by the fresh air excess coefficient, which
+flowing from the exhaust port of the cathode. A gas-circulating pump is                 is mainly due to the influence of the fresh air excess coefficient on the
+used between the cathode outlet and the inlet of the stack to pump gas                  proportion of recirculation flow to the total cathode intake. Fig. 3d
+
+                                                                                    3
+Q. Zhang et al.                                                                                                          Journal of Power Sources 468 (2020) 228388
+
+
+
+
+                                                       Fig. 1. Fuel cell test system with cathode cycle.
+
+
+                                                                                   weakened, which easily leads to problems such as local flooding. In
+Table 1
+                                                                                   order to study the interaction of the characteristic parameters such as
+Stack parameters and bench configuration parameters.
+                                                                                   current, voltage, and reaction gas under the voltage clamping strategy,
+  Parameter name                                        Parameter value            corresponding voltage clamping experiments were carried out, and the
+  Stack power/kW                                        30                         experimental results of 9 groups of orthogonal experiments are shown in
+  Active area/cm2                                       500                        Table 2. As can be seen, the effect of the fresh air excess coefficient on
+  Number of pieces                                      100                        the oxygen concentration is obvious because the exhaust gas and fresh
+  Stack operating temperature/� C                       60
+  Voltage range/V                                       70–120
+                                                                                   air are mixed before the cathode inlet; the excess coefficient of fresh air
+  Current range/A                                       0–500                      affects the ratio of recirculation flow to the total cathode intake. As the
+  Gas channel width/mm                                  2                          speed of the circulating pump increases, the exhaust gas recirculation
+  Gas channel depth/mm                                  0.6                        rate continues to increase, resulting in a continuous decrease in the
+  Ridge width/mm                                        0.6
+                                                                                   oxygen concentration at the cathode inlet. The oxygen concentrations of
+  Membrane thickness/μm                                 30
+  Oxygen concentration sensor                           0–21%, �0.5%               different fresh air excess coefficients were obtained through experi­
+  Temperature and humidity integrated sensor              20-100 � C, �1.5%        ments, so that the voltage drop could be precisely adjusted and
+  Flow Sensors                                          0–100%, �1.5%              controlled under different current densities.
+
+
+shows the voltage of 50 pieces of the stack measured by the voltage                3.2. Self-humidifying effect with cathode circulation
+inspection module, in order to verify the practical application effect of
+the voltage limiting strategy. In addition, it can be seen that the single             In order to obtain the humidification effect of the system, it is
+cell voltage is controlled below 0.8 V during the startup and shutdown             necessary to explore the qualitative relationship between humidity and
+stages, which achieves the purpose of cathode cycle, but the consistency           high frequency impedance. The dynamic experiment of the cathode
+between the single chips is slightly different. The single cell voltage is         circulation system was carried out by using the high-frequency imped­
+relatively stable when operating in a stable state, so the cathode cycle           ance tester to monitor the high-frequency impedance of the membrane
+does not cause adverse effects in the stable operation stage of the stack.         in real-time. It should be noted that according to the fuel cell system test
+    When implementing the control method of the voltage clamp,                     experience, the dynamic time of humidity is usually longer, about 20s.
+reducing the fresh airflow rate and adjusting the cathode recirculation            According to a large number of theoretical and experimental results,
+rate at the same time are important strategies to achieve a single piece           high-frequency impedance is an effective indicator of membrane water
+voltage drop and maintain stable operation of the fuel cell system.                content, and voltage has a good correspondence with high-frequency
+However, although reducing the amount of fresh air alone can achieve               impedance, that is, high voltage at low impedance, low voltage at
+the purpose of reducing the voltage drop, it will lead to a weakening of           high impedance, and basically no delay, indicating that high frequency
+the diffusion capacity of oxygen to the reaction area under a small                impedance is a good real-time observation tool for fuel cell systems.
+current density, which may easily lead to uneven gas distribution and              Fig. 4a shows the corresponding relationship between cathode inlet
+local deficiency gas. Moreover, because the cathode intake airflow is              relative humidity, average single cell voltage and high-frequency
+reduced, the ability to take liquid water out of the stack is further              impedance during the experiment, which can be seen that the cathode
+
+                                                                               4
+Q. Zhang et al.                                                       Journal of Power Sources 468 (2020) 228388
+
+
+
+
+                    Fig. 2. Loading current and average voltage.
+
+
+
+
+                  Fig. 3. Experimental results of voltage clamping.
+
+
+
+
+                                          5
+Q. Zhang et al.                                                                                                           Journal of Power Sources 468 (2020) 228388
+
+
+Table 2
+Experimental results of voltage clamping.
+  Case     Air excess     Current density (A/   Circulating pump speed      Inlet oxygen concentration   Outlet oxygen concentration     Cathode inlet humidity
+           factor         cm2)                  (rpm)                       (%)                          (%)                             (%)
+
+  1        3              0.12                  1500                        15.6                         13.8                            72
+  2        2.5            0.15                  2000                        13.6                         10.5                            83
+  3        1.5            0.18                  2500                        9.8                          5.6                             85
+  4        3              0.2                   2500                        15.6                         13.1                            80
+  5        2.5            0.22                  1500                        14.6                         10.2                            85
+  6        1.,5           0.28                  2000                        10.3                         8.4                             90
+  7        3              0.15                  2000                        16.3                         13.5                            85
+  8        2.5            0.25                  2500                        13.3                         11.9                            68
+  9        1.5            0.28                  1500                        10.1                         5.8                             93
+
+
+
+
+                                                                 Fig. 4. Experimental results.
+
+
+
+
+                                                                               6
+Q. Zhang et al.                                                                                                                    Journal of Power Sources 468 (2020) 228388
+
+
+inlet humidity response time caused by the air circulation pump speed              nine examples were obtained. Under high current density, the relative
+step is very rapid, basically within 20s. During the rapid increase of the         humidity rises rapidly from a minimum of 40%, and eventually reaches
+membrane impedance from 300 to 500 mΩ cm2, the average monolithic                  about 90% as the speed of the circulating pump reaches 2500 rpm,
+voltage was reduced from 0.78 V to 0.70 V, and the performance                     indicating that the air recirculation system can significantly affect the
+attenuation was about 10%. Moreover, since the single cell voltage                 humidification capacity of the system. Furthermore, the high-frequency
+drops almost linearly after 180s of the test time, it can be established           impedance decreases continuously with the increase of the rotation
+that the voltage has been unstable at this time. Thus, it can be concluded         speed of the circulation pump, which indicates that air recirculation can
+that when the high-frequency impedance is in the range of 200–400 mΩ               increase the water content of the membrane and reduce the membrane
+cm2, it corresponds to the ideal working state of the stack. The current           impedance. This is because under high current density, the tail gas
+step sequence of 51A->12A, 51A->19A, 51A->27A was used, and each                   contains a large amount of water vapor, so the water concentration
+cycle was performed as shown in Fig. 4b. The test results show that the            carried by the recirculated air is higher, and at the same time, the
+voltage follow-up effect is better, and the voltage fluctuation of the three       cathode inlet flow rate increases due to recirculation, especially at a
+cycles is smaller, indicating that the dynamic response characteristics of         large recirculation rate. The cathode inlet pressure will increase
+the stack are better. In addition, the average internal resistance of the          accordingly, and the partial pressure of water vapor will increase,
+fuel cell tested by the current step method is shown in Table 3, which can         further increasing the relative humidity at the cathode inlet, even
+be used to predict the degree of humidification of the new system.                 reaching a relative humidity of 90%. At small and medium current
+    The comparison between theoretical and experimentally measured                 densities, the increase in inlet relative humidity and the increase in
+relative humidity at the cathode inlet is shown in Fig. 5(a). It can be            pressure caused by a large airflow will reduce both ohmic loss and mass
+observed that they have a good agreement with maximum error only                   transfer loss, and improve stack performance.
+10%, indicating that the experimental results have better reliability.                 Based on the data of orthogonal experiments, the parameter
+After a large number of experiments, it was found that the measured                matching results of the cathode cycle system that can be used in prac­
+value of the humidity sensor would be higher than the actual value,                tical control systems are obtained, as shown in Fig. 6(a). From the results
+mainly because there would be residual water droplets on the sensor,               of the dynamic change of airflow under different powers in Fig. 6(b), it is
+which would affect the measurement accuracy. If the effects of residual            found that after the cathode cycle is adopted, the phenomenon of up-
+water were excluded, the error would be even smaller. Additionally, the            regulation will occur at each loading, but it will return to a stable
+experimental results show that the relative humidity of the cathode inlet          state after a short time. In addition, according to the gas flow rate, the
+for cathode circulation is over 70%, indicating that the self-                     excess coefficient of air at different powers in Fig. 6(c) can be obtained,
+humidification capacity of the cathode circulation system is close to              which indicates that the larger the flow rate of air, the greater the power
+the humidification performance of an external humidifier, which can                of the stack, and the excess coefficient decreases accordingly. In addi­
+significantly increase the relative humidity of the air at the cathode             tion, the cathode circulation increases the pressure of the gas entering
+inlet. When the opening of the inlet valve is fixed and the exhaust valve          the stack to a certain extent, and promotes the transmission of the gas to
+is closed, the relative humidity at the cathode inlet is significantly             the diffusion layer. In addition, increasing the cathode inlet pressure can
+affected by the exhaust gas re-circulation (EGR) rate. As the speed of the         significantly improve the output performance, especially when the
+circulating pump increases from 1500 rpm to 3000 rpm, the relative                 relative humidity of the cathode is low [43]. At the same time, the flow
+humidity of the mixed air at the cathode inlet also rises slowly from the          rate of the gas will increase, which will help quickly remove the
+initial 20%–80%, as shown in Fig. 5(b). From the circled position, it can          generated moisture, thereby increasing the power of the stack. It is
+be seen that every time the rotation speed of the circulating pump is              worth noting that the excess factor can also be reduced by adjusting the
+changed, the humidity will have an obvious beating and upsurge pro­                speed of the air compressor to prevent excessive gas flow.
+cess, for the main reason that the strong air flow will carry a large
+number of liquid water at the outlet to the inlet at the moment of
+                                                                                   3.3. Effect of cathode circulation on forced water removal
+changing the rotation speed, resulting in the instantaneous increase of
+humidity. When liquid water slowly becomes less, the humidity slowly
+                                                                                       Another advantage of air recirculation is that it can enhance the
+decreases to a certain extent and then slowly rises. It shows that the air
+                                                                                   migration of water at the outlet under high power operation, thereby
+recirculation system can significantly affect the humidification capacity
+                                                                                   significantly improving the consistency of the distribution of oxygen
+of the system and achieve the purpose of system design. It is worth
+                                                                                   along the flow channel and increasing the durability of the system.
+noting that although the circulating pump will generate an additional
+                                                                                   According to existing research literatures [44,45], when the fuel cell is
+power consumption of up to 400 w, the system is simplified and the cost
+                                                                                   operated at a high current density, a large amount of liquid water will
+is greatly reduced. Compared with the widely used anode recycling [41],
+                                                                                   accumulate near the exit of the stack, causing flooding, which will affect
+the humidification effect of cathode recycling is much better, which can
+                                                                                   the output of the stack. To illustrate the fuel cell voltage inconsistency,
+improve the performance, especially in the case of low relative humid­
+                                                                                   the standard deviation method shown in formula(7)is used in the sta­
+ity. Shao [42] also proved this conclusion through simulation study.
+                                                                                   tistics. Where, μ is the average value and n is the number of data points
+    In order to further study the characteristics of the fuel cell system
+                                                                                   [46].
+under the self-humidification strategy, an orthogonal experiment of self-
+                                                                                        sffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffiffi
+humidification as shown in Table 4 was carried out, and the results of                    1X                 n
+                                                                                   σ¼                                       ðxi μÞ2                                              (7)
+                                                                                          n i¼1
+Table 3
+Current step test data.                                                                Since it is usually necessary to combine hundreds of fuel cells into
+  U1              U2      ΔU     I1         I2         ΔI          R/Ω
+                                                                                   one stack in practical use, the service life of the stack is not only related
+                                                                                   to the service life of a single fuel cell, but also the difference that seri­
+  484             528.6   44.6   44.81      16.33       28.48        1.566         ously affects the service life of the stack due to the inconsistent self-
+  489.6           516.5   26.9   38         22.21       15.79        1.704
+                                                                                   discharge rate. According to Eq. (7), the standard deviation of the
+  476.1           512.3   36.2   45.96      24.07       21.89        1.654
+  473.3           517.4   44.1   46.24      19.13       27.11        1.627         monolithic voltages at 50A and 200A is 15 and 19 mV, respectively,
+  475.9           509.8   33.9   43.32      23.12       20.2         1.678         indicating that the voltage consistency of the stack is good. However,
+  469.2           512.2   43     46.93      21.49       25.44        1.69          when the current is increased to 400 A, the standard deviation of the
+  467.8           498.5   30.7   47.61      28.87       18.74        1.638         voltage is calculated to be 25 mV exceeding the allowable limit of 20
+  468.3           499.1   30.8   47.26      27.79       19.47        1.582
+                                                                                   mV, which means that the consistency is poor, as shown in Fig. 7(a).
+
+                                                                               7
+Q. Zhang et al.                                                                                                             Journal of Power Sources 468 (2020) 228388
+
+
+
+
+                                                    Fig. 5. Self-humidifying capacity of cathode circulation system.
+
+
+                                                                                       (b) also shows the steady-state voltage change of the 33rd fuel cell,
+Table 4
+                                                                                       indicating that the fluctuation of the single cell voltage becomes more
+Self-humidification experiment results.
+                                                                                       and more noticeable as the output current of the stack increases. The
+  Case     Cathode          Circulating   Current      High           Cathode          main reason may be that the location is flooded due to too much liquid
+           humidification   pump speed    density      frequency      inlet
+                                                                                       water, or the fuel cell is less able to withstand the pressure fluctuations
+           temperature      (rpm)         (A/cm2)      impedance      humidity
+                                                       (mΩ∙cm2)       (%)              inside the stack under high current. The test results show that the
+                                                                                       voltage inspection device can detect the all the single cell voltage
+  1        30               1500          0.5          340            59
+  2        30               2000          0.7          290            65               changes in real time, and timely find the fuel cells with mediocre per­
+  3        30               3000          0.7          330            72               formance. It can be seen from Fig. 7(c) that when the current continues
+  4        40               2000          0.7          300            59               to run stably at 450A, the water content of the catalyst layer will reach
+  5        40               2500          0.7          280            75               the maximum due to the appearance of liquid water in the cathode
+  6        40               3000          0.9          250            80
+  7        50               2500          0.6          280            84
+                                                                                       catalyst layer, and the water content of the membrane at this time is
+  8        50               2500          0.8          230            88               related to the current density. The comparison of the experimental re­
+  9        50               3000          0.8          210            90               sults shows that the uniformity of the single cell voltage is improved
+                                                                                       after the cathode cycle is used, and the voltage is also improved, thereby
+                                                                                       increasing the output power of the stack.
+Under the current of 400A, many of the generated water vapor will
+                                                                                           The air recirculation system can increase the relative humidity at the
+condense into liquid water in the cathode flow channel due to the large
+                                                                                       cathode inlet and the moisture content of the membrane, thereby
+output power of the stack, which hinders the gas transmission, resulting
+                                                                                       improving the output performance of the stack. It can be seen from Fig. 8
+in lower voltage and large fluctuation of the 27th and 33rd pieces. Fig. 7
+                                                                                       (a) that the PEMFC system using the cathode cycle can not only achieve
+
+                                                                                   8
+Q. Zhang et al.                                                                                                        Journal of Power Sources 468 (2020) 228388
+
+
+
+
+                                                                                        Fig. 7. Effect of cathode circulation on forced water removal.
+
+
+                                                                                 power at high current density is lower than that using a cathode cycle,
+                  Fig. 6. Effect of cathode cycle on intake system.
+                                                                                 which confirms the enhanced water removal capacity of the cathode
+                                                                                 cycle. The main reason is that as the current density increases, the
+the effect of using an external humidifier, which shows that the self-
+                                                                                 saturation of the liquid water inside the diffusion layer also increases,
+humidification performance has a considerable humidification capac­
+                                                                                 and the resistance of oxygen to the catalyst layer becomes larger.
+ity and effect compared with an external humidifier. At the same time,
+                                                                                 Therefore, the difference in power at high current density is caused by
+after 800s, the average single cell voltage decreases with a small current
+                                                                                 an increase in water concentration.
+density and the voltage without humidification is significantly lower. As
+shown in Fig. 8(b) and (c), because the use of an external humidifier is
+likely to cause severe flooding downstream of the flow channel, the
+
+
+                                                                             9
+Q. Zhang et al.                                                                                                    Journal of Power Sources 468 (2020) 228388
+
+
+                                                                               cathode was built with which the orthogonal experiments of voltage
+                                                                               clamping were carried out in order to improve the working performance
+                                                                               and prolong the service life of the stack. A series of experiments are
+                                                                               conducted on a stack to investigate the effects of this mode on the
+                                                                               operating characteristics of fuel cells. The experimental results show
+                                                                               that:
+
+                                                                                 (1) An innovative proposal is to propose a cathode cycle to limit the
+                                                                                     high potential that occurs during startup and shutdown to reduce
+                                                                                     the damage to the life of the stack. Constant current loading dy­
+                                                                                     namic measurement found that when the stack current is below
+                                                                                     100A, high potential limiting measures are required. By adjusting
+                                                                                     the opening of the exhaust valve, a coordinated control of the
+                                                                                     fresh air and recirculated gas flow is achieved, thereby reducing
+                                                                                     the oxygen concentration of the mixed gas at the inlet of the
+                                                                                     stack, and the single piece voltage can always be controlled below
+                                                                                     0.8 V at low current density regions.
+                                                                                 (2) The AC impedance test shows that the humidity of the inlet air
+                                                                                     has a direct effect on the water content and the output voltage of
+                                                                                     the membrane, and the impedance in the range of 200–400 mΩ
+                                                                                     cm2 corresponds to the optimum humidity. The relative humidity
+                                                                                     of the cathode inlet for cathode circulation is over 70%, indi­
+                                                                                     cating that the self-humidification capacity of the cathode cir­
+                                                                                     culation system is close to the humidification performance of an
+                                                                                     external humidifier.
+                                                                                 (3) The cathode recirculation mode can not only avoid membrane
+                                                                                     dryness caused by too little water generation at low current
+                                                                                     density without external humidifier, but also improve the water
+                                                                                     removal capacity of the stack outlet at high power. Consequently,
+                                                                                     the water balance between the single pieces is improved at high
+                                                                                     current density regions, so the consistencies of the single cell
+                                                                                     voltage are improved.
+
+                                                                               Declaration of competing interest
+
+                                                                                   The authors declare that they have no known competing financial
+                                                                               interests or personal relationships that could have appeared to influence
+                                                                               the work reported in this paper.
+
+                                                                               CRediT authorship contribution statement
+
+                                                                                  Qinguo Zhang: Data curation, Writing - original draft. Zheming
+                                                                               Tong: Supervision, Writing - review & editing. Shuiguang Tong:
+                                                                               Conceptualization, Methodology.
+
+                                                                               Acknowledgments
+
+                                                                                  The authors would like to thank the reviewers for their helpful
+                                                                               suggestions. This work is supported by the National Natural Science
+                                                                               Foundation of China (51708493, 51821093), Zhejiang Provincial Nat­
+                                                                               ural Science Foundation (LR19E050002), Zhejiang Province Key Science
+                                                                               and Technology Project (2018C01020, 2018C01060, 2019C01057).
+
+
+
+                   Fig. 8. Effect of cathode cycle on stack.
+
+
+4. Conclusion
+
+    In this work, a hydrogen fuel cell system test bench with recycling
+
+
+
+Nomenclature
+
+i            Current density[A/cm2]
+I            Current [A]
+
+                                                                          10
+Q. Zhang et al.                                                                                                                                  Journal of Power Sources 468 (2020) 228388
+
+
+C            Substance concentration [mol/m3]
+T            Temperature [� C]
+P            absolute pressure [Pa]
+Rohm         ohmic resistance [Ω]
+F            Faraday constant [96487 C/mol]
+G            Gibbs Free Energy [J/kg]
+Vcell        monolithic voltage[V]
+Rcon         contact impedances[Ω]
+M            mass flow rate [kg/m3]
+So           Liquid water saturation
+
+Greek letters
+λ          water content
+η          over potential [V]
+μ          average value[mV]
+
+Superscripts and subscripts
+con        contact
+C          Cathode
+RH         Relative humidity
+re         recirculated air
+theo       theoretical
+fre        fresh air
+sat        saturation
+out        outlet
+in         Inlet
+ref        reference
+fc         fuel cell
+to         total
+
+
+
+References                                                                                         [15] K. Yasuda, A. Taniguchi, T. Akita, Platinum dissolution and deposition in the
+                                                                                                        polymer electrolyte membrane of a PEM fuel cell as studied by potential cycling,
+                                                                                                        Phys. Chem. Chem. Phys. 8 (2006) 746–752.
+ [1] T. Zhang, P. Wang, H. Chen, P. Pei, A review of automotive proton exchange
+                                                                                                   [16] S. Rodosik, J.-P. Poirot-Crouvezier, Y. Bultel, Impact of humidification by cathode
+     membrane fuel cell degradation under start-stop operating condition, Appl. Energy
+                                                                                                        exhaust gases recirculation on a PEMFC system for automotive applications, Int. J.
+     223 (2018) 249–262.
+                                                                                                        Hydrogen Energy 44 (2019) 12802–12817.
+ [2] Z. Cheng, S. Tong, Z. Tong, Bi-directional nozzle control of multistage radial-inflow
+                                                                                                   [17] B. Kim, M. Kim, Studies on the cathode humidification by exhaust gas recirculation
+     turbine for optimal part-load operation of compressed air energy storage, Energy
+                                                                                                        for PEM fuel cell, Int. J. Hydrogen Energy 37 (2012) 4290–4299.
+     Convers. Manag. 181 (2019) 485–500.
+                                                                                                   [18] G. Zhang, H. Yuan, Y. Wang, K. Jiao, Three-dimensional simulation of a new
+ [3] C. Cai, Y. Rao, Y. Zhang, F. Wu, S. Li, M. Pan, Failure mechanism of PEM fuel cell
+                                                                                                        cooling strategy for proton exchange membrane fuel cell stack using a non-
+     under high back pressures operation, Int. J. Hydrogen Energy 44 (2019)
+                                                                                                        isothermal multiphase model, Appl. Energy 255 (2019) 113865.
+     13786–13793.
+                                                                                                   [19] Y. Zhu, R. Lin, Z. Jiang, D. Zhong, B. Wang, L. Han, Investigation on cold start of
+ [4] P. Pei, H. Chen, Main factors affecting the lifetime of Proton Exchange Membrane
+                                                                                                        polymer electrolyte membrane fuel cells with different cathode serpentine flow
+     fuel cells in vehicle applications: a review, Appl. Energy 125 (2014) 60–75.
+                                                                                                        fields, Int. J. Hydrogen Energy 44 (2019) 7505–7517.
+ [5] J. Sierra, J. Moreira, P. Sebastian, Numerical analysis of the effect of different gas
+                                                                                                   [20] R. Lin, X. Lin, Y. Weng, Y. Ren, Evolution of thermal drifting during and after cold
+     feeding modes in a proton exchange membrane fuel cell with serpentine flow-field,
+                                                                                                        start of proton exchange membrane fuel cell by segmented cell technology, Int. J.
+     J. Power Sources 196 (2011) 5070–5076.
+                                                                                                        Hydrogen Energy 40 (2015) 7370–7381.
+ [6] R. Lin, D. Liu, S. Xia, T. Ma, B. Dutruel, Stack shut-down strategy optimisation of
+                                                                                                   [21] Jinyong Kim, Gang Luo, Chao-Yang Wang, Modeling two-phase flow in three-
+     proton exchange membrane fuel cell with the segment stack technology, Int. J.
+                                                                                                        dimensional complex flow-fields of proton exchange membrane fuel cells, J. Power
+     Hydrogen Energy 45 (2020) 1030–1044.
+                                                                                                        Sources 365 (15) (2017) 419–429.
+ [7] E. Majlan, D. Rohendi, W. Daud, T. Husaini, M. Haque, Electrode for proton
+                                                                                                   [22] T. Cao, H. Lin, Numerical investigation of the coupled water and thermal
+     exchange membrane fuel cells: a review, Renew. Sustain. Energy Rev. 89 (2018)
+                                                                                                        management in PEM fuel cell, Appl. Energy 12 (2013) 1115–1125.
+     117–134.
+                                                                                                   [23] S. Atyabi, E. Afshari, A numerical multiphase CFD simulation for PEMFC with
+ [8] R. Sharma, S. Gyergyek, Q. Li, S. Andersen, Evolution of the degradation
+                                                                                                        parallel sinusoidal flow fields, J. Therm. Anal. Calorim. 135 (2019) 1823–1833.
+     mechanisms with the number of stress cycles during an accelerated stress test of
+                                                                                                   [24] S. Kechukwu, Y. Hou, W. Chen, F. Pan, Q. Du, J. Xuan, Numerical investigation of
+     carbon supported platinum nanoparticles, J. Electroanal. Chem. 838 (2019) 82–88.
+                                                                                                        liquid water transport dynamics in novel Hybrid sinusoidal flow channel designs
+ [9] M. Dou, M. Hou, D. Liang, SnO2 nanocluster supported Pt catalyst with high
+                                                                                                        for PEMFC, Energies 12 (2019) 4030.
+     stability for proton exchange membrane fuel cells, Electrochim. Acta 92 (2013)
+                                                                                                   [25] N. Houreh, H. Shokouhmand, E. Afshari, Effect of inserting obstacles in flow field
+     468–473.
+                                                                                                        on a membrane humidifier performance for PEMFC application: a CFD model, Int.
+[10] Y. Senoo, K. Taniguchi, K. Kakinuma, Cathode performance and high potential
+                                                                                                        J. Hydrogen Energy 44 (2019) 30420–30439.
+     durability of Ta-SnO2 δ-supported Pt catalysts for PEFC cathodes, Electrochem.
+                                                                                                   [26] F. Ramin, H. Sadeghifar, A. Torkavannejad, Flow field plates with trap-shape
+     Commun. 51 (2015) 37–40.
+                                                                                                        channels to enhance power density of polymer electrolyte membrane fuel cells, Int.
+[11] X. Deng, S. Yin, X. Wu, M. Sun, Z. Li, Zh Xie, Scalable preparation of PtPd/carbon
+                                                                                                        J. Heat Mass Tran. 129 (2019) 1151–1160.
+     nanowires in the form of membrane as highly stable electrocatalysts for oxygen
+                                                                                                   [27] H. Kang, K. Jum, Y. Sohn, Performance of unit PEM fuel cells with a leaf-vein-
+     reduction reaction, Int. J. Hydrogen Energy 44 (2019) 2752–2759.
+                                                                                                        simulating flow field-patterned bipolar plate, Int. J. Hydrogen Energy 44 (2019)
+[12] N. Nam, M. Vaka, N. Hung, Corrosion behavior of TiN, TiAlN, TiAlSiN-coated 316L
+                                                                                                        24036–24042.
+     stainless steel in simulated proton exchange membrane fuel cell environment,
+                                                                                                   [28] Z. Bao, Z. Niu, K. Jiao, Analysis of single- and two-phase flow characteristics of 3-D
+     J. Power Sources 268 (2014) 240–245.
+                                                                                                        fine mesh flow field of proton exchange membrane fuel cells, J. Power Sources 438
+[13] A. Orsi, O. Kongstein, P. Hamilton, An investigation of the typical corrosion
+                                                                                                        (2019) 226995.
+     parameters used to test polymer electrolyte fuel cell bipolar plate coatings, with
+                                                                                                   [29] J. Yu, D. Froning, U. Reimer, W. Lehnert, Polytetrafluorethylene effects on liquid
+     titanium nitride coated stainless steel as a case study, J. Power Sources 285 (2015)
+                                                                                                        water flowing through the gas diffusion layer of polymer electrolyte membrane
+     530–537.
+                                                                                                        fuel cells, J. Power Sources 438 (2019) 226975.
+[14] X. Zhao, L. Xu, C. Fang, H. Jiang, J. Li, M. Ouyang, Study on voltage clamping and
+                                                                                                   [30] Y. Amadane, H. Mounir, A. Marjani, E. Karim, A. Awan, Numerical investigation of
+     self-humidification effects of pem fuel cell system with dual recirculation based on
+                                                                                                        hydrogen consumption in Proton Exchange Membrane Fuel Cell by using
+     orthogonal test method, Int. J. Hydrogen Energy 43 (2018) 16268–16278.
+
+
+
+                                                                                              11
+Q. Zhang et al.                                                                                                                                Journal of Power Sources 468 (2020) 228388
+
+     computational fluid dynamics (CFD) simulation, Mediterr. J. Chem. 7 (2019)                  [39] M. Rahman, F. Mojica, M. Sarker, P. Chuang, Development of 1-D multiphysics
+     396–415.                                                                                         PEMFC model with dry limiting current experimental validation, Electrochim. Acta
+[31] Y. Chang, Y. Qin, Y. Yin, J. Zhang, X. Li, Humidification strategy for polymer                   320 (2019) 134601.
+     electrolyte membrane fuel cells-A review, Appl. Energy 230 (2018) 643–662.                  [40] Z. Yang, Q. Du, Z. Jia, C. Yang, K. Jiao, Effects of operating conditions on water and
+[32] Z.-m. Tong, J.-g. Xin, S.-g. Tong, Z.-q. Yang, J.-y. Zhao, J.-h. Mao, Internal flow              heat management by a transient multi-dimensional PEMFC system model, Energy
+     structure, fault detection, and performance optimization of centrifugal pumps,                   183 (2019) 462–476.
+     J. Zhejiang Univ. - Sci. A 21 (2020) 85–117.                                                [41] B. Wang, K. Wu, F. Xi, J. Xuan, X. Xie, X. Wang, K. Jiao, Numerical analysis of
+[33] Z. Tong, Y. Li, Real-time reconstruction of contaminant dispersion from sparse                   operating conditions effects on PEMFC with anode recirculation, Energy 173
+     sensor observations with gappy POD method, Energies 13 (2020) 1956.                              (2019) 844–856.
+[34] Z. Tong, Z. Cheng, S. Tong, Preliminary design of multistage radial turbines based          [42] Y. Shao, L. Xu, X. Zhao, J. Li, M. Ouyang, Comparison of self-humidification effect
+     on rotor loss characteristics under variable operating conditions, Energies 12                   on polymer electrolyte membrane fuel cell with anodic and cathodic exhaust gas
+     (2019) 2550.                                                                                     recirculation, Int. J. Hydrogen Energy 45 (2020) 3108–3122.
+[35] Y. Cho, S. Song, K. Chun, Effects of H2 on the number concentration of particulate          [43] B. Wang, K. Wu, Z. Yang, K. Jiao, A quasi-2D transient model of proton exchange
+     matter in diesel engines using a low-pressure loop exhaust-gas recirculation                     membrane fuel cell with anode recirculation, Energy Convers. Manag. 171 (2018)
+     system, Int. J. Hydrogen Energy 39 (2014) 6746–6752.                                             1463–1475.
+[36] K. Lee, T. Kim, H. Cha, S. Song, K. Chun, Generating efficiency and NOx emissions           [44] A. Iranzo, P. Boillat, J. Biesdorf, A. Salva, Investigation of the liquid water
+     of a gas engine generator fueled with a biogasehydrogen blend and using an                       distributions in a 50 cm2 PEM fuel cell: effects of reactants relative humidity,
+     exhaust gas recirculation system, Int. J. Hydrogen Energy 35 (2010) 5723–5730.                   current density, and cathode stoichiometry, Energy 82 (2015) 914–921.
+[37] B. Salvi, K. Subramanian, Experimental investigation on effects of compression              [45] O. Ijaodola, Z. Hassan, E. Ogungbemi, F. Khatib, T. Wilberforce, J. Thompson,
+     ratio and exhaust gas recirculation on backfire, performance and emission                        Energy efficiency improvements by investigating the water flooding management
+     characteristics in a hydrogen fuelled spark ignition engine, Int. J. Hydrogen Energy             on proton exchange membrane fuel cell (PEMFC), Energy 179 (2019) 246–267.
+     41 (2016) 5842–5855.                                                                        [46] M. Afra, M. Nazari, M. Hasan Kayhani, M. Sharifpur, J. Meyer, 3D experimental
+[38] D. Saebea, S. Authayanun, Y. Patcharavorachot, A. Arpornwichanop, Effect of                      visualization of water flooding in proton exchange membrane fuel cells, Energy
+     anodeecathode exhaust gas recirculation on energy recuperation in a solid oxide                  175 (2019) 967–977.
+     fuel cell-gas turbine hybrid power system, Energy 94 (2016) 218–232.
+
+
+
+
+                                                                                            12
+

@@ -1,0 +1,886 @@
+                                                                 Renewable Energy 164 (2021) 1143e1155
+
+
+
+                                                            Contents lists available at ScienceDirect
+
+
+                                                                 Renewable Energy
+                                             journal homepage: www.elsevier.com/locate/renene
+
+
+
+
+Self-humidifying effect of air self-circulation system for proton
+exchange membrane fuel cell engines
+Qinguo Zhang a, b, c, d, Zheming Tong a, b, c, *, Shuiguang Tong a, b, c, Zhewu Cheng a, b, c, d
+a
+  Ningbo Research Institute, Zhejiang University, Ningbo, 315100, China
+b
+  State Key Laboratory of Fluid Power and Mechatronic Systems, Zhejiang University, Hangzhou, 310027, China
+c
+  School of Mechanical Engineering, Zhejiang University, Hangzhou, 310013, China
+d
+  Ningbo Institute of Technology, Zhejiang University, Ningbo, 315100, China
+
+
+
+
+a r t i c l e i n f o                                 a b s t r a c t
+
+Article history:                                      A dynamic mechanism model of a control-oriented hydrogen fuel cell system based on the cathode
+Received 20 June 2020                                 exhaust gas cycle is established, and the effects of operating parameters on the two-phase water transfer
+Received in revised form                              and dynamic output performance of a fuel cell are analyzed, the transport process of material and the
+17 October 2020
+                                                      spatial distribution of water content in the membrane electrode were obtained. The study found that too
+Accepted 22 October 2020
+Available online 27 October 2020
+                                                      low humidity at the cathode inlet of the stack will cause corrosion of the catalyst layer and the carbon
+                                                      black carrier, resulting in agglomeration and sintering of the catalyst particles. The membrane is also
+                                                      severely damaged by mechanical properties, and black impurities and broken ﬁbers are found on the
+Keywords:
+Proton exchange membrane fuel cell
+                                                      membrane surface. Under the passive operation of the cathode self-circulation system, the maximum
+(PEMFC)                                               humidity of the mixed gas can reach 60%. The new system is advantageous to the evaporation of water
+Cathode exhaust circulation                           vapor at higher operating temperature and can inhibit the ﬂooding of membrane electrode assembly. It
+Self-humidifying effect                               takes about 20s for the current to reach the steady state of the set value, and about 30s for the voltage to
+Liquid water saturation                               reach the steady state. The voltage ﬂuctuation is small and the output power is stable, indicating high
+                                                      reliability.
+                                                                                                                         © 2020 Elsevier Ltd. All rights reserved.
+
+
+
+
+1. Introduction                                                                         Since the perﬂuorosulfonic acid membrane widely used in proton
+                                                                                        exchange membrane fuel cells can conduct hydrogen ions only at
+   With the increasing number of vehicles in the world and the                          certain humidity, too low humidity will cause the membrane’s
+increasingly serious energy problems, energy saving and environ-                        proton conductivity to be greatly reduced, resulting in increased
+mental protection have become important issues in the develop-                          internal resistance and decreased output performance. Further-
+ment of the vehicle ﬁeld [1,2]. Proton exchange membrane fuel cell                      more, it leads to more serious membrane dry failure, even mem-
+(PEMFC) with green and high efﬁciency advantages is an energy                           brane tearing, which seriously affects the output performance and
+conversion device that can directly convert chemical energy stored                      remaining life. However, if there is too much moisture in the hu-
+in fuel into electric energy, which is becoming one of the main                         midiﬁed gas, the electrode will be ﬂooded, which will increase the
+development directions of new energy vehicles [3]. At present, the                      resistance of the gas entering the electrode, and the performance of
+durability of automotive fuel cells is one of the technical challenges                  the fuel cell will decrease [6]. Therefore, reasonable control of the
+that limit their commercialization, especially the service life of                      intake air humidity is important for the efﬁciency and performance
+membrane electrodes [4]. In the working process of the fuel cell,                       of the fuel cell system [7]. One of the biggest problems in the
+the main role of the membrane electrode assembly is to promote                          popularization of fuel cell vehicles is cost reduction. Humidiﬁers
+the occurrence of electrochemical reaction processes, transport                         are one of the high-cost components of PEMFC engines.
+electrons and protons, and is the most important component [5].                            Accurately revealing the mechanism of PEMFC water ﬂooding
+                                                                                        and membrane dry failure, so as to effectively diagnose the state of
+                                                                                        water ﬂooding and membrane dry failure, and to ﬁnd solutions
+                                                                                        after the fault has occurred, has gradually become a hot spot in
+ * Corresponding author. State Key Laboratory of Fluid Power and Mechatronic
+Systems, Zhejiang University, Hangzhou, 310027, China.                                  PEMFC research [8]. Among the many mechanisms of ﬂooding and
+    E-mail address: tzm@zju.edu.cn (Z. Tong).                                           dry failure, Pei [9] simulated the water transfer mechanism of
+
+https://doi.org/10.1016/j.renene.2020.10.105
+0960-1481/© 2020 Elsevier Ltd. All rights reserved.
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                      Renewable Energy 164 (2021) 1143e1155
+
+
+PEMFC; it is found that the existence of gas diffusion layer, gas                 model to study the interaction between water and heat transport
+diffusion layer and catalyst layer microporous layer with large                   processes, and found that ribs and channel widths have a signiﬁ-
+porosity can prevent water droplets from blocking pores through                   cant effect on heat and mass transfer processes. Li [21] simulated
+larger diameter water droplets, which can effectively avoid ﬂooding               the inﬂuence of liquid water distribution on reactant transport and
+failure. Song [10] analyzed the channel contact angle and the                     current density distribution under different working conditions,
+channel material of PEMFC by numerical simulation and found that                  and showed that the inlet ﬂow rate and wall wettability had a
+when the channel contact angle was 90 , a layer of water ﬁlm                     signiﬁcant impact on the transport process and distribution of
+would be formed on the wall of the channel, the occurrence of a                   liquid water, and then affected the local reactant transport, and had
+ﬂood fault. In the experimental studies of Ropak [11,12], it was                  a considerable interference on current density. Dinah [22] used
+found that the electric drag is too strong when the current density               three-dimensional CFD method to simulate the generation and
+is large, which causes water shortage or ﬁlm failure on the anode                 transportation of water in PEMFC. Yana [23] studied theoretically
+side, and the ohmic resistance exceeds 400 mU cm2. Under the                      the dynamic process of water transport in PEMFC, and showed that
+conditions of high current density and high relative humidity,                    the inﬂuence of water content in PEM and time humidity and
+excess water cannot be discharged in time because it blocks the                   thickness of PEM to reach stable state in the process of start-up.
+pores of the ﬂow channel and the diffusion layer, resulting in                    When PEM is thinner, the water distribution is more uniform, the
+ﬂooding failure. Xu [13] used water invasion-evaporation experi-                  water content is higher, and the time to reach stable state is obvi-
+ments to simulate the effect of dry-wet cycle on the internal                     ously shortened. Chen [24] found that higher initial current den-
+structure of PEMFC and showed that the water ﬂooding-membrane                     sity; higher water ﬂow on anode side and smaller operating current
+dry cycle would cause the catalyst aggregate particles to increase                can achieve water balance in a shorter time, so as to obtain better
+sharply, accompanied by irreversible damage such as pinholes and                  dynamic performance of fuel cell.
+catalyst tearing, leading to long-term performance degradation.                       In order to improve the proton conductivity of the membrane,
+The above-mentioned mechanism studies show that water ﬂood-                       an external humidiﬁer is usually used to humidify the air, but the
+ing and membrane dry failures have severe irreversible damage to                  external humidiﬁer increases the volume and cost of the system. In
+PEMFC performance and internal structure, but can be avoided or                   addition, an important problem is that the residual liquid water
+alleviated from water ﬂooding and membrane dry failures from the                  inside the external humidiﬁer will freeze in an environment below
+materials, internal structure, and operating conditions. External                 zero, and its heat capacity is relatively large, which affects the cold
+conditions will affect the internal water content of the PEMFC,                   start speed of the fuel cell. Therefore, removing the external hu-
+which in turn affects performance during operation, such as cur-                  midiﬁer becomes important research directions. Buechi [25] found
+rent, temperature, intake pressure, ﬂow, and humidity. Eun [14]                   that PEMFC can run stably for 1800 h without humidiﬁcation, but
+proposed that improper operating conditions of the fuel cell would                the output performance of the reactor decreased by 20e40%
+break the water balance of the stack, leading to water ﬂooding and                compared to the performance under full humidiﬁcation. William
+membrane failure. Through experimental tests, it was found that                   [26] carried out experiments on fuel cells using hydrophobic gas
+the temperature has a greater impact on the internal humidity of                  diffusion layers, and the results showed that the stack performance
+the PEMFC than the stoichiometric ratio of the cathode gas. Chen                  was reduced by 17% compared to full humidiﬁcation. Qi [27]
+[15] proposed that too high humidity, too low gas ﬂow rate, and too               designed a dual-inlet and dual-outlet dual-channel ﬂow path so
+much internal pressure in the stack could cause uneven distribu-                  that the dry intake air can be fully humidiﬁed during the ﬂow
+tion of reactants and increase gas ﬂow resistance, cause corrosion                process. In addition, the self-humidiﬁcation of PEMFC by adding
+of the gas diffusion electrode and blockage of the ﬂow path, and                  hydrophilic porous polyester ﬁber and platinum and absorbent
+eventually cause ﬂooding failure. The above analysis shows that                   materials such as SiO2 and TiO2 into the proton exchange mem-
+when the thermal management and water management are out of                       brane, but the performance of the above method was lower than
+balance due to improper parameter setting during operation, the                   that of external humidiﬁer [28e30]. The self-humidiﬁcation of the
+liquid water accumulation in the reactor cannot be discharged or                  stack based on the cathode recirculation system has comprehensive
+the proton exchange membrane contains too little water, which                     advantages in terms of performance and cost. Kim [31] tested the
+affects the proton conduction, so PEMFC enters into the unhealthy                 exhaust gas recirculation cathode humidiﬁcation system in ﬁve fuel
+operation state of water ﬂooding and membrane drying.                             cells low pressure systems and found that increasing the recircu-
+    In order to better observe the change rule of water in fuel cell for          lation ratio increased intake air humidity and reduced O2 concen-
+better water management, more and more researchers use                            tration. Shao [32] simulation found that compared with anode
+computational ﬂuid dynamics methods to study the internal reac-                   recirculation, the humidiﬁcation effect of the cathode recirculation
+tion mechanism of fuel cell. Dadda [16] studied the water and heat                using a circulation pump is much better, especially at low relative
+transfer process of proton exchange membrane by using two-                        humidity. However, it has also been found that the power con-
+dimensional and transient non isothermal model. It was found                      sumption of the cathode recirculation pump is much higher than
+that when the water content at the cathode side of the membrane                   that of the anode recirculation [33]. Rodosik [34] found that high to
+was low, the voltage of PEMFC was signiﬁcantly reduced, and the                   medium recirculation ratios were able to stabilize and homogenize
+reverse diffusion of water in the membrane would lead to the long-                the cells voltages along the stack. Besides, large relative humidity
+term water shortage and irreversible damage of the membrane.                      ranges were achieved at stack inlet, which can vary from 25 to 85%.
+Peng [17] studied the inﬂuence of hydrophobic characteristics of                  Zhao [35] experiment found that the stack cathode inlet can always
+airway wall on the accumulation of liquid water in the channel. Liu               have a higher RH with the double-circulation system of the circu-
+[18] simulated the accumulation process and movement rule of                      lation pump. Hu [36] studied the control strategy of water content
+droplets in the airway, and found that the droplets in the airway                 in the stack based on air recirculation under the condition of dry
+would merge to form a plunger ﬂow. Kim [19] developed a two-                      membrane and ﬂooded membrane by using a fuel cell system
+phase ﬂow model of three-dimensional complex ﬂow ﬁeld, and                        simulation model. Although the recirculation system using a cir-
+found that the Forchheimer effect enhanced the liquid water in the                culation pump can achieve high humidiﬁcation, the power con-
+ﬂow ﬁeld, and added additional ﬂow resistance around the bafﬂe,                   sumption of the circulation pump is large, which reduces the
+thus improving the liquid water and mass transfer at the interface.               output power of the engine, so it is not suitable for use in vehicles.
+Cao [20] used a three-dimensional two-phase non-isothermal                            In practical application, PEMFC system is a complex system with
+                                                                           1144
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                     Renewable Energy 164 (2021) 1143e1155
+
+
+strong nonlinearity and high coupling among subsystems, which is                 electric ﬂow. At the same time, because of the fuel’s own reaction
+the main difﬁculty of the whole system control design. In view of                and the internal resistance of the fuel cell, the fuel cell must also
+the above deﬁciencies, a one-dimensional simpliﬁed stack model                   emit a certain amount of heat to maintain its constant operating
+along the proton conduction direction is established to describe the             temperature. Since the thickness of the proton exchange mem-
+concentration distribution of reaction gas, water vapor and liquid               brane is only a few microns, the anode recycling can have a certain
+water and their inﬂuence on each other. The study aims at estab-                 degree of self-humidiﬁcation function, but throwing it at the
+lishing an accurate model of the PEMFC engine, which provides                    cathode inlet will cause the problem of membrane drying. This
+with true results of modeling and simulation of self-humidiﬁcation               paper designs a self-humidifying structure that utilizes self-
+system with air self-circulation mode. In this work, the system was              circulation of air to replace the conventional humidiﬁer, which
+equipped with a 100-cell stack used to verify the validity of the                reduces the volume and cost of the system. An electronic three-way
+simulation model and the negative impact of low humidity on MEA.                 valve is installed at the outlet of the stack to control part of the
+We studied the impact of self-circulating humidiﬁcation system                   high-temperature and high-humidity air to self-circulate to achieve
+under various current densities, temperatures, stoichiometric ra-                the purpose of humidifying the cathode. In addition, the method of
+tios and recirculation ratios, and a comparison with passive hu-                 self-circulation of air is adopted, and the exhaust gas directly enters
+midiﬁcation was done. Based on PEMFC model simulation with                       behind the ﬁlter, which increases the ﬂow rate of the intake air,
+exhaust gas circulating cathode, the results of this paper can pro-              thereby increasing the intake air volume and reducing the power
+vide a theoretical basis for high-performance, long-life design of               consumption of the air compressor.
+PEMFC and can provide more speciﬁc guidance for fuel cell control
+optimization.                                                                    2.2. PEMFC system model
+
+2. Model development                                                             2.2.1. Model hypothesis
+                                                                                     PEMFC engine is a complex system of “gas-water-electric-ther-
+2.1. PEMFC engine with anode and cathode double cycle                            mal” multiple physics coupling, which is mainly solved by partial
+                                                                                 differential equations. Under the premise of ensuring that the main
+    The fuel cell system for an automobile is a clean and efﬁcient               reaction of fuel cell is fully described, the following hypotheses are
+energy device, which is mainly composed of hydrogen system, air                  made to simplify the model establishment and calculation in this
+system, cooling system and control system, as shown in Fig. 1.                   paper [37]:
+When hydrogen is pumped into the fuel cell’s anode, electrons are
+released at the anode and transferred to the cathode via an external               (1) The reaction gas is ideal and incompressible, and the ﬂuid
+circuit. While ions are transferred to the cathode through the                         ﬂows in the ﬂow channel as laminar ﬂow.
+electrolyte for electrochemical reaction with oxygen to generate a                 (2) The temperature of the stack is constant, without consid-
+large amount of water, thus forming a closed circuit to generate                       ering the thermal effects caused by temperature gradients.
+
+
+
+
+                                        Fig. 1. Fuel cell engine with cathode and anode double circulation system.
+
+                                                                          1145
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                                                  Renewable Energy 164 (2021) 1143e1155
+
+
+   (3) The porous layer of the diffusion layer, catalyst layer and
+                                                                                                        1
+       proton exchange membrane is isotropic.
+                                                                                                                                                                            2000r/min
+   (4) Only the contact resistance of the contact surface between                                      0.9
+                                                                                                                                                                            3000r/min
+       the current collecting plate and the gas diffusion layer is                                     0.8                                                                  4000r/min
+       considered.
+                                                                                                                                                                            5000r/min
+
+
+
+
+                                                                                     bar
+                                                                                                       0.7
+   (5) When the partial pressure of water vapor in the gas mixture
+       exceeds the saturation pressure at the local temperature, the                                   0.6
+
+
+
+
+                                                                                     Outlet pressure
+       water vapor will condense into liquid water.
+                                                                                                       0.5
+
+2.3. Governing equations                                                                               0.4
+
+                                                                                                       0.3
+2.3.1. Regulated valve with intermittent purging
+    When the regulated valve with intermittent purging is ener-                                        0.2
+gized, electromagnetic force is generated to control the opening                                       0.1
+and closing of the valve port, thereby generating a certain ﬂow and
+                                                                                                        0
+pressure at the output of the solenoid valve, and the structural                                             0        2       4       6        8      10       12      14      16       18
+parameters of the solenoid valve are shown in Table 1.                                                                                       Q(m 3/h
+    The equation of pressure ﬂow through the ﬁxed oriﬁce is:
+                                                                                                                 Fig. 2. Characteristic curves of hydrogen circulating pump.
+       "                  #1=3
+       d2R ,A3R                              2=3
+qR ¼                             ,ðpR1  pR2 Þ                        (1)
+     196,r2 ,n,lR
+                                                                                   dum     1                       
+                                                                                       ¼        , Tm  f , um  Tcp                                                                      (3)
+whereqR is the ﬂow through the damping hole; dR is the diameter of                  dt   Jtotal
+the damping hole; AR is the ﬂow area of the damping hole; lR is the
+length of the damping hole; r is the oil density; nis the oil viscosity;           where, um is the angular speed of the motor; Jtotal is the moment of
+pR1 is the inlet pressure of the damping hole; pR2 is the outlet                   inertia; Tm is the driving torque of the motor; f is the friction coef-
+pressure of the damping hole.                                                      ﬁcient; Tcp is the resistance torque of the air compressor pump
+                                                                                   head.
+2.3.2. Hydrogen circulation pump                                                       The selection of air compressor needs to match with the stack,
+    Assuming that the hydrogen temperature after passing through                   and the characteristics of air compressor are generally represented
+the circulation pump remains unchanged, the relationship between                   by the map of speed ﬂow outlet pressure, as shown in Fig. 3. When
+the mass ﬂow rate of the hydrogen, the rotation speed of the cir-                  the discharge pressure is higher, the force required for compression
+culation pump and the pressure ratio can be obtained through the                   is greater, and the compressor pressure is inversely proportional to
+map shown in Fig. 2. Since the pump outlet pressure and hydrogen                   the ﬂow rate at the same speed.
+ﬂow are corresponding, as long as the pump speed is input, the
+pump output pressure and ﬂow can be obtained by looking up the
+                                                                                   2.3.4. Cathode cavity model
+table. The calculation of power consumption of circulating pump
+                                                                                       The outlet ﬂow rate of the cathode exhaust pipe is controlled by
+can be obtained from the adiabatic compression process of ideal
+                                                                                   the electronic three-way throttle valve, and the gas ﬂow through
+gas, and the adiabatic compression process meets the following
+                                                                                   the throttle valve is:
+equation [38]:
+                                                                                                                 8                  sﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃ
+                                                                                                                                                                                    k
+p , vk ¼ pt ,vkt                                                      (2)                                        >
+                                                                                                                 > CD At prm 1k                  2k                      k1        2   k1
+                                                                                                                 >
+                                                                                                                 > pﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃ pt Mrm                      1  pt k ; pt >
+                                                                                                                 < R,Trm                      k1                                  kþ1
+where, pt is the pressure of the compressed gas; vt is the volume                  Wrm_out ¼
+                                                                                                                 >
+                                                                                                                 >                                kþ1               k
+                                                                                                                 >
+                                                                                                                 >
+speciﬁc volume of the corresponding gas; kis the adiabatic index;                                                : CpDﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃ
+                                                                                                                       At prm              1
+                                                                                                                                    ðkMrm Þ2
+                                                                                                                                                2  2ðk1Þ
+                                                                                                                                                          ; pt 
+                                                                                                                                                                    2   k1
+
+
+pandvis the pressure and volume in the compression process.                                                           R,Trm                    kþ1                 kþ1
+                                                                                                                                                                                         (4)
+2.3.3. Air compressor
+    The dynamic equation of air compressor is [39]:                                where, CD is the mass correction coefﬁcient; At is the ﬂow area; prm is
+                                                                                   the gas pressure of the exhaust pipe; pt is the pressure ratio.
+                                                                                      According to the conservation of mass, the partial pressure of
+     Table 1
+     Structural parameters of the purging valve.
+                                                                                   oxygen and the partial pressure of water vapor inside the cathode
+                                                                                   cavity can be calculated separately:
+       Parameter name                                   Value
+
+       Driving voltage                                  12 V                       pca_O2 ¼ CO2 _ca ,R,Tfc                                                                               (5)
+       Coil resistance                                  14U
+       Viscous damping coefﬁcient                       0.2 N.m.s1
+       Initial air gap                                  2 mm
+                                                                                   pca_H2 O ¼ Cvap_ca ,R,Tfc                                                                             (6)
+       Spool travel                                     1.5 mm
+                                                                                                                                               
+       Coil inductance                                  46 mH                                                       CH2o_ca CH2o_ca < Csat_vap Tfc
+       Seat half cone angle                             45
+                                                                                   Cvap_ca ¼                                                                                           (7)
+       Magnetic permeability                            1.5H.m1
+       Armature quality                                 8g
+                                                                                                                  Csat_vap Tfc CH2o_ca  Csat_vap Tfc
+       Spring stiffness                                 1.2 N/mm
+       Preload force of return spring                   10 N                       where, Tfc is the working temperature of the stack; Cvap_ca is the
+       Armature inner diameter                          4.5 mm
+                                                                                   water vapor concentration; Csat_vap ðTfc Þis the saturated water vapor
+                                                                            1146
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                       Renewable Energy 164 (2021) 1143e1155
+
+
+
+
+                                                      Fig. 3. Performance curves of air compressor.
+
+
+
+concentration at this temperature.                                                liquid two-phase mass transfer, oxygen diffusion, and electro-
+   In the calculation of the cathode cavity model, the permeation of              chemical kinetics (Fig. 4). By solving the concentration of material
+nitrogen between the anode and cathode is not considered, so the                  components at the above-mentioned key positions, the distribution
+partial pressure of nitrogen is calculated as follows:                            rule of the concentration of material components along the direc-
+                                                                                  tion of proton conduction can be approximated. Combined with the
+dpca_N2    R,Tfc                                                                relationship between the concentration of the material component
+        ¼         WN2 _ca_in  WN2 _ca_out                           (8)
+  dt      Vca MN2                                                                 in the ﬂow channel and the concentration of the material compo-
+                                                                                  nent of the peripheral system, a fuel cell engine model based on a
+where. Vca is the volume of the cathode lumped volume; WN2 ca in is               double cycle is established for the simulation and control of the
+the mass ﬂow rate of nitrogen at the cathode inlet; WN2 ca out is the             actual system.
+mass ﬂow rate of nitrogen at the cathode outlet; MN2 is the molar                     The hydrogen pressure in the anode channel can be expressed
+mass of nitrogen.                                                                 as:
+   The total pressure of the cathode ﬂow channel is:
+                                                                                  dPan H2  R Tan                               
+pca ¼ pca_O2 þ pca_N2 þ pca_H2 O                                     (9)                  ¼ M      WH2 _in  WH2 out  WH2 _con                        (15)
+                                                                                    dt     Van MH2
+    The mole fractions of nitrogen, hydrogen and water vapor are:
+                                                                                  where, Van is the anode lumped volume; WH2 out is the ﬂow rate of
+      pca_O2                                                                      hydrogen discharged from the anode; WH2 con is the rate of
+xO2 ¼                                                              (10)
+       pca                                                                        hydrogen consumption by the stack.
+
+         pca_N2                                                                                MH2 IFC Ncell
+xN2 ¼                                                              (11)           WH2 _con ¼                                                           (16)
+          pca                                                                                      2F
+                                                                                     The actual fuel cell voltage can be expressed as the theoretical
+           pca_H2 O                                                               voltage minus the voltage loss due to polarization, as follows:
+x H2 O ¼                                                           (12)
+             pca
+                                                                                                                                                       
+   Based on this, the mass fraction and ﬂow rate of nitrogen can be               8 V I ¼ Ncell , Vrev  Vact;an  Vact;ca  Vohmic  Vconc;an  Vconc;ca
+                                                                                  >
+                                                                                  >                                                         
+calculated:                                                                       >
+                                                                                  >                          RM TFc      i          RM TFC     i
+                                                                                  >
+                                                                                  >      V       þ V       ¼        ln            þ        ln
+                                                                                  >
+                                                                                  >       act;an    act;ca
+                     xN2 ,MN2                                                     >
+                                                                                  >                           nF a      i0    an     nF a     i0 ca
+y N2 ¼                                                             (13)           >
+                                                                                  >
+                                                                                  <
+         xO2 ,MO2 þ xN2 ,MN2 þ xH2 O ,MH2 O                                                                                     ð
+                                                                                                                              dmen
+                                                                                  >
+                                                                                  >                                                  dz
+                                                                                  >
+                                                                                  >                  Vohmic ¼ IFC ,Roh ¼ i,
+WN2 _ca_out ¼ yN2 ,Wca_out                                         (14)           >
+                                                                                  >
+                                                                                  >
+                                                                                                                                   sðlðzÞÞ
+                                                                                  >
+                                                                                  >                                             0
+                                                                                  >
+                                                                                  >
+                                                                                  >
+                                                                                  :                                              
+                                                                                                                             iL
+                                                                                                            vconc ¼ c ln
+                                                                                                                           iL  i
+2.3.5. Stack model                                                                                                                                     (17)
+    Because the transfer and distribution of multiple substances are
+involved in the fuel cell, which is relatively complex, this paper will           where, Roh is the membrane resistance of a single fuel cell; iis the
+simplify the mechanism model in MATLAB/Simulink. Simulation                       current density; dmen is the thickness of the proton exchange
+modeling involves processes such as membrane water transfer, gas-                 membrane; sis the conductivity of the proton exchange membrane.
+                                                                           1147
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                    Renewable Energy 164 (2021) 1143e1155
+
+
+
+
+                                             Fig. 4. Schematic diagram of one-dimensional mechanism model.
+
+
+
+   The relationship between the water content on the anode                       ﬂow, so the transport equation for liquid water is:
+sidelð0Þ and cathode sidelðdmen Þ of the ﬁlm and the water vapor
+activity avap;an on the surface is as follows:                                   vðεrl sÞ          !
+                                                                                          þ V , ðrl V sÞ ¼ rw                                       (22)
+8                                                                                  vt
+< lð0Þ ¼ 0:043 þ 17:18avap;an  39:85a2           3
+                                      vap;an þ 36avap;an
+                                                                                 where, ε is the porosity, and rw is the condensation rate.
+: lðdmen Þ ¼ 0:043 þ 17:18avap;ca  39:85a2               3
+                                              vap;ca þ 36avap;ca                   In the gas diffusion layer (GDL) and the catalyst layer (CL), the
+                                                                   (18)          phase transformation equation of water is:
+
+   Due to the “proton drag” effect, the number of water molecules                8                               
+                                                                                 >
+                                                                                 >      vðεrl sÞ      r Ks3 dPc
+accompanying each proton is:                                                     >
+                                                                                 <               þ V, l         Vs ¼ rw
+                                                                                           vt           ml ds
+                                                                                                                                                   (23)
+                   l                                                             >
+                                                                                 >                       P  Psat
+ndrag ¼ nsat
+         drag                                                      (19)          >
+                                                                                 : rw ¼ Cr ,max ð1  sÞ wv        MH2 O ; srl
+                 22                                                                                         RT
+with the proton from anode to cathode, the molar ﬂow density of
+                                                                                 where: K is the determining permeability; ml is the viscosity of
+water is as follows:
+                                                                                 liquid water; Pc is the capillary pressure; Cr is constant condensa-
+                       i                                                         tion rate; Pwv is local water vapor pressure; Psat is local saturated
+JH2 o;drag ¼ ndrag                                                 (20)          steam pressure.
+                       F
+
+
+
+
+log 10 Psat ¼  2:1794 þ 0:02953ðT  273:2Þ  9:1837  105 ðT  273:2Þ2
+   þ1:4454  107 ðT  273:2Þ3                                                                                                                      (24)
+
+
+
+
+    The molar ﬂow density of water from cathode to anode is:                         Concentration diffusion calculation equation:
+
+               rdry       dl
+JH2 o;diff ¼        D ðlÞ                                          (21)
+               Mmen l     dz
+
+where, rdry is the dry density of the proton exchange membrane;                  diff   rm
+Mmen is the molar mass of the proton exchange membrane; Dl is the
+                                                                                 Jw ¼        MH2 O Dl Vl                                            (25)
+                                                                                        Mm
+diffusion coefﬁcient of water in the proton exchange membrane.
+    The mode of liquid water transport is different at different po-             where: rm is the density of the dry membrane; Mm is the equivalent
+sitions in the fuel cell, and the liquid water transport in the ﬂow              of the dry membrane.
+channel, catalyst layer and gas diffusion layer is affected by the gas               Water diffusion coefﬁcient in the membrane:
+                                                                          1148
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                                  Renewable Energy 164 (2021) 1143e1155
+
+Table 2
+Physical and chemical parameters of PEMFC model.
+
+  Parameter name                                   Value                                  Parameter name                                                Value
+
+  Open circuit voltage                             1V                                     Porosity of diffusion layer                                   0.5
+  Anode reference current density                  10000 A/㎡                              Diffusion layer density                                       2719 kg/m3
+  Conductivity of diffusion layer                  5000                                   Viscosity resistance coefﬁcient of GDL                        1012
+  Anode concentration index                        0.5                                    Porosity of catalytic layer                                   0.5
+  Anode exchange coefﬁcient                        2                                      Catalytic layer conductivity                                  5000 S/m
+  Cathode concentration index                      1                                      Viscosity resistance coefﬁcient of CL                         1012
+  Cathode exchange coefﬁcient                      2                                      Speciﬁc surface area of CL                                    200,000
+  Proton transmission impedance                    0.0003U                                Thickness of membrane                                         0.178 mm
+  Hydrogen diffusion coefﬁcient                    0.00011                                Density of membrane                                           1980 kg/m3
+  Oxygen diffusion coefﬁcient                      0.000032                               Molar mass of membrane                                        1100 kg/Kmol
+  Water vapor diffusion coefﬁcient                 0.0000735                              Conductivity of the membrane                                  106 S/m
+  Bipolar plate density                            2719 kg/m3                             Bipolar plate conductivity                                    106 S/m
+
+
+
+
+                                                                                       The stack model contains the mass transfer process of gases
+             2416     1
+                        1                                                            such as oxygen, water vapor or liquid water, as well as the nonlinear
+                     303 T
+Dl ¼ f ðlÞe                                                             (26)          equations for the calculation of the stack voltage, so many param-
+                                                                                      eters are involved. However, since most parameters are not
+         8                                                                            measurable, the structural parameters and material parameters in
+         >
+         >           1010 ; l < 2
+         <                                                                            this article basically refer to the data provided by the manufacturer
+           1010 ½1 þ 2ðl  2Þ; 2  l  3
+f ðlÞ ¼                                                                 (27)          and the literature [40]. Some important parameters required for the
+        >
+        > 1010 ½3  1:67ðl  3Þ; 3 < l < 4:5
+        :                                                                             stack simulation model are shown in Table 2.
+                1:25  1010 ; l  4:5
+
+
+
+
+                                                           Fig. 5. Simulation and experimental results.
+
+                                                                               1149
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                                                                   Renewable Energy 164 (2021) 1143e1155
+
+
+3. Results and discussion                                                                                              25
+                                                                                                                                       Oxygen concentration
+
+
+
+
+                                                                                                   %
+                                                                                                                                       Self-circulating air flow
+3.1. Model veriﬁcation
+
+
+
+
+                                                                                   Oxygen concentration of mixed gas
+                                                                                                                       20
+
+
+
+
+                                                                                       Self-circulating air flow L/s
+    In order to verify the validity of the simulation model, the
+simulation and experimental values of PEMFC engine without
+                                                                                                                       15
+cathode recirculation were compared. As showed in Fig. 5a, the fuel
+cell system test bench includes hydrogen system, air system, and
+cooling system and control system. The air system includes air                                                         10
+compressor, mass ﬂowmeter and back pressure valve; the
+hydrogen system includes hydrogen cylinder, purge valve, high-
+pressure regulating valve, mass ﬂowmeter, low-pressure regu-                                                           5
+lating valve, hydrogen circulation pump, etc.; the cooling system
+includes water pump, water tank, radiator, etc.; the power output
+system is connected with single cell voltage inspection, electronic                                                    0
+                                                                                                                            0           2000           4000        6000      8000        10000     12000
+load, etc. The external conditions of the experimental process are as                                                                                              t s
+follows: neither anode nor cathode use external humidiﬁcation;
+the excess ratios of cathode and anode are 2 and 1.5, respectively;                                                             Fig. 6. Effect of air self-circulation on oxygen concentration.
+the ambient temperature and the working temperature of the stack
+are 25  C and 60  C, respectively. The speciﬁc parameters are shown
+                                                                                  3.2. Self-circulating humidiﬁcation performance
+in Table 3. The comparison between the simulated polarization
+curve obtained in this paper and the experimental results is shown
+                                                                                      In order to maintain the water balance inside the fuel cell, the
+in Fig. 5b. It is found that they have good consistency with a
+                                                                                  amount of water obtained by the anode must be equal to the net
+maximum error of only 5%, indicating that the one-dimensional
+                                                                                  migration of water to the cathode. Therefore, measures to increase
+PEMFC engine model used herein can be considered as valid. In
+                                                                                  the water vapor permeation rate from the cathode to the anode by
+addition, we also found that the simulated value was slightly higher
+                                                                                  increasing the water concentration gradient on both sides of the
+than the experimental value, and the larger the output power was,
+                                                                                  membrane to compensate for the reverse electroosmosis loss
+the greater the error would be. The foremost reason is that the
+                                                                                  through humidifying the cathode air intake are needed. Since the
+cathode side outlet of the stack is prone to ﬂooding, while the
+                                                                                  water produced by the fuel cell during operation will lead to a large
+simulation model cannot accurately simulate the process, and can
+                                                                                  amount of high-temperature saturated water vapor in the cathode
+only ignore the impact of the cathode outlet ﬂooding. Due to the
+                                                                                  exhaust gas, using it to directly moisten the inlet gas can not only
+fact that the internal water state parameters of the stack, such as
+                                                                                  realize the self-humidiﬁcation of the fuel cell, but also increases the
+the water content of the membrane, catalyst layer, and diffusion
+                                                                                  stack’s intake pressure.
+layer, cannot be measured, the model has a process of initial value
+                                                                                      Fig. 6 shows the simulation results of the oxygen concentration
+adjustment and correction, as shown in Fig. 5c. The initial value of
+                                                                                  of the mixed gas at the cathode inlet as a function of the air cir-
+the relative error of the calculated average single cell voltage is low,
+                                                                                  culation volume, and the amount of recirculated air was changed by
+and the error gradually increases after that due to the complicated
+                                                                                  adjusting the opening of the electronic three-way valve. Since most
+working environment under high power. From the SEM results of
+                                                                                  of the oxygen will be consumed after the air passes through the
+the MPL layer and membrane of Fig. 5d, it can be seen that the
+                                                                                  stack, the oxygen concentration at the stack outlet will be lower.
+carbon black carrier is corroded and peeled off due to the mem-
+                                                                                  The air at the outlet of the stack is pumped to the inlet of the stack
+brane drying after long-term operation without humidiﬁcation.
+                                                                                  because of the strong suction of the compressor and mixed with
+These impurities not only adhere to the surface of the carbon paper
+                                                                                  fresh air will also reduce the oxygen concentration of the mixed
+and block the carbon paper, which will inevitably reduce the
+                                                                                  gas. Although the oxygen concentration at the inlet of the stack
+permeability and hydrophobicity of the diffusion layer, resulting in
+                                                                                  decreases with the increase of the circulating air ﬂow, the change in
+a decrease in the performance of the stack. Corrosion of the cata-
+                                                                                  the oxygen concentration is very small, indicating that it will not
+lytic layer and carbon black carrier leads to agglomeration and
+                                                                                  affect the oxygen partial pressure of the mixed gas. As shown in the
+sintering of the catalyst particles. The membrane suffered serious
+                                                                                  simulation results shown in Fig. 7, the humidity of the mixed gas at
+mechanical performance damage, and the membrane surface was
+                                                                                  the cathode inlet of the stack gradually increases as the current
+uneven, with black impurities and broken ﬁbers on the carbon
+                                                                                  density increases from 0.2 A/cm2 to 0.95 A/cm2 due to the inﬂow of
+paper. These result in the impedance of the ﬁlm exceeding
+                                                                                  high-heat, high-humidity exhaust gas. It is worth noting that the
+400 mU cm2, or even reaching 600 mU cm2, and the effective mass
+                                                                                  maximum humidity of the mixed gas in the whole process does not
+transfer area to become smaller, which ultimately leads to the
+                                                                                  exceed 60% under the passive operation of the cathode self-
+degradation of the stack performance.
+                                                                                  circulation system. Moreover, during the loading process, there is
+                                                                                  a certain delay in the change in humidity, possibly because there is
+                                                                                  a certain distance between the exhaust port of the stack cathode
+                                                                                  and the mixing chamber in front of the compressor, resulting in a
+           Table 3                                                                certain lag in the change in gas ﬂow. However, when the stack
+           Main performance parameters of the stack.                              enters the steady state, it quickly returns to the steady state value,
+                                                                                  so the stability of the relative humidity at the stack inlet can be
+             Stack index                               Value
+                                                                                  guaranteed in the process of loading and unloading. It is also
+             Rated power                               30 kW                      observed that there is a certain inﬂection point in the increasing
+             Active area                               350 cm2
+             Number of fuel cells                      100 cells
+                                                                                  trend of the humidity of the mixture at the current density of 0.65
+             Voltage range                             70e120 V                   A/cm2, and the increasing rate after it exceeds 0.65 A/cm2 obviously
+             Current range                             0e500 A                    becomes larger. This is because the greater the current density, the
+
+                                                                           1150
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                                                               Renewable Energy 164 (2021) 1143e1155
+
+
+                                                      1.0                    80
+
+
+                                                                             70
+
+                                                       8
+
+
+
+
+                                                            %)
+                                                                             60
+                                    A/cm2
+
+
+                                                            Humidity value
+                                                                             50
+                                    Current density
+
+                                                      0.6
+                                                                             40
+
+
+                                                                             30
+                                                      0.4
+                                                                                                                                      Humidity of gas mixture
+                                                                             20                                                       Current density
+
+
+                                                      0.2                    10
+                                                                                           400                800               1200                 1600         2000
+                                                                                                                       t s
+                                                                                  Fig. 7. Humidity change of mixed gas under different conditions.
+
+
+
+
+                                                                                   Fig. 8. Effect of temperature on the performance of fuel cells.
+
+
+
+
+                                                                                                                1151
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                       Renewable Energy 164 (2021) 1143e1155
+
+
+more water is produced from the cathode and the greater the hu-                    the current density increases, the amount of water produced in the
+midity of the exhaust gas.                                                         cathode catalytic layer increases, and the more liquid water formed
+   As we all know, temperature is an important parameter in the                    in the cathode diffusion layer. The high working temperature is
+study of thermal management of PEMFC, that is, too low temper-                     conducive to the evaporation of water vapor, and the ﬂooding of the
+ature will lead to the performance degradation of fuel cell, while                 diffusion layer and the catalytic layer is reduced. Furthermore, the
+high temperature will lead to too much membrane water loss and                     recycling of cathode exhaust gas increases the humidity of the inlet,
+normal operation. Therefore, studying the inﬂuence of temperature                  which has better output performance, as shown in Fig. 8c. In
+on fuel cell performance is of practical signiﬁcance for obtaining the             addition, it can be seen from Fig. 8d that the average cell voltage has
+optimal working conditions of fuel cell engines. The fuel cell                     a good correspondence with high-frequency impedance, that is, the
+operating conditions required for the simulation are: temperature                  voltage is high at low impedance, the voltage is low at high
+and pressure are 60  C and 1 atm, respectively; the excess co-                    impedance, and there is almost no delay, indicating that high-
+efﬁcients of the cathode and anode are 2 and 1.5, respectively. From               frequency impedance is important for fuel cell systems. When the
+the curve of water vapor saturation pressure versus temperature                    membrane is too dry, the average single cell voltage decreases from
+given in Fig. 8a, it can be known that the saturated vapor pressure                0.78 V to 0.7Vduring the rapid rise of the membrane impedance
+increases exponentially with the rise of temperature, and at a                     from 300 to 600 mU cm2, indicating that the performance degra-
+higher operating temperature, even a temperature difference of                     dation is about 10%. Because the average single cell voltage almost
+several degrees can signiﬁcantly increase the water content of the                 declines in a straight line after 85  C, it can be judged that the
+gas. As the current density increases and the water production of                  voltage has been unstable at this time. Therefore, when the high
+the cathode catalyst layer increases, the low-humidity gas is more                 frequency impedance is in the range of 200e400 mU cm2, the stack
+conducive to gas diffusion, and thus has a higher output voltage.                  is in an ideal working state.
+Fig. 8b is the simulation result of the effect of temperature on the                   The dynamic and steady-state performance of PEMFC engine
+average water content in the membrane. The higher the tempera-                     based on air self-circulation humidiﬁcation system is shown in
+ture, the more the water in the membrane evaporates, resulting in                  Fig. 9, where the simulation conditions are: T ¼ 70  C, cathode gas
+worse water and conditions in the proton exchange membrane. As                     excess factor 2 and anode gas excess factor 1.5. The current is
+
+
+
+
+                                            Fig. 9. Performance of the stack with the air self-circulation system.
+
+                                                                            1152
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                       Renewable Energy 164 (2021) 1143e1155
+
+
+gradually loaded by step, and it takes about 20 s for the current to                with high humidity (downstream of air ﬂow) to a place with low
+reach the stable state of the set value as shown in Fig. 9a. The dif-               humidity (upstream of hydrogen ﬂow). As the air pole will generate
+ference is that the larger the current, the shorter the time required.              water with the generation reaction of fuel cell, the higher the hu-
+The voltage variation trend of the stack is just opposite to that of the            midity of air is downstream. The humidity difference between the
+current, as shown in Fig. 9b. When the stack is powered on, the                     downstream of the air ﬂow and the upstream of the hydrogen ﬂow
+stack will be purged ﬁrst, so the voltage will rise. After the purging,             increases the humidity of the hydrogen upstream and the humidity
+the compressor stops running, and the inlet and outlet of the stack                 of the hydrogen also increases downstream of the ﬂow. The air
+are closed, resulting in the gradual consumption of internal oxygen.                recirculation system increases the relative humidity at the cathode
+After the stack starts running, the voltage drops suddenly for about                inlet and the water content of the membrane, thereby improving
+50s. After that, the compressor works with 20 A current, so the                     the output performance of the stack. Therefore, not only is the
+voltage rises again. As the current increases, it takes about 30s for               durability problem caused by high potential at a small current
+the voltage to reach a stable state. When the current is loaded to                  density alleviated, but the performance and stability of the stack
+450 A, the power of the stack reaches 30 kW, and can maintain a                     can be improved.
+relatively stable state during long-term operation, as shown in
+Fig. 9c. After adopting the cathode recycling system, the voltage
+ﬂuctuation of the stack is small and the output power is stable,                    3.3. Cathode and anode control strategies
+indicating that it has good reliability. The self-humidifying capacity
+based on the cathode and anode double circulation system is                            Based on the model of the dual cycle fuel cell engine, the in-
+shown in Fig. 9d. At low current density, the humidiﬁcation ca-                     ﬂuence of different cathode recycling rate on the output perfor-
+pacity of the two modes of self-circulation and humidiﬁer is almost                 mance of the stack without external humidiﬁer is studied, and the
+equal, but the greater the current density, the better the effect of                map of the application scope of the self-humidiﬁcation function of
+the humidiﬁer can reach 100%, while the maximum value of self-                      the dual cycle system is obtained. When the current is gradually
+circulation can only reach 60%. However, as the thickness of the                    loaded, the opening and closing frequency of the purging valve
+electrolyte membrane is reduced, moisture will move from a place                    increases gradually, but the opening time under different working
+                                                                                    conditions is constant, about 10 s, as shown in Fig. 10a. The purpose
+
+
+
+
+                                                Fig. 10. Control of double circulation self-humidifying system.
+
+                                                                             1153
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                  Renewable Energy 164 (2021) 1143e1155
+
+
+of purging is to remove the generated ﬂying and nitrogen pene-                   Declaration of competing interest
+trating from the cathode to the anode, so as to improve the purity of
+hydrogen. Due to the inﬂuence of the opening and closing of the                     The authors declare that they have no known competing
+purge valve, the hydrogen pressure will be reduced by about 10 kPa               ﬁnancial interests or personal relationships that could have
+each time, as shown in Fig. 10b. Fig. 10c shows the dynamic change               appeared to inﬂuence the work reported in this paper.
+characteristics of air compressor ﬂow rate with load current. When
+the load is low, it is difﬁcult for the ﬂow rate of the air compressor           Acknowledgments
+to stabilize quickly, and the overshoot phenomenon occurs. As the
+current increases, the dynamic performance of the air compressor                    This work is supported by the National Natural Science Foun-
+gradually gets better, the overshoot is smaller, and it can quickly              dation of China (52075481), Zhejiang Provincial Natural Science
+reach a stable state. It was found that increasing the current density           Foundation (LR19E050002, LQ21E060009), Zhejiang Province Key
+loading process time while reducing the loading amplitude is                     Science and Technology Project (2018C01020, 2018C01060,
+beneﬁcial to improve the stability of the battery and extend the life            2019C01057).
+of the stack. By controlling the opening of the electronic three-way
+valve at the cathode outlet to adjust the self-circulation rate of air           Nomenclature
+(the proportion of circulation volume to the mixed gas), it is
+necessary to cooperate with the working state (current density) of               a         Water vapor activity
+the stack and the required air supply excess ratio to achieve self-              A         Area, ﬂow cross-sectional area(㎡)
+humidiﬁcation, as shown in Fig. 10d.                                             C         Substance concentration (mol/m3)
+                                                                                 d         Width or aperture (m)
+4. Conclusion                                                                    D         Gas diffusion coefﬁcient (m2  s1)
+                                                                                 f         Friction factor
+    In this study, the cathode air self-circulation system of fuel cell          F         Faraday constant (96,487 C/mol)
+engine is designed, and the performance of PEMFC engine is                       G         Gibbs Free Energy (J/kg)
+studied from three aspects: one-dimensional modeling, bench test                 i         Current density (A/m2)
+and simulation model. Depending on the high ﬂow speed of tail gas                I         Current (A)
+and the regulation of electronic three-way valve, the self-                      K         Permeability (m2)
+circulation humidiﬁcation function without circulation pump is                   k         Permeability coefﬁcient(1013㎡/s)
+realized. The following conclusions can be drawn:                                m         Mass (kg)
+                                                                                 M         Molecular molar mass (kg$mol1)
+   (1) The polarization curve and output power predicted by the                  s         Liquid water saturation
+       calibrated PEMFC system coupling simulation model shows                   S         Phase change rate (mol$m3  s1)
+       good agreement with experimental data for constant-                       Q         Mass ﬂow rate (kg/m3)
+       current operations. In addition, the average single cell                  R         Gas constant (J$kg1  K1)
+       voltage has good dynamic characteristics and its value is                 P         Gas pressure (Pa)
+       gradually reduced for long-time operation of 30 kW.                       T         Temperature ( C)
+   (2) The recirculation system can signiﬁcantly increase the rela-              U         Voltage (V)
+       tive humidity of the stack inlet and the water content of the             V         Velocity (m/s), volume (m3)
+       membrane, but has a smaller effect on the oxygen concen-                  ε         Porosity
+       tration. At high current densities, increasing the operating              q         Contact angle ( )
+       temperature can reduce the liquid water saturation on the                 k         Membrane conductivity(U1.m1)
+       cathode side and prevent fuel cell ﬂooding.                               r         Density (kg$m3)
+   (3) Cathode recirculation has a better dynamic effect of humid-               n         Viscosity (m2/s)
+       iﬁcation, which is more suitable for short-term low inlet
+       humidity working conditions. With the change of the                       Abbreviation
+       opening of the electronic three-way valve, the humidity at                An         Anode
+       the inlet can reach 60%, which solves the problem of mem-                 Ca         Cathode
+       brane drying at the inlet due to the lack of external humid-              CL         Catalytic layer
+       iﬁer with low current density.                                            GDL        Gas diffusion layer
+                                                                                 Sim        Simulation value
+   The results of the study are of great signiﬁcance for optimizing              Exp        Experimental value
+the operational reliability of fuel cell and improving water man-                Sat        Saturation
+agement capability of PEMFC system. Based on the work of this                    MEA        Membrane electrode assembly
+paper, we can continue to carry out the following research work:                 Vap        Vapor
+carry out experiments on the impact of recycling system on the                   Ch         Channel
+durability of the stack; the designed control algorithm fails to carry
+out algorithm veriﬁcation on the fuel cell engine, which can be                  Superscripts and subscripts
+applied to the fuel cell engine later, and optimize the control                  Out        Outlet
+strategy of the fuel cell engine.                                                In         Inlet
+                                                                                 l          liquid
+Author statement                                                                 g          Gas
+                                                                                 ex         external
+   Qinguo Zhang: Writing - original draft, Write and revise papers.              to         total
+Zheming Tong: Experimental guidance. Shuiguang Tong: Research                    Mem        Membrane
+guidance. Zhewu Cheng: Modeling and data processing.                             H2         In Hydrogen Inlet
+                                                                          1154
+Q. Zhang, Z. Tong, S. Tong et al.                                                                                                        Renewable Energy 164 (2021) 1143e1155
+
+
+Fc             Fuel cell                                                                          [J], J. Power Sources 158 (2) (2006) 1229e1239.
+                                                                                             [19] Jinyong Kim, Gang Luo, Chao-Yang Wang, Modeling two-phase ﬂow in three-
+Cp             Compressor
+                                                                                                  dimensional complex ﬂow-ﬁelds of proton exchange membrane fuel cells[J],
+Oh             Ohmic                                                                              J. Power Sources 365 (15) (2017) 419e429.
+h              hour                                                                          [20] TaoFeng Cao, Hong Lin, Numerical investigation of the coupled water and
+W              Water                                                                              thermal management in PEM fuel cell[J], Appl. Energy 12 (10) (2013)
+                                                                                                  1115e1125.
+P              Power                                                                         [21] Li Chen, TaoFeng Cao, Numerical investigation of liquid water distribution in
+Gc             Gas channel                                                                        the cathode side of proton exchange membrane fuel cell and its effects on cell
+                                                                                                  performance [J], Int. J. Hydrogen Energy 37 (1) (2012) 9155e9170.
+                                                                                             [22] Anh Dinh, Biao Zhou, A generalized numerical model for liquid water in a
+References                                                                                        proton exchange membrane fuel with interdigitated design [J], J. Power
+                                                                                                  Sources 193 (2) (2009) 665e683.
+ [1] Zhewu Cheng, Shuiguang Tong, Zheming Tong, Bi-directional nozzle control of             [23] WeiMon Yana, Hsin-Sen Chub, Jian-Yao Chen, Transient analysis of water
+     multistage radial-inﬂow turbine for optimal part-load operation of com-                      transport in PEM fuel cells[J], J. Power Sources 162 (2) (2006) 1147e1156.
+     pressed air energy storage[J], Energy Convers. Manag. 181 (1) (2019)                    [24] Falin Chen, YuGuang Su, Chyi-Yeou Soong, Transient behavior of water
+     485e500.                                                                                     transport in the membrane of a PEM fuel cell[J], J. Electroanal. Chem. 566 (1)
+ [2] Shuiguang Tong, Zhewu Cheng, Feiyun Cong, Zheming Tong, Yidong Zhang,                        (2004) 85e93.
+     Developing a grid-connected power optimization strategy for the integration             [25] F.N. Büchi, S. Srinivasan, Operating proton exchange membrane fuel cells
+     of wind power with low-temperature adiabatic compressed air energy storage                   without external humidiﬁcation of the reactant gases fundamental aspects [J],
+     [J], Renew. Energy 125 (2018) 73e86.                                                         J. Electrochem. Soc. 144 (8) (1997) 2767e2772.
+ [3] Yubai Li, Zhifu Zhou, Xianglei Liu, Weitao Wu, Modeling of PEM fuel cell with           [26] M.V. Williams, H.R. Kunz, J.M. Fenton, Operation of Naﬁon ®-based PEM fuel
+     thin MEA under low humidity operating condition [J], Appl. Energy 242 (15)                   cells with no external humidiﬁcation: inﬂuence of operating conditions and
+     (2019) 1513e1527.                                                                            gas diffusion layers [J], J. Power Sources 135 (1) (2004) 122e134.
+ [4] Xiaohui Yan, Cheng Guan, Yao Zhang, Flow ﬁeld design with 3D geometry for               [27] Z. Qi, A. Kaufman, PEM fuel cell stacks operated under dry-reactant conditions
+     proton exchange membrane fuel cells[J], Appl. Therm. Eng. 147 (25) (2019)                    [J], J. Power Sources 109 (2) (2002) 469e476.
+     1107e1114.                                                                              [28] M. Watanabe, H. Uchida, Y. Seki, et al., Self-humidifying polymer electrolyte
+ [5] Chunhua Min, He Jing, Kun Wang, Liyao Xie, Xuguang Yang, A comprehensive                     membranes for fuel cells[J], J. Electrochem. Soc. 143 (12) (1996) 3847e3852.
+     analysis of secondary ﬂow effects on the performance of PEMFCs with                     [29] F. Liu, B. Yi, D. Xing, et al., Development of novel self-humidifying composite
+     modiﬁed serpentine ﬂow ﬁelds [J], Energy Convers. Manag. 180 (15) (2019)                     membranes for fuel cells[J], J. Power Sources 124 (1) (2003) 81e89.
+     1217e1224.                                                                              [30] U.H. Jung, K.T. Park, E.H. Park, et al., Improvement of low-humidity perfor-
+ [6] Jun Shen, Zhengkai Tu, Siew Hwa Chan, Enhancement of mass transfer in a                      mance of PEMFC by addition of hydrophilic SiO2 particles to catalyst layer[J],
+     proton exchange membrane fuel cell with blockage in the ﬂow channel[J],                      J. Power Sources 159 (1) (2006) 529e532.
+     Appl. Therm. Eng. 149 (25) (2019) 1408e1418.                                            [31] B.J. Kim, M.S. Kim, Studies on the cathode humidiﬁcation by exhaust gas
+ [7] F.B. Baz, MahmoudAhmed ShinichiOokawara, Enhancing under-rib mass                            recirculation for PEM fuel cell[J], Int. J. Hydrogen Energy 37 (5) (2012)
+     transport in proton exchange membrane fuel cells using new serpentine ﬂow                    4290e4299.
+     ﬁeld designs[J], Int. J. Hydrogen Energy 44 (58) (2019) 30644e30662.                    [32] Yangbin Shao, Liangfei Xu, Xingwang Zhao, Jianqiu Li, Minggao Ouyang,
+ [8] Pucheng Pei, Yuehua Li, Huachi Xu, Ziyao Wu, A review on water fault diag-                   Comparison of self-humidiﬁcation effect on polymer electrolyte membrane
+     nosis of PEMFC associated with the pressure drop[J], Appl. Energy 173 (1)                    fuel cell with anodic and cathodic exhaust gas recirculation [J], Int. J.
+     (2016) 366e385.                                                                              Hydrogen Energy 45 (4) (2020) 3108e3122.
+ [9] Pucheng Pei, Huachi Xu, Xia Zeng, Hongshan Zha, Mancun Song, Use of gal-                [33] Bohan Wang, Rui Lin, Dengcheng Liu, Ji Xu, Bowen Feng, Investigation of the
+     vanostatic charge method as a membrane electrode assembly diagnostic tool                    effect of humidity at both electrode on the performance of PEMFC using
+     in a fuel cell stack[J], J. Power Sources 245 (1) (2014) 175e182.                            orthogonal test method [J], Int. J. Hydrogen Energy 26 (26) (2019)
+[10] Mancun Song, Pucheng Pei, Hongshan Zha, Huachi Xu, Water management of                       13737e13743, 44.
+     proton exchange membrane fuel cell based on control of hydrogen pressure                [34] S. Rodosik, J.P. Poirot-Crouvezier, Y. Bultel, Impact of humidiﬁcation by
+     drop [J], Journal of Power ources 267 (1) (2014) 655e663.                                    cathode exhaust gases recirculation on a PEMFC system for automotive ap-
+[11] Rupak Banerjee, G. Satish, Kandlikar, Experimental investigation of two-phase                plications [J], Int. J. Hydrogen Energy 44 (25) (2019) 12802e12817.
+     ﬂow pressure drop transients in polymer electrolyte membrane fuel cell                  [35] Xingwang Zhao, Liangfei Xu, Chuan Fang, Hongliang Jiang, Study on voltage
+     reactant channels and their impact on the cell performance [J], J. Power                     clamping and self-humidiﬁcation effects of pem fuel cell system with dual
+     Sources 268 (5) (2014) 194e203.                                                              recirculation based on orthogonal test method [J], Int. J. Hydrogen Energy 43
+[12] Rupak Banerjee, ValentinaMejia DanielleHowe, G. Satish, Kandlikar, Experi-                   (33) (16 August 2018) 16268e16278.
+     mental validation of two-phase pressure drop multiplier as a diagnostic tool            [36] Junmin Hu, Jianqiu Li, Liangfei Xu, Fusen Huang, Minggao Ouyang, Analytical
+     for characterizing PEM fuel cell performance[J], Int. J. Hydrogen Energy 39                  calculation and evaluation of water transport through a proton exchange
+     (31) (2014) 17791e17801.                                                                     membrane fuel cell based on a one-dimensional model[J], Energy 111 (15)
+[13] Yifan Xu, Diankai Qiu, Peiyun Yi, Shuhuai Lan, Linfa Peng, An integrated model               (2016) 869e883.
+     of the water transport in nonuniform compressed gas diffusion layers for                [37] Huicui Chen, Biao Liu, Tong Zhang, Pucheng Pei, Inﬂuencing sensitivities of
+     PEMFC[J], Int. J. Hydrogen Energy 44 (26) (2019) 13777e13785.                                critical operating parameters on PEMFC output performance and gas distri-
+[14] Eun JungChoi, Jin YoungPark, Min SooKim, A comparison of temperature                         bution quality under different electrical load conditions [J], Appl. Energy 255
+     distribution in PEMFC with single-phase water cooling and two-phase HFE-                     (2019) 113849.
+     7100 cooling methods by numerical study[J], Int. J. Hydrogen Energy 43 (29)             [38] Xingwang Zhao, Liangfei Xu, Chuan Fang, Hongliang Jiang, Study on voltage
+     (2018) 13406e13419.                                                                          clamping and self-humidiﬁcation effects of pem fuel cell system with dual
+[15] YonghuaCai BenChen, ZhengkaiTub JunShen, Siew HwaChan, Performance                           recirculation based on orthogonal test method[J], Int. J. Hydrogen Energy 43
+     degradation of a proton exchange membrane fuel cell with dead-ended                          (2018) 16268e16278.
+     cathode and anode[J], Appl. Therm. Eng. 132 (5) (2018) 80e86.                           [39] Liangfei Xu, Chuan Fang, Junming Hu, Siliang Cheng, Parameter extraction of
+[16] Bachir Dadda, Saïd Abboudi, Rida Zarrit, Heat and mass transfer inﬂuence on                  polymer electrolyte membrane fuel cell based on quasi-dynamic model and
+     potential variation in a PEMFC membrane [J], Int. J. Hydrogen Energy 39 (27)                 periphery signals[J], Energy 122 (1) (2017) 675e690.
+     (2014) 15238e15245.                                                                     [40] Yujiao Chen, Zheming Tong, Yang Zheng, Holly Samuelson, Leslie Norford,
+[17] Peng Quan, Lai Ming- Chial, Numerical study of water management in the air                   Transfer learning with deep neural networks for model predictive control of
+     ﬂow channel of a PEM fuel cell cathode [J], J. Power Sources 164 (1) (2007)                  HVAC and natural ventilation in smart buildings[J], J. Clean. Prod. 254 (2020)
+     222e237.                                                                                     119866.
+[18] Z. Liu, Z. Mao, C. Wang, A two dimensional partial ﬂooding model for PEMFC
+
+
+
+
+                                                                                      1155
+

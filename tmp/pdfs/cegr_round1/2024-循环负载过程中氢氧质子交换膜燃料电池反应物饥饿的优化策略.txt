@@ -1,0 +1,590 @@
+                                                                              Fuel 357 (2024) 129886
+
+
+                                                                    Contents lists available at ScienceDirect
+
+
+                                                                                       Fuel
+                                                            journal homepage: www.elsevier.com/locate/fuel
+
+
+Full Length Article
+
+Optimization strategies to mitigate reactant starvation in a dead-ended
+hydrogen–oxygen proton exchange membrane fuel cell during
+cyclic loading
+Yang Liu a, Junjie Zhao a, Zhengkai Tu a, *, Siew Hwa Chan b
+a
+    School of Energy and Power Engineering, Huazhong University of Science and Technology, Wuhan 430074, China
+b
+    Energy Research Institute, Nanyang Technological University, 50 Nanyang Avenue, 637553, Singapore
+
+
+
+
+A R T I C L E I N F O                                      A B S T R A C T
+
+Keywords:                                                  Investigating the dynamic characteristics in hydrogen–oxygen proton exchange membrane fuel cells (PEMFCs)
+Proton exchange membrane fuel cell                         can provide valuable insights into the coupling degradation mechanism present within the fuel cell, which can
+Reactant starvation                                        help avoid reactant starvation and voltage decline. In this study, a recirculation subsystem is integrated into the
+Gas recirculation
+                                                           cathode of the PEMFC to alleviate gas starvation due to water flooding. The impact of pump speed on dynamic
+Cyclic loading
+                                                           loading is also examined. Furthermore, obstacle devices are incorporated into the cell flow channel to enhance
+Mass transfer
+                                                           mass transfer. The effects of flow channel configuration under the exhaust gas recirculation mode on cell per­
+                                                           formance and dynamic characteristics are investigated as well. Our findings indicate that blockage of the gas
+                                                           transport channel due to accumulated liquid water is the primary issue during the loading process of PEMFCs.
+                                                           The cathode recirculation pumps set at 600 rpm improves cell performance by 30.6% compared to the dead-
+                                                           ended mode at 1000 mA⋅cm− 2. However, excessively high pump speeds lead to an increase in voltage under­
+                                                           shoot during the loading process. Exhaust gas recirculation is found to significantly alleviate gas starvation and
+                                                           water flooding during the cyclic loading process and the cathode recirculation is the primary mitigation strategy
+                                                           for improving dynamic characteristics.
+
+
+
+
+1. Introduction                                                                                    However, a serious problem that restricts the development of fuel
+                                                                                               cells is their lifespan degradation during loading process. A large
+    Proton exchange membrane fuel cells (PEMFCs) have become                                   amount of research on the dynamic characteristics of fuel cells is con­
+promising devices that directly convert the chemical energy in fuel into                       ducted through experiments. Many scholars have designed various
+electrical energy under the action of a catalyst [1–3]. The PEMFCs can                         loading experiments for fuel cells by changing the operating parameters
+be classified into two types: hydrogen-air fuel cells and hydro­                               and analyzing the results of the loading experiments to study the dy­
+gen–oxygen fuel cells. In hydrogen-air fuel cells, the cathode side is                         namic characteristics of PEMFCs [8]. To investigate the characteristics
+supplied with air, readily obtained from the surrounding environment.                          inside the fuel cell during dynamic loading, some advanced technologies
+However, to achieve higher flow rates within the channels, the inclusion                       have also been used in the research of fuel cells’ dynamic characteristics,
+of an air compressor becomes necessary in hydrogen-air fuel cell sys­                          such as segmented fuel cell technology [9,10], visualization technology
+tems, resulting in a decrease in overall system efficiency. Moreover, the                      [11], high-resolution neutron imaging technology [12], and local mea­
+operation of the air compressor generates noticeable vibration and noise                       surement of current density [13], etc. Jia et al. [14] investigated the
+[4]. On the other hand, hydrogen–oxygen fuel cells employ pure oxygen                          dynamic distribution characteristics of fuel and water under oxidant
+as the cathode reaction gas, and the absence of moving components                              starvation by in-situ measuring the local current density, temperature,
+throughout the system allows for high energy conversion efficiency and                         and voltage of the fuel cell. Zhang et al. [15] measured the local current
+low noise levels. Consequently, hydrogen–oxygen fuel cells hold sig­                           density and temperature simultaneously in a PEMFC with a single
+nificant potential for military applications, including unmanned ships,                        serpentine flow field during dynamic loading. Besides, to investigate the
+underwater unmanned vehicles, and space power sources [5–7].                                   degradation behavior of fuel cells under dynamic cycles, Wang et al.
+
+
+    * Corresponding author.
+      E-mail address: tzklq@hust.edu.cn (Z. Tu).
+
+https://doi.org/10.1016/j.fuel.2023.129886
+Received 18 May 2023; Received in revised form 28 August 2023; Accepted 18 September 2023
+Available online 21 September 2023
+0016-2361/© 2023 Elsevier Ltd. All rights reserved.
+Y. Liu et al.                                                                                                                                       Fuel 357 (2024) 129886
+
+
+[16] conducted an experimental study of common operating conditions                Table 1
+from idling to a rated condition in automotive fuel cells and found that           Geometric parameters of assembled PEMFC.
+dynamic cycles have a significant negative effect on the catalyst layer,            Parameters                                                        Value        Unit
+which leads to a significant reduction in catalyst layer thickness. The                                                                                       -4
+                                                                                    Electrochemical active area                                       50 × 10      m2
+irreversible degradation of membrane electrode assembly (MEA) due to                Thickness of GDLs                                                 2.5 × 10-4   m
+gas starvation under dynamic conditions of the fuel cell was also re­               Thickness of membrane                                             2.5 × 10-5   m
+ported by Chu et al. [17,18].                                                       Thickness of CL                                                   1.0 × 10-5   m
+    Many related studies have been reported to alleviate gas starvation             Depth of flow channels (Straight channel)                         1.0 × 10-3   m
+                                                                                    Width of flow channels (Straight channel)                         2.0 × 10-3   m
+during dynamic loading of the PEMFC. Zhong et al. [19] proposed that                Width of ribs (Straight channel)                                  2.0 × 10-3   m
+the structure of the anode flow field will directly affect gas distribution         Depth of flow channels (Obstacle channel)                         1.0 × 10-3   m
+in fuel cells. In addition, two parallel anode flow field optimization              Width of flow channels (Obstacle channel)                         2.0 × 10-3   m
+schemes were proposed and experimentally studied. Jia et al. [20]                   Width of ribs (Obstacle channel)                                  2.0 × 10-3   m
+                                                                                    Radius of a semi-cylindrical obstacle (Obstacle channel)          5.0 × 10-4   m
+proposed an operational strategy to alleviate hydrogen starvation in fuel
+                                                                                    Spacing between semi-cylindrical obstacles (Obstacle channel)     3.0 × 10-3   m
+cells and investigated its effectiveness by measuring the local current
+density and temperature under different load change scenarios. To
+alleviate and eliminate hydrogen starvation during dynamic loading, Bai            was customized and composed of a proton exchange membrane, catalyst
+et al. [21] proposed a dual-path hydrogen supply strategy to improve               layer (CL), and gas diffusion layer (GDL). Nafion® XL from DuPontTM
+mass transfer in the stack while enhancing the voltage stability and               was used as the proton exchange membrane. The catalyst (HispecTM
+temperature consistency of the single cell. In addition, Wang et al. [22]          9100, Johnson Matthey) was directly sprayed on both sides of the proton
+investigated the coupled control algorithms for PID control and model              exchange membrane, with a cathode platinum loading of 0.3 mg⋅cm− 2
+predictive control in series and parallel, respectively, to mitigate oxidant       and an anode platinum loading of 0.1 mg⋅cm− 2. The GDL adopts Toray’s
+starvation during dynamic loading of the fuel cell. Moreover, the                  TGP-060, which was surface-treated with polytetrafluoroethylene
+application of machine learning in the study of the development of                 (PTFE) for hydrophobicity with a contact angle of 145◦ . The flow field
+optimization strategies during dynamic loading in the PEMFC have                   structure of a single cell adopts a straight channel, which is carved by
+received widespread attention [23–25]. Wang et al. [26] developed a                graphite board and has undergone hydrophobic treatment on the sur­
+long short-term memory deep learning model for predicting the dynamic              face. The processing accuracy is controlled within ± 0.01 mm. The low-
+performance of PEMFCs. They also optimized parameters such as input                resistivity metal copper was used as the current collector plate, and its
+feature selection, sampling frequency, and sequence duration. Rui et al.           surface was subjected to gold plating treatment to reduce contact
+[27] proposed a method based on machine learning to design durable                 resistance. The cell was placed vertically to facilitate drainage by
+MEA that enable fuel cells to exhibit excellent performance during dy­             gravity. The water generated by the cathode can be collected in the
+namic responses.                                                                   buffer channel to avoid flooding the main channel. The geometric pa­
+    The above studies are all investigations of the dynamic characteristic         rameters of the single cell are shown in Table 1 [33].
+of the PEMFC fed by hydrogen and air. There are fewer reports on the                   The performance test of the fuel cell is based on the Hephas 850e
+voltage response characteristics of H2/O2 PEMFCs under gas starvation              multi-range fuel cell test system, which is manufactured by Scribner
+conditions. Meng et al. [28,29] investigated the voltage response char­            Associates Inc. This test platform has high stability and a precise fuel
+acteristics of a H2/O2 PEMFC under different levels of gas starvation and          control system. It can not only perform performance tests on single cells
+gave a quantitative analysis of the hydrogen and oxygen starvation                 but also perform cyclic voltammetry analysis on the cell. The schematic
+tolerance situation by polynomial fitting. Chen et al. [30] then quanti­           diagram of the test system is shown in Fig. 1. High-purity oxygen and
+tatively investigated the transient voltage overshoot phenomenon                   hydrogen in the gas tank are controlled at constant pressure and intro­
+caused by current loading in H2/O2 fuel cells. However, a clearer                  duced into the cathode and anode through pressure controllers respec­
+explanation of the hydration mechanism within the fuel cell at the                 tively without humidification. To regulate the purging of the cathode
+moment of dynamic loading and the coupling degradation mechanism                   and anode outlets, electromagnetic valves are installed. The cell loading
+has not been mentioned. The H2/O2 fuel cells are usually operated in               current is provided by the 850e. The temperature, voltage, and internal
+dead-ended anode and cathode (DEAC) mode, and the severe water                     resistance of the cell are monitored by the test system. A buffer tank is
+management problems will lead to increased uncertainty in the dynamic              set up at the outlet of the cell to collect liquid water during the purging
+response characteristics [31,32].                                                  process. The flow field structure of both anode and cathode adopts a
+    In this study, a recirculation subsystem was added to the cathode of           straight channel as shown in Fig. 1 (b). In the subsequent optimization of
+the H2/O2 PEMFC to alleviate gas starvation caused by water flooding,              mass transfer enhancement under current loading, the straight channel
+and the impact of pump speed on dynamic loading was studied. In                    of cathode side was replaced by the obstacle channel.
+addition, the obstacle devices were integrated into the cell flow channel              The exhaust gas recirculation subsystem in the test system is ach­
+to enhance mass transfer, and the impact of flow channel configuration             ieved by a peristaltic pump, which is composed of a driver, pump head,
+under the exhaust gas recirculation mode on cell performance and dy­               and peristaltic hose. The pressure cover and roller compress the hose
+namic loading characteristics was also investigated. Based on this sys­            while the hose between the two rollers appears as a pillow shape. As the
+tematic research, the optimal configuration for alleviating gas starvation         rollers rotate, they alternately squeeze and release the elastic delivery
+during the fuel cell variable load process was determined, followed by             hose to pump the fluid. With the rolling of the roller, the elasticity of the
+the long-term continuous variable load acceleration testing of the fuel            hose continuously restores its original shape, forming a negative pres­
+cell MEA. Additionally, polarization curves, electrochemical impedance             sure at the inlet of the pump to promote gas flow and fill the pipeline for
+spectroscopy (EIS), and cyclic voltammetry (CV) were tested for the                transmission. The peristaltic pumps provide higher control precision and
+MEA of the fuel cell under different system configurations after the               are particularly suited for low-flow rate delivery compared to centrifu­
+experiment.                                                                        gal pump. In addition, the object of this study is the hydrogen–oxygen
+                                                                                   fuel cell used in underwater unmanned vehicles, and the low-noise scene
+2. Experimental                                                                    is a factor that should not be ignored, whether it is a kW-level fuel cell
+                                                                                   stack or a pre-explored single cell. In this study, the BT-100CA series
+2.1. Experimental system                                                           peristaltic pump from Chongqing Jieheng Peristaltic Pumps Co., Ltd.
+                                                                                   was adopted, with a speed range of 0–600 rpm and a precision of ± 0.1
+    The MEA used by Wuhan WUT New Energy Co., Ltd. in the fuel cell                rpm for speed adjustment.
+
+                                                                               2
+Y. Liu et al.                                                                                                                             Fuel 357 (2024) 129886
+
+
+
+
+                   Fig. 1. (a) Schematic diagram of the experimental test system for PEMFC, (b) The flow channel used in the experiment.
+
+
+2.2. Experimental scheme                                                          response curves under different loading amplitudes of PEMFC with
+                                                                                  DEAC mode. In this study, the loading rate was not our main focus and
+    The flowchart of the experiment is shown in Fig. 2. Before con­               was therefore not considered during experimental testing. The variable
+ducting a dynamic response experiment of fuel cells, the MEA accu­                loading between different current densities of fuel cells was completed
+mulates activation for 4 h with different loading currents. The relative          instantaneously. In addition, at t = 0 s, purging actions of the cathode
+humidity of the inlet fuel remains 100% to ensure that the fuel cell has          and anode were performed during the experiment to ensure that there
+reached its optimal performance. Before activation, the fuel cell un­             was no accumulation of liquid water and impurities gas inside the fuel
+dergoes a meticulous gas tightness test to ensure experimental safety             cell. Before 120 s, the current input was consistently at 200 mA⋅cm− 2,
+[34]. Moreover, the experiment employs hydrogen and oxygen gases                  and the voltage was around 0.8 V. At 120 s, the fuel cell was loaded with
+with a purity of 99.999%.                                                         amplitudes of 400, 800, and 1400 mA⋅cm− 2, respectively. It was
+    The dynamic response experiment of fuel cells consists of three main          observed that during the loading process, the smallest overshoot in fuel
+steps. Firstly, characteristics of dynamic loading of fuel cells under the        cell voltage occurred at the minimum loading amplitude of 400
+DEAC mode were explored, analyzing the influence of the current                   mA⋅cm− 2, and reached a steady state in the shortest amount of time. As
+loading amplitude and cumulative operating time before variable load              the variable load amplitude increases, the voltage undershoots magni­
+on the voltage response characteristics. A recirculation subsystem was            tude will also increase, and it will take longer to return to a steady state.
+added to the cathode of the fuel cell to alleviate gas starvation caused by       In Fig. 3 (c), under a current loading amplitude of 1400 mA⋅cm− 2, the
+water flooding, and the impact of pump speed on dynamic loading was               fuel cell voltage showed significant instability and exhibited a trend of
+studied. Following this, to address gas starvation during the variable            undershoot-recovery-decline. The dynamic response of the fuel cell
+load process, obstacle devices were integrated into the cell flow channel         voltage during variable loads primarily depends on two factors: the
+to enhance mass transfer, and the impact of flow channel configuration            diffusion rate of gas in the GDL, and the redistribution of water in the
+under the exhaust gas recirculation mode on cell performance and dy­              GDL [35]. In the case of large loading amplitude, the response speed of
+namic loading characteristics was investigated. Based on this systematic          gas transport is much slower than electronic conduction. As a result, the
+research, the optimal configuration for alleviating gas starvation during         oxygen content in the GDL cannot meet the high current density oper­
+the fuel cell variable load process was determined, followed by the long-         ation requirements immediately. It takes time for the gas replenishment
+term continuous variable load acceleration testing of the fuel cell MEA.          process to be completed in the GDL, resulting in a voltage drop. The gas-
+CV testing was conducted on the cell cathode after the experiment,                starvation response leads to changes in the moisture content of the GDL,
+investigating the influence of 500 rounds of cyclic variable load opera­          and the process of water redistribution in the MEA requires a certain
+tion of the fuel cell under different system configurations on the elec­          amount of time [36].
+trochemically active surface area of the electrode. During the testing, the           Fig. 4 shows the effect of continuous operation time on voltage
+anode was supplied with hydrogen gas, while nitrogen gas was supplied             response before dynamic loading in DEAC of PEMFC. The duration of
+to the cathode. Both gases had a flow rate of 200 ml/min and a tem­               continuous operation of the fuel cell before loading determines the
+perature of 30℃, with a scan rate of 20 mV/s. Additionally, polarization          difficulty of gas supply and water vapor redistribution during the
+curves and impedance spectra were tested for the MEA of the fuel cell             loading process and also has a significant impact on the dynamic
+under different system configurations after the experiment.                       response of the PEMFC. In addition, the dynamic response characteris­
+                                                                                  tics of the fuel cell operating in the DEAC mode were explored. We only
+3. Results and discussions                                                        executed a purging action at t = 0 s. At this time, the solenoid valves at
+                                                                                  the outlet of both anode and cathode were triggered simultaneously for
+3.1. Dynamic response characteristics under DEAC mode                             2 s. This procedure is to remove the accumulated liquid water and im­
+                                                                                  purity gases in the previous operation to ensure that the subsequent
+    The loading amplitude of the fuel cell is an important factor                 experimental conditions are at the same starting line. It can be seen from
+restricting the dynamic response of the cell. Fig. 3 shows the voltage            the figure that before loading, the voltage of the fuel cell is around 0.675
+
+                                                                              3
+Y. Liu et al.                                                                                                                          Fuel 357 (2024) 129886
+
+
+
+
+                                                           Fig. 2. Flowchart of the experiment.
+
+
+V, and under the same loading amplitude (from 600 mA⋅cm− 2 to 1000               test process, the purging valves at the cathode and anode outlets of the
+mA⋅cm− 2), the shorter the continuous operation time before loading, the         cell were always kept closed. Before testing the polarization curve, the
+better the performance after loading, and the voltage quickly returns to         cathode and anode purging valves were triggered to remove liquid water
+stability. When the continuous operation time before loading increases           and impurities gas. It can be seen that the cathodic recirculation pump
+to 5 min, liquid water has accumulated inside the fuel cell, causing             can significantly improve the performance of the fuel cell, especially at
+varying degrees of blockage in the gas diffusion layer. At this point, the       high current densities. At a current density of 1000 mA⋅cm− 2, the
+large loading amplitude greatly deteriorates the gas supply and water            cathode recirculation pumps of 200 rpm and 600 rpm can improve the
+distribution inside the fuel cell, resulting in continuous voltage fluctu­       cell performance by 19.9% and 30.6%, respectively, compared to the
+ations. The fuel cell continues to operate for some time after water             DEAC mode. When the current density was loaded to 1000 mA⋅cm− 2, the
+flooding, and the voltage continues to drop. From the above study, it can        performance of the cell operating in the DEAC mode drops sharply due
+be concluded that the primary issue to be addressed during the loading           to the increase of liquid water generated by the fuel cell under high
+process of hydrogen–oxygen fuel cells operated in the DEAC mode is the           current density, which seriously blocks the GDL and prevents the reac­
+blockage of the GDL gas transport channel caused by accumulated liquid           tant gas from diffusing well to the reaction zone.
+water.                                                                               Fig. 6 depicts the EIS of the hydrogen–oxygen fuel cell at different
+                                                                                 pump speeds. To better display the test results, it should be noted that
+                                                                                 the real part of the EIS initial point does not start from zero. When the
+3.2. Dynamic response characteristics under recirculation mode                   cathode recirculation pump speed of the fuel cell increased from 200 to
+                                                                                 600 rpm, the ohmic resistance did not change significantly, but the total
+3.2.1. Effect of recirculation pump speed of cathode side                        polarization resistance gradually decreased, thus improving the perfor­
+    In this study, a recirculation pump was installed on the cathode to          mance of the cell. At fuel cell current densities of 1000 mA⋅cm− 2 and
+remove liquid water generated by fuel cells through forced convection.           1600 mA⋅cm− 2, the EIS trend changes were almost consistent, but the
+Fig. 5 shows a comparison of the polarization curves of fuel cells at            higher the current density, the greater the polarization resistance of the
+different rotation speeds of the cathode recirculation pump. During the
+
+                                                                             4
+Y. Liu et al.                                                                                                                              Fuel 357 (2024) 129886
+
+
+
+
+Fig. 3. Voltage response curve under different loading amplitude of PEMFC with DEAC mode. (a) from 200 mA⋅cm− 2 to 600 mA⋅cm− 2, (b) from 200 mA⋅cm− 2 to
+1000 mA⋅cm− 2, (c) from 200 mA⋅cm− 2 to 1600 mA⋅cm− 2.
+
+
+                                                                                     during the reaction. Therefore, the performance of the fuel cell behaves
+                                                                                     best at pump speeds of 600 rpm after 230 s. The voltage undershoots
+                                                                                     amplitudes were 11.8 mV and 5.3 mV at pump speeds of 200 rpm and
+                                                                                     400 rpm, respectively, which alleviated gas starvation during loading.
+                                                                                     However, when the pump speed reached 600 rpm, the voltage under­
+                                                                                     shoot amplitude reached 28.8 mV, because the excessive gas flow rate in
+                                                                                     the channel carried more water vapor out of the cell, causing the
+                                                                                     membrane to be relatively dry due to insufficient water activity in the
+                                                                                     MEA. As the operating time increased and the water content in the
+                                                                                     membrane increased, the cell voltage gradually increased. It is note­
+                                                                                     worthy that there is a sudden change in voltage just before the voltage
+                                                                                     drop in fuel cells, which could be attributed to the redistribution of
+                                                                                     reactant gases and water within the MEA. However, overall, the rela­
+                                                                                     tionship between the voltage fluctuation amplitudes in fuel cells after
+                                                                                     dynamic loading can be summarized as follows: 600 rpm > 400 rpm >
+                                                                                     200 rpm. As shown in Fig. 7 (b), when the cell operates steadily for 5 min
+                                                                                     before load change, the cell performance was slightly reduced, indi­
+                                                                                     cating the existence of localized liquid water blockage inside the fuel
+                                                                                     cell. The voltage undershoot amplitude during load variation was much
+                                                                                     larger than in the previous case, reaching 97 mV, but the performance of
+                                                                                     the fuel cell quickly recovered. The results indicate that the hydration
+Fig. 4. Effect of continuous operation time on voltage response before dynamic       state of the membrane inside the fuel cell has a significant impact on the
+loading in DEAC of PEMFC.                                                            dynamic response during load variation for the dead-ended operation of
+                                                                                     hydrogen–oxygen fuel cells.
+cell.
+    The voltage response curve from 200 mA⋅cm− 2 to 1600 mA⋅cm− 2                    3.2.2. Effect of recirculation pump speed of anode side
+under different pump speeds of the cathode side was shown in Fig. 7. As                 The recirculation system is a process that transports unreacted re­
+shown in Fig. 7 (a), when the fuel cell stably operated at 200 mA⋅cm− 2              actants back to the input port, thereby minimizing the waste of re­
+for 2 min before loading, and since the cathode recirculation pump was               actants. Compared with the dead-end mode, the recirculation system
+always in operation, liquid water hardly accumulated inside the fuel                 does not require periodic purging operations, which enables more stable
+cell. Therefore, the voltage of the cell remained at around 0.84 V. When             and durable operation. Depending on the operational requirements of
+the current density was suddenly loaded to 1600 mA⋅cm− 2, the cell                   the fuel cell, the recirculation system can be installed at the cathode or
+voltage dropped, but quickly returned to a stable state.                             anode.
+    As the speed of the cathode recirculation pump increased, the steady-               Fig. 8 depicts the voltage response curve from 200 mA⋅cm− 2 to 1600
+state voltage value after loading gradually increased. This is because the           mA⋅cm− 2 under different pump speeds of the anode side. At this time,
+introduction of the cathode recirculation pump increases the gas flow                the purging valve of the cathode outlet is always in a closed state. It can
+rate inside the fuel cell, leading to the removal of liquid water generated          be seen from the results that the dynamic response of the fuel cell
+
+
+                                                                                 5
+Y. Liu et al.                                                                                                                          Fuel 357 (2024) 129886
+
+
+
+
+                                   Fig. 5. Comparison of cell polarization curves at different recirculation pump speeds.
+
+
+
+
+                                 Fig. 6. EIS at different recirculation pump speeds. (a) 1000 mA⋅cm− 2, (b) 1600 mA⋅cm− 2.
+
+
+voltage is more sensitive to the hydrogen flow rate in the anode channel.        operating time increases, the performance of the fuel cell gradually
+In other words, the higher the recirculation pump speed, the greater the         recovers.
+voltage drop. When the anode recirculation pump speed reached 200,
+400, and 600 rpm, the voltage undershoot amplitudes after load changes
+are 23.5 mV, 102.2 mV, and 166.4 mV, respectively. This is different             3.3. Mass transfer enhancement under current loading
+from the phenomenon when the recirculation pump is assembled on the
+cathode side. During the operation of the fuel cell, compared with the               During the operation of a PEMFC, activation polarization, ohmic
+rich water condition of the cathode, the water vapor content in the              polarization, and concentration polarization are the main causes of
+anode is relatively small. When the pump speed increases, the water              voltage undershoot [37]. Activation polarization and Ohmic polariza­
+vapor content brought out by convective mass transfer increases                  tion are related to the physical properties and initial conditions of the
+accordingly, leading to the deterioration of the hydration state of the          fuel cell, while concentration polarization is related to the structure and
+membrane on the anode side. The water content in the membrane                    reaction process of the fuel cell. However, concentration polarization
+cannot be replenished in time under variable loading conditions,                 can be improved by enhancing the mass transport of reactant gases and
+resulting in a large voltage undershoot amplitude. However, as the               water [38]. In addition, concentration polarization is also a major factor
+                                                                                 causing voltage undershoot during load changes in fuel cells. Currently,
+
+                                                                             6
+Y. Liu et al.                                                                                                                               Fuel 357 (2024) 129886
+
+
+
+
+Fig. 7. Voltage response curve from 200 mA⋅cm− 2 to 1600 mA⋅cm− 2 under different pump speeds of cathode side. (a) 2 min continuous operation before loading, (b)
+5 min continuous operation before loading.
+
+
+                                                                                    increasing the recirculation pump speed will increase the gas flow rate in
+                                                                                    the channel, and consequently improve the cell performance. The EIS
+                                                                                    maps at different recirculation pump speeds of the cathode side equip­
+                                                                                    ped with an obstacle channel are shown in Fig. 10. The trend of EIS
+                                                                                    curves at different current densities is almost the same, except that the
+                                                                                    polarization impedance value slightly increases at a current density of
+                                                                                    1600 mA⋅cm− 2.
+                                                                                        The voltage response curve from 200 mA⋅cm− 2 to 1600 mA⋅cm− 2
+                                                                                    under different pump speeds of the cathode side equipped with an
+                                                                                    obstacle channel is shown in Fig. 11. Firstly when the fuel cell was
+                                                                                    abruptly loaded to a current density of 1600 mA⋅cm− 2, the voltage will
+                                                                                    decrease due to gas starvation in a short period of time, and this phe­
+                                                                                    nomenon will be alleviated with an increase in the speed of the recir­
+                                                                                    culation pump. Subsequently, due to the effect of electric drag under
+                                                                                    high current density, the anode requires a large number of water mol­
+                                                                                    ecules to satisfy the combination and transmission of protons. As the
+                                                                                    water desorption rate of the proton exchange membrane is much higher
+                                                                                    than the adsorption rate, when the loading current is too large and the
+                                                                                    supply rate of the anode water cannot meet its consumption rate, anode
+                                                                                    dehydration will occur [33]. After completion of the loading, the fuel
+                                                                                    cell will operate at a high current density and reach a dynamic equi­
+Fig. 8. Voltage response curve from 200 mA⋅cm− 2 to 1600 mA⋅cm− 2 under             librium of water inside. However, when the speed of the recirculation
+different pump speeds of anode side.                                                pump is too high, the water inside the cell will be taken out in large
+                                                                                    quantities, which will be unfavorable to the wetting of the membrane
+research has found that increasing the flow rate of reactant gases and              electrode assembly. It can be seen from the results that when the speed
+adding turbulence promoters in the flow channels are effective ways to              of the recirculation pump is maintained at 400 rpm, the initial gas
+enhance mass transfer in fuel cells [39–41].                                        starvation and membrane hydration can be greatly alleviated.
+    Therefore, we designed a flow channel structure with semi-circular
+small obstacles and tested the polarization curve and dynamic perfor­
+mance of the fuel cell assembly with this obstacle channel. The com­                3.4. Performance degradation under continuous cyclic loading
+parison of cell polarization curves at different recirculation pump speeds
+of the cathode side equipped with an obstacle channel is shown in Fig. 9.               The voltage response characteristics of hydrogen–oxygen PEMFC
+At low current densities, the output power of the cells with different flow         under different configurations have been studied in the previous section.
+channel structures changes slightly. As the current density increases, the          To further investigate the tolerance of voltage degradation to different
+single cell output power with obstacle channel was significantly                    fuel cell configurations, the performance and catalyst degradation rate
+improved, especially when the current density is higher than 1000                   of cells under different gas management strategies were analyzed (Three
+mA⋅cm− 2. For a conventional straight channel, the output power of the              cases: DEAC mode, DEC with anode recirculation of 400 rpm, DEA with
+cell first increases and then decreases with the increase of current den­           cathode recirculation of 400 rpm). The cyclic loading in this study was
+sity, reaching the maximum at a current density of 1300 mA⋅cm− 2. As                achieved by changing the current density from 200 mA⋅cm− 2 to 1600
+for the fuel cell with an obstacle channel, the inflection point of the             mA⋅cm− 2. The loading time between the two current densities was 1 s,
+change in cell power begins to move towards larger current densities. It            and the loading amplitude was 1400 mA⋅cm− 2. The performance change
+can be seen that the turbulent structure in the fuel cell flow channel can          of PEMFC was analyzed by recording the output voltage. Each current
+greatly improve the mass transfer and diffusion of fuel gas, and alleviate          density was maintained for 30 s. After 500 dynamic loading cycles, the
+the concentration loss under high current density. In addition,                     performance of PEMFC was studied and compared by obtaining the
+                                                                                    polarization curve, and EIS map.
+
+                                                                                7
+Y. Liu et al.                                                                                                                                   Fuel 357 (2024) 129886
+
+
+
+
+                  Fig. 9. Comparison of cell polarization curves at different recirculation pump speeds of cathode side equipped with obstacle channel.
+
+
+
+
+                Fig. 10. EIS at different recirculation pump speeds of cathode side equipped with obstacle channel. (a) 1000 mA⋅cm− 2, (b) 1600 mA⋅cm− 2.
+
+
+    The voltage evolution under different fuel cell configurations is                   addition of cathode pump will greatly alleviate the cathode flooding, so
+shown in Fig. 12. During dynamic loading, the voltage will rapidly                      that the gas starvation in the loading process is mitigated, and the
+decrease and undershoot. The voltage undershoot is the largest when the                 amplitude of voltage drop is reduced to only about 0.05 V, as shown in
+anode is configured with a recirculation pump, reaching 0.17 V. This is                 Fig. 12 (c).
+attributed to the fact that fuel cells are more sensitive to hydrogen                       After continuous the cyclic loading experiment, the polarization
+starvation [28]. Anode exhaust gas recirculation will accelerate the flow               curve of PEMFC was recorded to characterize the performance change of
+rate of reaction gas, but will play a negative role in the diffusion of                 the cell. The MEAs test before and after the experiments were carried out
+hydrogen to GDL direction. In addition, under the DEAC mode, the                        by 850e test platform under the test conditions of Stoi An/Ca = 2/3,
+steady-state voltage will decrease with time after each cyclic loading,                 operating temperature 60℃ and back pressure 80 kPa. As shown in
+until it reaches the gas purging period. A certain amount of liquid water               Fig. 13, the output power and voltage of PEMFC significantly decrease
+will accumulate in the cathode and anode of the fuel cell in DEAC mode,                 under the DEAC operating strategy. When the current density is 1600
+which will hinder gas transmission, and the voltage will gradually                      mA⋅cm− 2, the voltage decreases from 0.444 V to 0.340 V, and the per­
+decline after several cycles of loading. Therefore, the internal water                  formance drops by 23.42%. However, when the exhaust gas recircula­
+management situation of the cell is an important influencing factor for                 tion device is installed on the cathode side of the fuel cell, the voltage
+the dynamic response characteristics of hydrogen–oxygen PEMFCs. The                     only decreases from 0.444 V to 0.428 V at a current density of 1600
+
+                                                                                    8
+Y. Liu et al.                                                                                                                               Fuel 357 (2024) 129886
+
+
+                                                                                      desorption peaks in the CV curve, [Pt] is the mass of platinum per unit
+                                                                                      area. The findings from the study reveal significant insights regarding
+                                                                                      the impact of different operating strategies on the performance of the
+                                                                                      fuel cell. To quantify the changes in ECSA during the experiment, the
+                                                                                      charge area of the hydrogen evolution peak in the CV was measured. The
+                                                                                      calculation results show that ECSA decreases from 92.36 m2⋅g− 1 to
+                                                                                      74.62 m2⋅g− 1 during the DEAC operating strategy, with a decrease rate
+                                                                                      of 19.21%. However, in the anode recirculation experiment, ECSA
+                                                                                      decreased from 92.25 m2⋅g− 1 to 85.32 m2⋅g− 1, with a decrease rate of
+                                                                                      7.51%. In the cathode recirculation experiment, ECSA decreased from
+                                                                                      92.30 m2⋅g− 1 to 90.79 m2⋅g− 1, with a decrease rate of only 1.64% in
+                                                                                      ECSA. The CV results show that the fuel cell operating in the DEAC
+                                                                                      operating strategy is more likely to cause MEA degradation, while
+                                                                                      exhaust gas recirculation can significantly alleviate gas starvation and
+                                                                                      water transfer during the cyclic loading process of the fuel cell, and the
+                                                                                      cathode recirculation is the primary mitigation strategy to be
+                                                                                      considered.
+
+                                                                                      4. Conclusions
+
+
+Fig. 11. Voltage response curve from 200 mA⋅cm− 2 to 1600 mA⋅cm− 2 under                  In this study, the dynamic characteristics of the H2/O2 PEMFC with a
+different pump speeds of cathode side equipped with obstacle channel.                 recirculation subsystem were studied. And the impact of flow channel
+                                                                                      configuration under the exhaust gas recirculation mode on cell perfor­
+mA⋅cm− 2, with a performance decrease of only 3.6%. In addition,                      mance and dynamic loading characteristics was also investigated. The
+compared with the recirculation pump equipped on the cathode side, the                conclusions are summarized as follows:
+recirculation pump equipped on the anode side causes more severe
+performance degradation of the PEMFC.                                                 1) The primary issue to be addressed during the loading process of H2/
+    To further investigate the effect of gas starvation during continuous                O2 PEMFCs operated in the DEAC mode is the blockage of the GDL
+cyclic loading of the PEMFC, Fig. 14 shows the EIS curves after the                      gas transport channel caused by accumulated liquid water. The
+experiment. The Nyquist plot shows that after the cyclic loading                         cathode recirculation pumps of 600 rpm can improve the cell per­
+experiment, the ohmic resistance, which represents the impedance of                      formance by 30.6% compared to the DEAC mode at a current density
+ion and electron transport inside the cell and the contact impedance                     of 1000 mA⋅cm− 2. However, excessive pump speed can lead to an
+between various components of the PEMFC, hardly changed. However,                        increase in voltage undershoot during the loading process.
+the polarization resistance at low frequencies varied significantly under             2) For the fuel cell with an obstacle channel, the inflection point of the
+different experimental conditions. Under a current density of 1000                       change in cell power tends to move towards larger current densities.
+mA⋅cm− 2, the impedance values corresponding to the three experi­                        The turbulent structure in the fuel cell flow channel can greatly
+mental conditions increased from 2.57 mΩ to 4.86 mΩ, 5.64 mΩ, and                        improve the mass transfer and diffusion of fuel gas during the loading
+5.88 mΩ, respectively. The increase in polarization resistance represents                process, and alleviate the concentration loss under high current
+a decline in the mass transfer capacity of the membrane electrode as­                    density.
+sembly, which is the main cause of cell performance degradation.                      3) After the continuous cyclic loading experiment, the cell performance
+    The CV curve is an important method to characterize the electro­                     with DEAC mode decreased by 23.42% at 1600 mA⋅cm− 2, and the
+chemical surface area (ECSA) of PEMFC catalysts. Fig. 15 shows the CV                    ECSA decreased by 19.21%. However, the cell performance with
+curves before and after the cyclic loading experiment. The ECSA serves                   cathode recirculation decreased by 3.6% at 1600 mA⋅cm− 2, and the
+as a quantitative measure of the effective catalytic area within the CL. It              ECSA decreased by 1.64%. The fuel cell operating in the DEAC
+can be calculated using the following formula:                                           operating strategy is more likely to cause MEA degradation, while
+                                                                                         exhaust gas recirculation can significantly alleviate gas starvation
+ECSA =
+                QH
+                                                                            (1)          and water transfer during the cyclic loading process of the fuel cell,
+           [Pt] × 0.21                                                                   and the cathode recirculation is the primary mitigation strategy to be
+                                                                                         considered.
+where QH is the charge associated with the hydrogen adsorption and
+
+
+
+
+                         Fig. 12. Voltage evolution during continuous cyclic loading. (a) DEAC mode, (b) DEC-An-400 rpm, (c) DEA-Ca-400 rpm.
+
+                                                                                  9
+Y. Liu et al.                                                                                                                           Fuel 357 (2024) 129886
+
+
+
+
+                              Fig. 13. Performance degradation of the hydrogen–oxygen PEMFC after continuous cyclic loading.
+
+
+
+
+                          Fig. 14. Comparison of EIS curves after continuous cyclic loading. (a) 1000 mA⋅cm− 2, (b) 1600 mA⋅cm− 2.
+
+
+    The present study primarily focuses on the investigation of the dy­            the efficient and stable operation of fuel cells.
+namic characteristics of hydrogen–oxygen fuel cells at the single-cell
+level. However, the dynamic behavior of the entire fuel cell stack, and            CRediT authorship contribution statement
+even the whole system, is more complex yet holds greater engineering
+value. Therefore, further research is necessary to extend the relevant               Yang Liu: . Junjie Zhao: Conceptualization. Zhengkai Tu: . Siew
+experimental exploration to the entire stack system, including issues              Hwa Chan: .
+related to the consistency between individual cells during the dynamic
+loading process of high-power stacks and the performance degradation               Declaration of Competing Interest
+mechanism of the stack. In addition, during the operation of fuel cells,
+adverse conditions such as dehydration and flooding can occur due to                   The authors declare that they have no known competing financial
+inappropriate operating conditions and loading strategies. Timely                  interests or personal relationships that could have appeared to influence
+identification and resolution of these issues are of significant importance        the work reported in this paper.
+in maintaining their excellent load-variable characteristics. Therefore,
+the next step should focus on the research of online diagnostic tech­
+niques for fuel cell and their corresponding countermeasures to ensure
+
+
+                                                                              10
+Y. Liu et al.                                                                                                                                                 Fuel 357 (2024) 129886
+
+
+
+
+                    Fig. 15. CV curves after continuous cyclic loading experiment. (a) DEAC mode, (b) DEC-An-400 rpm, (c) DEA-Ca-400 rpm.
+
+
+Data availability                                                                            [6] Liu Y, Tu Z, Chan SH. Performance Evaluation and Degradation Mechanism for
+                                                                                                 Proton Exchange Membrane Fuel Cell with Dual Exhaust Gas Recirculation. Adv
+                                                                                                 Energy Sustainability Res 2023;4(7):2200180.
+    No data was used for the research described in the article.                              [7] Liu Y, Tu Z, Chan SH. Performance analysis and dynamic characteristics of a proton
+                                                                                                 exchange membrane fuel cell with dual recirculation pumps for air-free
+Acknowledgments                                                                                  applications. J Power Sources 2023;566:232926.
+                                                                                             [8] Shen J, Du C, Yan F, et al. Experimental study on the dynamic performance of a
+                                                                                                 power system with dual air-cooled PEMFC stacks. Appl Energy 2022;326:120025.
+   This work was supported by the National Natural Science Foundation                        [9] Lin R, Ren YS, Lin XW, et al. Investigation of the internal behavior in segmented
+of China (No. 52076096) and the Knowledge Innovation Program of                                  PEMFCs of different flow fields during cold start process. Energy 2017;123:367–77.
+                                                                                            [10] Yu Y, Yuan X-Z, Li H, et al. Current mapping of a proton exchange membrane fuel
+Wuhan-Basic Research.                                                                            cell with a segmented current collector during the gas starvation and shutdown
+                                                                                                 processes. Int J Hydrogen Energy 2012;37(20):15288–300.
+References                                                                                  [11] Zhao J, Jian QF, Huang ZP. Visualization study on enhancing water transport of
+                                                                                                 proton exchange membrane fuel cells with a dead-ended anode by generating
+                                                                                                 fluctuating flow at anode compartment. Energ Conver Manage 2020;206:112477.
+ [1] Zhang G, Qu Z, Tao WQ, et al. Porous Flow Field for Next-Generation Proton
+                                                                                            [12] Weiland M, Boillat P, Oberholzer P, et al. High resolution neutron imaging for
+     Exchange Membrane Fuel Cells: Materials, Characterization, Design, and
+                                                                                                 pulsed and constant load operation of passive self-breathing polymer electrolyte
+     Challenges. Chem Rev 2023;123(3):989–1039.
+                                                                                                 fuel cells. Electrochim Acta 2013;87:567–74.
+ [2] Wilberforce T, Amiri A. Comparative study on bipolar plate geometry designs on
+                                                                                            [13] Meng K, Chen B, Zhou H, et al. Experimentally investigation on current density
+     the performance of proton exchange membrane fuel cells. Fuel 2023;346:128389.
+                                                                                                 distribution characteristics of hydrogen-oxygen proton exchange membrane fuel
+ [3] Mitra U, Arya A, Gupta S. A comprehensive and comparative review on parameter
+                                                                                                 cells under dynamic loading. J Clean Prod 2023;393:136315.
+     estimation methods for modelling proton exchange membrane fuel cell. Fuel 2023;
+                                                                                            [14] Jia F, Tian X, Liu F, et al. Oxidant starvation under various operating conditions on
+     335:127080.
+                                                                                                 local and transient performance of proton exchange membrane fuel cells. Appl
+ [4] Duan Y, Liu H, Zhang W, et al. Materials, components, assembly and performance
+                                                                                                 Energy 2023;331:120412.
+     of flexible polymer electrolyte membrane fuel cell: A review. J Power Sources
+                                                                                            [15] Zhang G, Shen S, Guo L, et al. Dynamic characteristics of local current densities and
+     2023;555:232369.
+                                                                                                 temperatures in proton exchange membrane fuel cells during reactant starvations.
+ [5] Liu Y, Tu Z, Chan SH. Water management and performance enhancement in a
+                                                                                                 Int J Hydrogen Energy 2012;37(2):1884–92.
+     proton exchange membrane fuel cell system using optimized gas recirculation
+     devices. Energy 2023;279:128029.
+
+
+
+                                                                                       11
+Y. Liu et al.                                                                                                                                                      Fuel 357 (2024) 129886
+
+[16] Wang G, Huang F, Yu Y, et al. Degradation behavior of a proton exchange                      [29] Meng K, Chen B, Zhou H, et al. Investigation on degradation mechanism of
+     membrane fuel cell stack under dynamic cycles between idling and rated condition.                 hydrogen–oxygen proton exchange membrane fuel cell under current cyclic
+     Int J Hydrogen Energy 2018;43(9):4471–81.                                                         loading. Energy 2022;242:123045.
+[17] Chu T, Xie M, Yu Y, et al. Experimental study of the influence of dynamic load cycle         [30] Chen W, Chen B, Meng K, et al. Experimental study on dynamic response
+     and operating parameters on the durability of PEMFC. Energy 2022;239:122356.                      characteristics and performance degradation mechanism of hydrogen-oxygen
+[18] Chu T, Wang Q, Xie M, et al. Investigation of the reversible performance                          PEMFC during loading. Int J Hydrogen Energy 2023;48(12):4800–11.
+     degradation mechanism of the PEMFC stack during long-term durability test.                   [31] Fan L, Xing L, Tu Z, et al. A breakthrough hydrogen and oxygen utilization in a
+     Energy 2022;258:124747.                                                                           H2–O2 PEMFC stack with dead-ended anode and cathode. Energ Conver Manage
+[19] Zhong D, Lin R, Liu D, et al. Structure optimization of anode parallel flow field for             2021;243:114404.
+     local starvation of proton exchange membrane fuel cell. J Power Sources 2018;403:            [32] Alizadeh E, Khorshidian M, Saadat SHM, et al. The experimental analysis of a dead-
+     1–10.                                                                                             end H2/O2 PEM fuel cell stack with cascade type design. Int J Hydrogen Energy
+[20] Jia F, Guo L, Liu H. Mitigation strategies for hydrogen starvation under dynamic                  2017;42(16):11662–72.
+     loading in proton exchange membrane fuel cells. Energ Conver Manage 2017;139:                [33] Huang Z, Shen J, Chan SH, et al. Transient response of performance in a proton
+     175–81.                                                                                           exchange membrane fuel cell under dynamic loading. Energ Conver Manage 2020;
+[21] Bai X, Jian Q, Huang B, et al. Hydrogen starvation mitigation strategies during the               226:113492.
+     start-up of proton exchange membrane fuel cell stack. J Power Sources 2022;520:              [34] Celik E, Karagoz I. Investigation of the effects of intermediate reservoirs and
+     230809.                                                                                           intermediate feedings applications on the performance of proton exchange
+[22] Wang Y, Li H, Feng H, et al. Simulation study on the PEMFC oxygen starvation                      membrane fuel cells. Fuel 2023;339:126975.
+     based on the coupling algorithm of model predictive control and PID. Energ Conver            [35] Zhao L, Yuan H, Xie J, et al. Inconsistency evaluation of vehicle-oriented fuel cell
+     Manage 2021;249.                                                                                  stacks based on electrochemical impedance under dynamic operating conditions.
+[23] Ding R, Zhang S, Chen Y, et al. Application of Machine Learning in Optimizing                     Energy 2023;265:126162.
+     Proton Exchange Membrane Fuel Cells: A Review. Energy and AI 2022;9:100170.                  [36] Xia ZF, Chen HC, Shan WC, et al. Behavior of current distribution evolution under
+[24] Wang J, Jiang H, Chen G, et al. Integration of multi-physics and machine learning-                reactant starvation conditions based on a single polymer electrolyte membrane fuel
+     based surrogate modelling approaches for multi-objective optimization of                          cell (PEMFC) with triple-serpentine flow field: An experimental study. Int J
+     deformed GDL of PEM fuel cells. Energy and AI 2023;14:100261.                                     Hydrogen Energy 2023;48(36):13650–68.
+[25] Wang J, Ding R, Cao F, et al. Comparison of state-of-the-art machine learning                [37] Xu L, Fang C, Li J, et al. Nonlinear dynamic mechanism modeling of a polymer
+     algorithms and data-driven optimization methods for mitigating nitrogen crossover                 electrolyte membrane fuel cell with dead-ended anode considering mass transport
+     in PEM fuel cells. Chem Eng J 2022;442:136064.                                                    and actuator properties. Appl Energy 2018;230:106–21.
+[26] Wang B, Yang Z, Ji M, et al. Long short-term memory deep learning model for                  [38] Moein-Jahromi M, Kermani MJ. Three-dimensional multiphase simulation and
+     predicting the dynamic performance of automotive PEMFC system. Energy and AI                      multi-objective optimization of PEM fuel cells degradation under automotive cyclic
+     2023;14:100278.                                                                                   loads. Energ Conver Manage 2021;231:113837.
+[27] Rui Z, Ding R, Hua K, et al. Design of proton exchange membranes with high                   [39] Shen J, Tu Z. Flow channel design in a proton exchange membrane fuel cell: From
+     durability for fuel cells: From the perspective of machine learning. J Membr Sci                  2D to 3D. Int J Hydrogen Energy 2022;47(5):3087–98.
+     2023;683:121831.                                                                             [40] Shen J, Tu ZK, Chan SH. Performance enhancement in a proton exchange
+[28] Meng K, Chen B, Zhou H, et al. Experimental investigation on voltage response                     membrane fuel cell with a novel 3D flow field. Appl Therm Eng 2020;164:114464.
+     characteristics of hydrogen-oxygen proton exchange membrane fuel cells under gas             [41] Shen J, Tu Z, Chan SH. Evaluation criterion of different flow field patterns in a
+     starvation. Energ Conver Manage 2022;268:115973.                                                  proton exchange membrane fuel cell. Energ Conver Manage 2020;213:112841.
+
+
+
+
+                                                                                             12
+

@@ -19,7 +19,7 @@
 7. Route A 默认参数必须来自 `platform_default` 语义，即官方案例、文献量级和工程经验自洽匹配；功率等级迁移采用 `scaling_rule`；10 kW 台架、DQ60、旧标定结果和公司临时资料均不得作为默认参数真源。
 8. “剥离”不是剥离 MathWorks 官方案例、官方库块或官方示例参数；恰恰相反，Route A 应优先复用官方系统级 PEMFC 案例、官方组件和官方 solver/工作区设置。手工自建只用于 cEGR 特有支路、接口补丁和官方资产覆盖不到的最小必要部分。
 
-9. 当前 Route A 处于“工程化系统模型规格与资产治理”阶段。进入新的 `.slx` 结构或保真度改动前，先以 `04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md` 和 `RouteA_cEGR_PEMFC_实施与验证路线_v01.md` 为当前规划真源；A6-A10、A11/A12 等阶段编号仅保留为历史实现证据或候选配置，不构成当前硬性推进顺序。
+9. 当前 Route A 处于“工程化系统模型规格与资产治理”阶段。进入新的 `.slx` 结构或保真度改动前，先以 `04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md` 作为规划真源，并以同目录按日期/阶段分卷的实施记录作为变更证据；A6-A10、A11/A12 等阶段编号仅保留为历史实现证据或候选配置，不构成当前硬性推进顺序。
 10. 对 Route A，工程化目标是形成可复用的系统集成平台，而非立即宣称为产品数字孪生。每个 BOP 模块必须明确其官方物理复用、L2 接口、待标定或产品替换状态；不得把长期高保真目标误解为单轮建模的强制范围。
 
 ## 目录职责
@@ -74,11 +74,18 @@
 4. 两个 agent 同时用 MATLAB 时必须打开两个 GUI；Codex 只 attach 命令窗口显示 `CODEX` 的 MCP session，不复用 Claude session。
 5. Codex 和 Claude 使用不同 MCP session 根目录，因为 `shareMATLABSession()` 会在根目录下写单个 `sessionDetails.json`。Codex 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Codex`，Claude 为 `C:\Users\ADMIN\AppData\Roaming\MATLABMCP-Claude`；`startup.m` 通过 `register_agent_matlab_mcp_session.m` 写入对应根目录，不修改 MATLAB 的 `APPDATA`。
 6. 客户端配置或启动脚本更新后，应重启或刷新 agent 客户端/session，让正式 MCP 工具重新加载。不要把临时 MCP 探针脚本当作常规工作流。
-7. MATLAB MCP 默认采用 existing session attach；若工具未暴露或 attach 失败，先修复会话/配置，不用 `matlab.exe -batch` 冒充 MCP 交互链路。batch 只用于可脱离 agent 的长时间脚本任务，结束后再由 agent 读取结果并审计。
-8. 预计可能超过 agent 交互超时的 MATLAB/Simulink 计算，默认由用户在已打开的 MATLAB GUI 命令窗口执行。agent 必须先提供可直接粘贴的命令、输入输出契约、预期结果变量或文件、完成判据，以及简短的事后读取或审计命令；不得通过 MCP 启动后阻塞等待、轮询，或因工具超时而中断计算。
-9. 用户确认长计算完成后，agent 只读取约定的结果摘要、KPI、失败栈或输出文件继续审计。除非用户明确要求，不得重复运行同一长计算，也不得以缩短正式工况、减少案例或降低精度替代正式结果。
+7. MATLAB MCP 默认采用 existing session attach；若工具未暴露或 attach 失败，先修复会话/配置，不用 `matlab.exe -batch` 冒充 MCP 交互链路。batch 只用于已通过下述长任务门禁、且确实可脱离 agent 交互的固定脚本任务，结束后再由 agent 读取结果并审计。
+8. “可能超过 agent 交互超时”不是用户交接条件；完整准入条件见下方“MATLAB GUI 离线长任务门禁”。不得通过 MCP 启动后阻塞等待、轮询，或因工具超时而中断计算。
+9. v10 低负载物理热初态的生成、三分支提升、兼容性审计和必要短 smoke 属于当前阶段的必要实现任务，由 agent 自己完成；不得仅因预计耗时较长就交给用户。用户 GUI 交接只适用于已通过上一条门禁的正式大规模研究任务。
+10. 用户确认长计算完成后，agent 只读取约定的结果摘要、KPI、失败栈或输出文件继续审计。除非用户明确要求，不得重复运行同一长计算，也不得以缩短正式工况、减少案例或降低精度替代正式结果。
 
 ## 工作流选择规则
+
+### MATLAB GUI 离线长任务门禁
+
+“可能超过 agent 交互超时”不是用户交接条件。只有同时满足以下条件，才允许把 MATLAB/Simulink 任务交给用户在 MATLAB GUI 命令窗口离线执行：流程、输入输出契约和验收判据已经固定；agent 已使用同一模型、参数链和求解器设置亲自完成代表性 case 的端到端运行并确认无 MATLAB/Simulink 报错；预计运行约 `30 min` 以上或数小时，且通常涉及 `10` 个以上工况或等量级正式矩阵/敏感性扫描；命令无需用户临时改脚本即可粘贴执行。Code Analyzer、`model_check` 或脚本装配无报错不能替代亲自运行证据。未同时满足这些条件时，由 agent 继续执行或拆分为 agent 可验证的步骤，不得以超时为由转交。
+
+v10 低负载物理热初态的生成、Current/Power/Voltage 三分支提升、兼容性审计和必要短 smoke 属于当前实施任务，由 agent 自己完成；GUI 交接只适用于已通过上述门禁的正式大规模研究任务。
 
 1. 纯 Simulink 系统建模、控制策略、参数扫描、数据处理、结果审计，走 `agent-matlab/simulink`。
 2. 纯 COMSOL 建模、结构核查、组件重建、几何与物理场配置、边界条件与求解器检查，走 `agent-comsol`。

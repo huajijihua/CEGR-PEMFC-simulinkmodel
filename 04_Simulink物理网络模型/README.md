@@ -4,6 +4,16 @@
 
 本目录只保存 Route A 官方 Gas Mixture PEMFC 派生平台的活动资产。唯一当前模型为 `01_模型/RouteA_GasMixture_Derived/PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`；任何 I/P/V、电气边界或 cEGR 工况均在该模型内切换，不创建第二个系统模型。
 
+2026-07-24 起增加一套平台重置规格草案，用于重新收敛系统边界、参数层、`u/w/y/z` 接口、单一内部 `I_cmd` 和分层验证顺序。在该规格包完成审阅前，不继续扩大当前 `.slx` 的结构。2026-07-25 起，模型版本选择以[模型裁决与资产处置](04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)为准，实施顺序以[收敛实施路线图](04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)为准：
+
+- [模型裁决与资产处置](04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)
+- [收敛实施路线图](04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)
+- [平台系统规格](04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_Platform_system_v01.md)
+- [平台架构规格](04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_Platform_architecture_v01.md)
+- [平台实施计划](04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_Platform_implementation-plan_v01.md)
+- [平台测试计划](04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_Platform_test-plan_v01.md)
+- [当前资产审计](04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_Platform_current-audit_20260724_v01.md)
+
 | 目录 | 当前职责 |
 |---|---|
 | `01_模型/RouteA_GasMixture_Derived/` | 唯一 `.slx`、平台默认参数脚本和正式初态包。 |
