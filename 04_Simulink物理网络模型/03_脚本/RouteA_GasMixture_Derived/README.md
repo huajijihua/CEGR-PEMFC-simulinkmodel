@@ -13,6 +13,7 @@
 | 结果审计 | routeA_assess_electrical_boundary_outputs.m、routeA_stage1_cathode_gas_closure_from_outputs.m、routeA_stage1_water_ledger_from_outputs.m | 提取电边界、气相闭合、cEGR、设备控制和水账本 KPI。 |
 | 初态维护 | routeA_generate_platform_default_initial_state.m、routeA_prepare_parameter_consistent_initial_state.m、routeA_attach_platform_default_initial_state.m、routeA_promote_platform_default_initial_state_bundle.m | 生成、校验、挂载和提升统一的 Current/Power/Voltage 初态资产。 |
 | 共享读回 | routeA_block_paths.m、routeA_simscape_log_mea.m、routeA_stack_electrical_power_timeseries.m、routeA_restore_model_and_folder.m | 提供模型路径、Simscape log、功率时序和环境恢复辅助。 |
+| 输入规范 | routeA_simCase_template.m | 返回标准化 simCase 结构体模板（含所有默认值），用于统一研究输入格式。 |
 
 routeA_generate_platform_default_initial_state 无参数时继续生成 Current 候选；通过 userCfg.loadInputType = "Current"|"Power"|"Voltage" 选择其他分支。Power/Voltage 仍要求通过 v09 Current 源初态校验，并保留既有候选 MAT 文件名和 metadata 语义。
 
