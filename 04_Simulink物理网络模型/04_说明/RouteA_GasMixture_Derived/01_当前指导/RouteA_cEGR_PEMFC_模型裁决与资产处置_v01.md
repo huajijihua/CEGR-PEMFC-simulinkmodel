@@ -1,7 +1,7 @@
 # Route A cEGR-PEMFC 模型裁决与资产处置
 
 文件类型：模型裁决记录（当前决策真源）  
-日期：2026-07-25  
+日期：2026-07-27（S2/S3 稳态验证完成后更新）  
 适用范围：当前工作树内的官方 Gas Mixture PEMFC 资产、三个 Route A 模型版本、活动脚本、初态包和 v09 结果。
 
 ## 1. 裁决摘要
@@ -12,7 +12,9 @@
 
 官方 MathWorks Gas Mixture PEMFC 示例和 `FuelCell_lib` 组件作为不可变参考内核；cEGR、BOP 接口、观测和平台脚本在该主模型上收敛。`RouteA_v2` 不继续作为第二条主线，而是作为当前收敛工作的隔离验证副本，只有经过读回、结构检查和最小仿真验证的局部脚本改进才允许回迁。`RouteA_before`、旧 Route B、旧台架模型和历史 runner 全部降级为证据或外部案例，不进入默认 MATLAB path、默认参数链或默认验收标准。
 
-当前不裁决“继续增加功能”，而裁决“先恢复可解释、可初始化、可验证的最小 plant”。在 Source_Conditioner 端口闭合、冷态初始条件和 warning ledger 未通过前，不扩大 cEGR 控制、液水、整车接口或正式矩阵。
+当前不裁决”继续增加功能”，而裁决”先恢复可解释、可初始化、可验证的最小 plant”。在 Source_Conditioner 端口闭合、冷态初始条件和 warning ledger 未通过前，不扩大 cEGR 控制、液水、整车接口或正式矩阵。
+
+**更新（2026-07-27）：** Source_Conditioner 已删除（恢复官方供气路径），S2 冷态 smoke 四个 case 全部通过，S3 稳态验证（恒电流/恒功率/恒电压 + cEGR 矩阵 + 入口组分控制）全部完成。当前状态已通过 Gate 1/2/3 门槛，但仍需生成 v10 正式初态包才能使用正式 runner 链。
 
 ## 2. 资产证据与版本关系
 
@@ -40,7 +42,9 @@
 4. 将 Current、Power、Voltage 统一映射到一个内部 `I_cmd`，不复制 plant 拓扑；
 5. 将参数、命令、初态和结果审计分层。
 
-### 3.2 Route A v2：验证副本，不是第二平台
+### 3.2 Route A v2：已归档的验证副本
+
+**更新（2026-07-27）：** 随 S2/S3 验证完成，RouteA_v2 验证副本连同 RouteA_before 快照一并归档至 `99_历史归档/2026-07-27_RouteA_before_and_v2_archived/`。v2 不再作为活动资产或并行验证平台。
 
 v2 允许承载冷态模式选择、局部 M/Phi 观测闭合和脚本兼容性实验，但必须满足以下条件才可回迁：
 
@@ -49,7 +53,7 @@ v2 允许承载冷态模式选择、局部 M/Phi 观测闭合和脚本兼容性�
 - 变更回迁到主模型后重新生成正式 v10 初态并重新跑 Gate 2；
 - v2 不产生独立的正式结果品牌、独立参数真源或独立 runner。
 
-若 v2 与主模型发生结构分叉，保留差异说明后立即停止并重新裁决，不允许两套模型并行“各自修复”。
+若 v2 与主模型发生结构分叉，保留差异说明后立即停止并重新裁决，不允许两套模型并行”各自修复”。
 
 ### 3.3 `RouteA_before` 和其他旧路线：历史/外部案例
 
@@ -79,6 +83,12 @@ plant 内只保留一个 `I_cmd`。用户侧 Current/Power/Voltage 仅是命令�
 
 允许继续的工作：只读审计、文献映射、参数来源清单、warning ledger、官方结构对照、最小端口修复设计和小规模验证。
 
+**更新（2026-07-27）：** S2/S3 验证已完成，当前允许继续以下工作：
+- 生成 v10 正式初态包（Current/Power/Voltage 三分支）并通过 Gate 4 动态验证；
+- 进入 S6 cEGR 研究扩展（回流比扫描、负载动态等）；
+- 将 22 列 profile 收缩为结构体 case 配置；
+- 收缩脚本入口为统一 runner 链。
+
 必须停止并重新裁决的情况：
 
 1. 需要再复制一个 `.slx` 或 runner 才能表达新工况；
@@ -89,10 +99,10 @@ plant 内只保留一个 `I_cmd`。用户侧 Current/Power/Voltage 仅是命令�
 
 ## 6. 关联文件
 
-- [当前资产审计](RouteA_cEGR_PEMFC_Platform_current-audit_20260724_v01.md)
+- [当前资产审计](../03_审计与研究/RouteA_cEGR_PEMFC_Platform_current-audit_20260724_v01.md)
 - [平台系统规格](RouteA_cEGR_PEMFC_Platform_system_v01.md)
 - [平台架构规格](RouteA_cEGR_PEMFC_Platform_architecture_v01.md)
 - [收敛实施路线图](RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)
 - [平台实施计划](RouteA_cEGR_PEMFC_Platform_implementation-plan_v01.md)
 - [平台测试计划](RouteA_cEGR_PEMFC_Platform_test-plan_v01.md)
-- [CEGR 文献研究与模型映射](RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)
+- [CEGR 文献研究与模型映射](../03_审计与研究/RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)

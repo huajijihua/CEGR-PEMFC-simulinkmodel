@@ -1,8 +1,8 @@
 # RouteA cEGR-PEMFC Platform Architecture v01
 
-文件类型：平台架构规格（重置草案）  
-日期：2026-07-24  
-前置文档：[系统规格](RouteA_cEGR_PEMFC_Platform_system_v01.md)、[CEGR 文献研究与模型映射](RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)
+文件类型：平台架构规格（已通过 S2/S3 验证）  
+日期：2026-07-24（初稿）；2026-07-27（更新：S2/S3 验证完成）  
+前置文档：[系统规格](RouteA_cEGR_PEMFC_Platform_system_v01.md)、[CEGR 文献研究与模型映射](../03_审计与研究/RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)
 
 ## 1. 架构原则
 
@@ -71,7 +71,7 @@ Cathode Exhaust Chamber
     -> Cathode Inlet Mixer
 ```
 
-默认路径必须保留排气支路，不能用强制质量流源把尾气流量直接写成 cEGR 实际流量。若后续研究主动循环泵，必须建立独立的 `Active_cEGR` 配置，明确泵功率、源边界和压差语义，不与被动阀路径混用。该边界来自 CEGR 文献中“增湿/氧稀释/排水/寄生功耗”之间的共同权衡，详见[文献研究与模型映射](RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)。
+默认路径必须保留排气支路，不能用强制质量流源把尾气流量直接写成 cEGR 实际流量。若后续研究主动循环泵，必须建立独立的 `Active_cEGR` 配置，明确泵功率、源边界和压差语义，不与被动阀路径混用。该边界来自 CEGR 文献中“增湿/氧稀释/排水/寄生功耗”之间的共同权衡，详见[文献研究与模型映射](../03_审计与研究/RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)。
 
 若研究需要以回流比、氧分压或电压作为上层目标，控制器必须把目标转换为阀开度、泵速、背压或其他实际执行器命令；不得把目标值直接写成回流质量流量或回流组分。定义：
 

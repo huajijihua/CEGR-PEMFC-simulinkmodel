@@ -1,8 +1,8 @@
 # RouteA cEGR-PEMFC Platform System Specification v01
 
-文件类型：平台系统规格（重置草案）  
-日期：2026-07-24  
-状态：待用户审阅；本文件包冻结前，不改变当前活动 `.slx` 的结构。RouteA_v2 先经过 CEGR 文献证据门，再决定结构收敛方式。
+文件类型：平台系统规格  
+日期：2026-07-24（初稿）；2026-07-27（更新：S2/S3 验证完成，补充当前状态）  
+状态：已通过 S2/S3 验证，当前指导真源。S2 冷态 smoke 四个 case 全部通过，S3 恒电流/恒功率/恒电压 + cEGR 矩阵 + 入口组分控制全部完成。本规格的边界和接口已在当前模型中验证可行。
 
 本文件包用于重新定义 Route A 的平台目标。它不是回退到官方案例重新建模，而是以官方案例、CEGR 文献和当前 RouteA 资产为三方输入，形成 RouteA_v2 的证据保留式重构边界。上一轮 Stage 1、v09、v10 或 I/P/V 迁移结果仍保留在实施记录和历史结果中，作为可追溯证据。
 
@@ -109,5 +109,5 @@ Route A 不因未来需要 L3 就在当前 L2 模型中提前加入无法验证�
 - [架构规格](RouteA_cEGR_PEMFC_Platform_architecture_v01.md)：定义模型自然边界和接口；
 - [实施计划](RouteA_cEGR_PEMFC_Platform_implementation-plan_v01.md)：定义从当前资产到新平台的最小实施顺序；
 - [测试计划](RouteA_cEGR_PEMFC_Platform_test-plan_v01.md)：定义分层验证和量化验收；
-- [CEGR 文献研究与模型映射](RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)：定义文献机制、变量口径、RouteA 资产处置和 RouteA_v2 准入门；
-- [当前资产审计](RouteA_cEGR_PEMFC_Platform_current-audit_20260724_v01.md)：记录本次读回的模型、脚本和失败证据。
+- [CEGR 文献研究与模型映射](../03_审计与研究/RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)：定义文献机制、变量口径、RouteA 资产处置和 RouteA_v2 准入门；
+- [当前资产审计](../03_审计与研究/RouteA_cEGR_PEMFC_Platform_current-audit_20260724_v01.md)：记录本次读回的模型、脚本和失败证据。

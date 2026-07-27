@@ -3,7 +3,7 @@
 文件类型：实施记录（增量维护；当前分卷活动）  
 记录日期：2026-07-22；增量更新：2026-07-24  
 核对对象：Current、Power、Voltage 三种电边界、单 study 互斥门禁、气路控制权限及初态/求解器合同  
-当前规划真源：[RouteA_cEGR_PEMFC_工程化建模规格_v01.md](RouteA_cEGR_PEMFC_工程化建模规格_v01.md)
+当前决策和路线入口：[模型裁决与资产处置](../../01_当前指导/RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)、[收敛实施路线图](../../01_当前指导/RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)
 
 ## 0. 用户要求归纳：Stage 1 长要求的短合同
 
@@ -81,7 +81,7 @@
 - `FCU_BoP_Control` 以总压缩机入口流量为分母，对 cEGR 实际流量执行目标比值控制，输出阀面积命令、限幅命令、控制误差和实际比值。
 - 阳极含氢源、减压阀、阳极加湿器、基于堆电流的回流前馈和 N2 Relay 吹扫链；实际阳极流量、回流量和吹扫流量由物理网络响应。
 
-统一入口 `[routeA_prepare_electrical_boundary_input.m](../../03_脚本/RouteA_GasMixture_Derived/routeA_prepare_electrical_boundary_input.m)` 现将下列控制域装配为 22 列 `RouteA_Command_Profile_v10`；所有连续标量默认保持基准 `0.5 s` 后以 `60 s` 斜坡进入目标：
+统一入口 `[routeA_prepare_electrical_boundary_input.m](../../../../03_脚本/RouteA_GasMixture_Derived/routeA_prepare_electrical_boundary_input.m)` 现将下列控制域装配为 22 列 `RouteA_Command_Profile_v10`；所有连续标量默认保持基准 `0.5 s` 后以 `60 s` 斜坡进入目标：
 
 | 控制域 | 主动设置字段 | 随动响应或限制 |
 |---|---|---|

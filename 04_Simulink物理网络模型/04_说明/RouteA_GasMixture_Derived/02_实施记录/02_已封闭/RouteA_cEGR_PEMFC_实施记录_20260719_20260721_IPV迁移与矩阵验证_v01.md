@@ -2,9 +2,9 @@
 
 文件类型：实施记录（增量维护；本卷已封闭）  
 记录范围：2026-07-19 至 2026-07-21  
-当前规划真源：[RouteA_cEGR_PEMFC_工程化建模规格_v01.md](RouteA_cEGR_PEMFC_工程化建模规格_v01.md)
+当前决策和路线入口：[模型裁决与资产处置](../../01_当前指导/RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)、[收敛实施路线图](../../01_当前指导/RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)
 
-本卷记录统一 Current/Power/Voltage profile、输入装配、初态匹配和正式研究协议形成前后的阶段证据。拆分前的完整历史细节保存在 [原始增量总记录](../../../99_历史归档/2026-07-22_Stage1_Implementation_Record_Split/RouteA_cEGR_PEMFC_实施与验证路线_v01_原始增量总记录.md)。
+本卷记录统一 Current/Power/Voltage profile、输入装配、初态匹配和正式研究协议形成前后的阶段证据。拆分前的完整历史细节保存在 [原始增量总记录](../../../../../99_历史归档/2026-07-22_Stage1_Implementation_Record_Split/RouteA_cEGR_PEMFC_实施与验证路线_v01_原始增量总记录.md)。
 
 ## 1. 通用运行合同
 

@@ -1,10 +1,10 @@
 # RouteA cEGR-PEMFC Platform Implementation Plan v01
 
-文件类型：平台实施计划（重置草案）  
-日期：2026-07-24  
+文件类型：平台实施计划  
+日期：2026-07-24（初稿）；2026-07-27（更新：S2/S3 验证完成）  
 前置文档：[模型裁决与资产处置](RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)、[收敛实施路线图](RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)、[系统规格](RouteA_cEGR_PEMFC_Platform_system_v01.md)、[架构规格](RouteA_cEGR_PEMFC_Platform_architecture_v01.md)
 
-本文件是低层实施拆解；阶段顺序、模型版本裁决和停止条件以[收敛实施路线图](RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)为准。当前状态仍停在规格/审计准入，未授权以本计划名义继续扩大 `.slx` 结构。
+本文件是低层实施拆解；阶段顺序、模型版本裁决和停止条件以[收敛实施路线图](RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)为准。当前状态：S0/S1/S2/S3 已完成，S4 待推进。
 
 ## 1. 实施总原则
 
@@ -12,7 +12,7 @@
 
 当前 dirty worktree、v09 正式结果和 v10 局部结构全部保留。它们不被回滚或覆盖；在规格冻结前不进行新的 `.slx` 结构编辑。
 
-## 2. Phase 0：冻结接口和处置现状
+## 2. Phase 0：冻结接口和处置现状 — ✅ 已完成
 
 **出口条件：** 用户确认本规格包的边界、单一内部 `I_cmd`、cEGR 被动默认语义、参数层和验证顺序。
 
@@ -23,11 +23,11 @@
 3. 将 v09 三组 formal MAT 标记为冻结历史/回归证据，不作为新平台结构或 v10 初态证明；
 4. 建立参数清单：每个参数记录名称、单位、源、适用范围、写入层和使用块；
 5. 建立 warning ledger：区分工具 read-back 误报、合法接口端口、实际未连接端口和模型级错误；
-6. 读取并确认 [CEGR 文献研究与模型映射](RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md) 的 Phase 0.5 出口条件。
+6. 读取并确认 [CEGR 文献研究与模型映射](../03_审计与研究/RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md) 的 Phase 0.5 出口条件。
 
-## 3. Phase 0.5：CEGR 文献证据与模型映射
+## 3. Phase 0.5：CEGR 文献证据与模型映射 — ✅ 已完成
 
-此阶段是 RouteA_v2 的结构修改准入门，优先级高于任何 `.slx` 重构。具体证据矩阵、论文精读和接口口径见 [CEGR 文献研究与模型映射](RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)。
+此阶段是 RouteA_v2 的结构修改准入门，优先级高于任何 `.slx` 重构。具体证据矩阵、论文精读和接口口径见 [CEGR 文献研究与模型映射](../03_审计与研究/RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)。
 
 必须完成：
 
@@ -40,9 +40,9 @@
 
 **出口条件：** 用户确认文献证据矩阵、首个用例、变量口径和当前资产处置表；在此之前不进行大规模结构修改。
 
-## 4. Phase 1：RouteA_v2 证据保留式结构收敛
+## 4. Phase 1：RouteA_v2 证据保留式结构收敛 — ✅ 已完成
 
-目标是在保留当前 RouteA 已完成的官方派生、CEGR 主气路、BOP、控制、runner 和观测资产的前提下，收敛未闭合的接口和执行器语义，使现有模型成为“当前 RouteA 气路 + 官方物理组件 + 文献约束的验证工况”的可解释状态。此阶段不是重建官方案例，也不是把当前模型整体替换成另一个模型。
+目标是在保留当前 RouteA 已完成的官方派生、CEGR 主气路、BOP、控制、runner 和观测资产的前提下，收敛未闭合的接口和执行器语义，使现有模型成为”当前 RouteA 气路 + 官方物理组件 + 文献约束的验证工况”的可解释状态。此阶段不是重建官方案例，也不是把当前模型整体替换成另一个模型。
 
 1. 保留官方 MEA、阳极/阴极气体域、热端、加湿器、排气、背压和已验证的当前 RouteA 控制/观测资产；
 2. 对当前 Source_Conditioner 逐端口读回并按物理职责处置，不用 Terminator 掩盖物理端口缺失，也不在尚未解释前直接整体删除；

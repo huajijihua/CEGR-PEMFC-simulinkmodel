@@ -19,7 +19,7 @@
 7. Route A 默认参数必须来自 `platform_default` 语义，即官方案例、文献量级和工程经验自洽匹配；功率等级迁移采用 `scaling_rule`；10 kW 台架、DQ60、旧标定结果和公司临时资料均不得作为默认参数真源。
 8. “剥离”不是剥离 MathWorks 官方案例、官方库块或官方示例参数；恰恰相反，Route A 应优先复用官方系统级 PEMFC 案例、官方组件和官方 solver/工作区设置。手工自建只用于 cEGR 特有支路、接口补丁和官方资产覆盖不到的最小必要部分。
 
-9. 当前 Route A 处于“工程化系统模型规格与资产治理”阶段。进入新的 `.slx` 结构或保真度改动前，先以 `04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_工程化建模规格_v01.md` 作为规划真源，并以同目录按日期/阶段分卷的实施记录作为变更证据；A6-A10、A11/A12 等阶段编号仅保留为历史实现证据或候选配置，不构成当前硬性推进顺序。
+9. 当前 Route A 已完成 S0-S3 阶段（决策冻结、物理边界收敛、最小 plant、参数与控制收敛），进入 S4 待推进阶段。进入新的 `.slx` 结构或保真度改动前，先以 `04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/01_当前指导/RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md` 和 `04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/01_当前指导/RouteA_cEGR_PEMFC_收敛实施路线图_v01.md` 作为当前决策与路线真源，并以 `04_说明/RouteA_GasMixture_Derived/02_实施记录/01_当前分卷/` 作为变更证据。RouteA_before 和 RouteA_v2 已归档至 `99_历史归档/2026-07-27_RouteA_before_and_v2_archived/`，不再作为活动资产。旧 `RouteA_cEGR_PEMFC_工程化建模规格_v01.md` 已移入 `99_历史归档/2026-07-25_RouteA_说明整理/`，不再作为当前规划真源。A6-A10、A11/A12 等阶段编号仅保留为历史实现证据或候选配置，不构成当前硬性推进顺序。
 10. 对 Route A，工程化目标是形成可复用的系统集成平台，而非立即宣称为产品数字孪生。每个 BOP 模块必须明确其官方物理复用、L2 接口、待标定或产品替换状态；不得把长期高保真目标误解为单轮建模的强制范围。
 
 ## 目录职责

@@ -290,4 +290,4 @@ RouteA_v2 使用以下来源标签，不允许把文献值无标签写进默认�
 
 - `00_支撑材料/RouteA_材料池与模型候选比较_v01.md`
 - `04_Simulink物理网络模型/01_模型/RouteA_GasMixture_Derived/PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx`
-- `04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/RouteA_cEGR_PEMFC_Platform_current-audit_20260724_v01.md`
+- `04_Simulink物理网络模型/04_说明/RouteA_GasMixture_Derived/03_审计与研究/RouteA_cEGR_PEMFC_Platform_current-audit_20260724_v01.md`
