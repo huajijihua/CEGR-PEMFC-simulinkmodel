@@ -20,6 +20,12 @@ function simCase = routeA_validate_case(simCase)
 %
 % See also: routeA_simCase_template, routeA_platform_default_parameters
 
+%% Reject explicit partial Voltage controller overrides before defaults fill.
+% A basic-mode case may omit the controller and inherit platform defaults. An
+% explicit controller struct, however, is an intentional override and must
+% be complete; silently filling only part of it can hide a malformed case.
+validateExplicitVoltageController(simCase);
+
 %% Fill defaults from template (preserves caller overrides)
 template = routeA_simCase_template();
 simCase = fillDefaults(simCase, template);
@@ -143,5 +149,38 @@ if mode == "Voltage"
     % Range validation for PI gains (only checked in Voltage mode)
     validatePositive(vc.Kp_A_V, 'voltageController.Kp_A_V');
     validatePositive(vc.Ki_A_V_s, 'voltageController.Ki_A_V_s');
+end
+end
+
+function validateExplicitVoltageController(simCase)
+if ~isstruct(simCase) || ~isfield(simCase, 'controls') || ...
+        ~isstruct(simCase.controls) || ...
+        ~isfield(simCase.controls, 'electrical') || ...
+        ~isstruct(simCase.controls.electrical) || ...
+        ~isfield(simCase.controls.electrical, 'mode')
+    return;
+end
+if string(simCase.controls.electrical.mode) ~= "Voltage"
+    return;
+end
+if ~isfield(simCase.controls.electrical, 'voltageController')
+    return;
+end
+
+controller = simCase.controls.electrical.voltageController;
+if isempty(controller)
+    error('RouteA:ValidateElectricalMutex', ...
+        'Voltage mode requires electrical.voltageController struct.');
+end
+if ~isstruct(controller) || ~isscalar(controller)
+    error('RouteA:ValidateElectricalMutex', ...
+        'electrical.voltageController must be a scalar struct.');
+end
+required = {'Kp_A_V', 'Ki_A_V_s', 'currentMin_A', 'currentMax_A'};
+missing = required(~isfield(controller, required));
+if ~isempty(missing)
+    error('RouteA:ValidateElectricalMutex', ...
+        'Voltage controller is missing field(s): %s.', ...
+        strjoin(missing, ', '));
 end
 end

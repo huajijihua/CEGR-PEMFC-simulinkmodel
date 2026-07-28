@@ -17,7 +17,7 @@ paths.electricalLoad = [paths.control '/Electrical Load'];
 paths.currentDemand = [paths.electricalLoad '/Inputs/Current Demand'];
 paths.currentCommand = [paths.currentDemand '/Current Demand'];
 paths.powerDemand = [paths.electricalLoad '/Inputs/Power Demand'];
-paths.powerCurrentCommand = [paths.powerDemand '/PS-Simulink Converter1'];
+paths.powerCommand = [paths.powerDemand '/From Workspace'];
 paths.voltageDemand = [paths.electricalLoad '/Inputs/Voltage Demand'];
 paths.voltageReference = [paths.voltageDemand '/Voltage Reference'];
 paths.voltageMeasurement = [paths.voltageDemand '/Voltage Measurement'];
@@ -28,6 +28,10 @@ paths.voltageSaturationStatus = [paths.voltageDemand '/Saturation Status'];
 paths.voltageCurrentDynamics = [paths.voltageDemand ...
     '/Current Command Dynamics'];
 paths.voltageCurrentCommand = [paths.voltageDemand '/Current Command'];
+paths.voltageReferenceVariable = 'drive_cycle_voltage';
+paths.currentReferenceVariable = 'drive_cycle_current';
+paths.powerReferenceVariable = 'drive_cycle_power';
+paths.referenceTimeVariable = 'drive_cycle_time';
 
 paths.anodeGas = [paths.stack '/Anode Gas Channels'];
 paths.cathodeGas = [paths.stack '/Cathode Gas Channels'];

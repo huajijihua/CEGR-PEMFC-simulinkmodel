@@ -42,7 +42,7 @@ initialState.h2MoleFraction = pAnode.tank.yH2.value;           % 冷态初始 H2
 electrical = struct();
 electrical.mode = 'Current';           % 'Current' | 'Power' | 'Voltage'
 electrical.profile = [];               % 标量或 Nx2 矩阵 [t, value]
-electrical.voltageController = [];     % Voltage 模式 PI 参数（可选）
+electrical.voltageController = [];     % Filled after the default PI struct is defined
 
 % Voltage 模式 PI 控制器参数（默认值）
 voltageController = struct();
@@ -50,6 +50,7 @@ voltageController.Kp_A_V = pCtrl.voltage_pi_Kp.value;        % 比例增益 [A/V
 voltageController.Ki_A_V_s = pCtrl.voltage_pi_Ki.value;      % 积分增益 [A/V/s]
 voltageController.currentMin_A = pCtrl.voltage_current_min_A.value;  % 电流下限 [A]
 voltageController.currentMax_A = pCtrl.voltage_current_max_A.value;  % 电流上限 [A]
+electrical.voltageController = voltageController;
 
 % 阴极气路控制
 cathode = struct();
