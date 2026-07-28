@@ -473,12 +473,6 @@ routeA_target_egr_ratio_comp_in_profile = ...
   [0 0.02;
    2501 0.02];
 
-routeA_target_mdot_comp_inlet = 0.045;
-
-routeA_target_oer = 2.5;
-
-routeA_target_p_ca_out_MPa = 0.161325;
-
 routeA_voltage_current_max_A = 392;
 
 routeA_voltage_current_min_A = 0;

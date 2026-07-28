@@ -9,9 +9,9 @@
 - S1 物理边界收敛 ✅ — Source_Conditioner 删除，恢复官方供气路径
 - S2 最小 plant ✅ — 冷态 smoke 4 case 全部通过
 - S3 参数与控制收敛 ✅ — 恒电流/恒功率/恒电压 + cEGR 矩阵 + 入口组分控制全部完成
-- S4 初态和数值收敛 ⏳ — 待生成 v10 初态包
-- S5 分层验证 ⏳ — 待动态验证
-- S6 CEGR 研究 ⏳ — 待推进
+- Phase A 设计基础 ✅ — 控制接口汇总表 + CR3 三要素 schema + simCase 模板
+- Phase B 模型优化 ✅ — 22 列 profile 结构体 + schema 单一真源 + 参数单入口
+- Phase C 脚本清理 ⏳ — 待推进
 
 模型版本选择以[模型裁决与资产处置](04_说明/RouteA_GasMixture_Derived/01_当前指导/RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)为准，实施顺序以[收敛实施路线图](04_说明/RouteA_GasMixture_Derived/01_当前指导/RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)为准：
 
@@ -31,12 +31,11 @@
 | `04_说明/RouteA_GasMixture_Derived/` | 说明索引；下分当前指导、实施记录、审计研究和交接材料。 |
 | `05_汇报/` | 用户明确指定时才保存紧凑结果或汇报材料；不作为模型或参数真源。 |
 
-当前模型设计、控制权限、初态协议、求解器、稳态判据、离线计算和并行规则以[说明目录索引](04_说明/RouteA_GasMixture_Derived/README.md)及其 `01_当前指导/` 为准。工程化建模规格 v01 已移入 `99_历史归档/2026-07-25_RouteA_说明整理/`，不再作为当前规划真源。变更证据和未完成事项按 `02_实施记录/` 的当前分卷维护：
+当前模型设计、控制权限、初态协议、求解器、稳态判据、离线计算和并行规则以[说明目录索引](04_说明/RouteA_GasMixture_Derived/README.md)及其 `01_当前指导/` 为准。工程化建模规格 v01 已移入 `99_历史归档/2026-07-25_RouteA_说明整理/`，不再作为当前规划真源。变更证据和未完成事项按 `02_实施记录/` 的当前分卷维护（规则见该目录 `README.md`及 AGENTS.md"说明文件纪律"节）：
 
-- [2026-07-16 至 2026-07-18：Stage 1 基线与气路审计](04_说明/RouteA_GasMixture_Derived/02_实施记录/02_已封闭/RouteA_cEGR_PEMFC_实施记录_20260716_20260718_Stage1基线与气路审计_v01.md)
-- [2026-07-19 至 2026-07-21：I/P/V 迁移与矩阵验证](04_说明/RouteA_GasMixture_Derived/02_实施记录/02_已封闭/RouteA_cEGR_PEMFC_实施记录_20260719_20260721_IPV迁移与矩阵验证_v01.md)
-- [2026-07-22：平台脚本收口与回归验证](04_说明/RouteA_GasMixture_Derived/02_实施记录/02_已封闭/RouteA_cEGR_PEMFC_实施记录_20260722_平台脚本收口与回归验证_v01.md)
 - [2026-07-27：S2 冷态 smoke、Source_Conditioner 处置与 S3 稳态验证（当前分卷）](04_说明/RouteA_GasMixture_Derived/02_实施记录/01_当前分卷/RouteA_cEGR_PEMFC_实施记录_20260727_S2冷态smoke与Source_Conditioner处置_v01.md)
+- [2026-07-27：Phase A — 设计基础（控制接口 + CR3 schema）（当前分卷）](04_说明/RouteA_GasMixture_Derived/02_实施记录/01_当前分卷/RouteA_cEGR_PEMFC_实施记录_20260727_PhaseA设计基础_v01.md)
+- [2026-07-27：Phase B — 模型优化（profile struct + 参数入口）（当前分卷）](04_说明/RouteA_GasMixture_Derived/02_实施记录/01_当前分卷/RouteA_cEGR_PEMFC_实施记录_20260727_PhaseB平台能力升级_v01.md)
 
 当前初态门禁：`RouteA_platform_default_initial_state.mat` 的 metadata 仍为 v09 schema，正式 runner 链无法使用。当前 S3 验证均通过直接 SimulationInput 绕过。v10 初态包需要在当前模型、当前参数链和当前拓扑 hash 下重新生成。
 
