@@ -365,19 +365,11 @@ routeA_anode_recirculation_current_gain_A_inv = 0.0020408163265306124;
 
 routeA_anode_rh_setpoint = 1;
 
-routeA_anode_source_conditioner_nominal_flow_kg_s = 0.002;
-
-routeA_anode_source_conditioner_volume_L = 0.05;
-
 routeA_backpressure_control_mode_id = 1;
 
 routeA_cathode_humidifier_gain = 1;
 
 routeA_cathode_rh_setpoint = 1;
-
-routeA_cathode_source_conditioner_nominal_flow_kg_s = 0.045;
-
-routeA_cathode_source_conditioner_volume_L = 0.05;
 
 routeA_cegr_enabled = true;
 
@@ -429,23 +421,7 @@ routeA_command_profile_schema = 'RouteA_Command_Profile_v10';
 routeA_command_profile_schema = convertCharsToStrings( ...
   routeA_command_profile_schema);
 
-routeA_compressor_cmd_direct = 0.5;
-
 routeA_current_default_ref_A = 28;
-
-routeA_current_model = 'PEMFuelCellSystem_Before_v01';
-
-routeA_current_system = 'PEMFuelCellSystem_Before_v01';
-
-routeA_demo_power_kW = 50.96;
-
-routeA_demo_stop_time = 10;
-
-routeA_demo_target_egr_ratio_comp_in = 0.02;
-
-routeA_demo_target_mdot_comp_inlet = 0.045;
-
-routeA_demo_target_p_ca_out_MPa = 0.161325;
 
 routeA_egr_control_Ki_area = 3.926990816987242E-5;
 
@@ -468,10 +444,6 @@ routeA_parameter_layer = convertCharsToStrings( ...
 routeA_stack_temperature_set_C = 80;
 
 routeA_target_egr_ratio_comp_in = 0.02;
-
-routeA_target_egr_ratio_comp_in_profile = ...
-  [0 0.02;
-   2501 0.02];
 
 routeA_voltage_current_max_A = 392;
 

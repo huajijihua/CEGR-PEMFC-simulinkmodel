@@ -2,6 +2,17 @@ function [in, context] = routeA_prepare_electrical_boundary_input( ...
     model, modelDir, caseCfg, studyCfg)
 % Assemble one Route A electrical-boundary case into SimulationInput.
 %
+% **LEGACY NOTICE (Phase D audit, 2026-07-28):** This function is tightly
+% coupled to the v09 initial-state schema via
+% routeA_attach_platform_default_initial_state. The v09 initial-state chain
+% is currently non-functional (metadata schema mismatch); all S3/Phase B/C
+% validations bypass it by building SimulationInput directly.
+%
+% Phase D panels should NOT use this function. The recommended assembly path
+% is: simCase -> routeA_validate_case -> routeA_assemble_command_profile ->
+% SimulationInput (direct). This function is retained for traceability and
+% future v10 initial-state migration, not for new development.
+%
 % The caller owns the case definition. This function owns initial-state
 % selection, logical-to-model time translation, model variables, solver
 % settings, air/cEGR controls, and mode-specific electrical inputs.
@@ -436,8 +447,12 @@ end
 end
 
 function controller = getControllerConfig(caseCfg)
-controller = struct('Kp_A_V', 1, 'Ki_A_V_s', 0.05, ...
-    'currentMin_A', 0, 'currentMax_A', 392);
+% PI controller defaults derived from platform parameter file (single source).
+pCtrl = routeA_platform_default_parameters().controls;
+controller = struct('Kp_A_V', pCtrl.voltage_pi_Kp.value, ...
+    'Ki_A_V_s', pCtrl.voltage_pi_Ki.value, ...
+    'currentMin_A', pCtrl.voltage_current_min_A.value, ...
+    'currentMax_A', pCtrl.voltage_current_max_A.value);
 controller = mergeKnownFields(controller, ...
     getOptionalStruct(caseCfg, 'controller'), ...
     'RouteA:VoltageControlField');

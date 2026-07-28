@@ -38,8 +38,8 @@
 |--------|--------|------|------|--------|----------|------|------|
 | 空气控制模式 | `routeA_air_control_mode_id` | — | 1/2/3 | 2 (OER) | workspace 变量 | 编译时 | 1=流量/2=OER/3=直接 |
 | 目标 OER | `cathode_outlet_pressure_MPa_abs` → `air_target_oer` | — | [1.5, 5] | 3.0 | workspace 变量 | 时序 | 需 OER 模式 |
-| 目标质量流量 | `air_target_mdot_kg_s` | kg/s | (0, ∞) | 0.005 | workspace 变量 | 时序 | 需流量模式 |
-| 直接命令 | `air_direct_command` | — | 取决于模式 | 0 | workspace 变量 | 时序 | 需直接模式 |
+| 目标质量流量 | `air_target_mdot_kg_s` | kg/s | (0, ∞) | 0.045 | workspace 变量 | 时序 | 需流量模式 |
+| 直接命令 | `air_direct_command` | — | 取决于模式 | 0.5 | workspace 变量 | 时序 | 需直接模式 |
 | 阴极源压力 | `cathode_source_pressure_MPa_abs` | MPa(abs) | [0.1, 0.5] | 0.15 | workspace 变量 | 时序 | 新鲜空气边界 |
 | 阴极源温度 | `cathode_source_temperature_C` | °C | [10, 60] | 20 | workspace 变量 | 时序 | 新鲜空气边界 |
 | 阴极 O2 分数 | `cathode_source_o2_mole_fraction` | — | [0.15, 0.21] | 0.21 | workspace 变量 | 编译时 | 通过 `env_yO2` 间接控制 |
@@ -67,11 +67,11 @@
 | 阳极 H2 分数 | `anode_source_h2_mole_fraction` | — | [0.9, 1.0] | 0.9997 | workspace 变量 | 编译时 | 通过 `tank_yH2` 间接控制 |
 | 阳极入口压力 | `anode_inlet_pressure_MPa_abs` | MPa(abs) | [0.1, 0.3] | 0.15 | workspace 变量 | 时序 | 减压阀输出设定 |
 | 阳极加湿 RH | `anode_humidifier_rh` | — | [0, 1] | 0.5 | workspace 变量 | 时序 | 阳极入口 RH |
-| 回流基础命令 | `anode_recirculation_base` | — | [0, 1] | 0 | workspace 变量 | 时序 | 回流泵基础命令 |
-| 回流电流增益 | `anode_recirculation_current_gain_A_inv` | 1/A | [0, 1] | 0 | workspace 变量 | 时序 | 电流相关回流补偿 |
-| 吹扫启用 | `anode_purge_enable` | — | 0/1 | 0 | workspace 变量 | 时序 | 0=禁用/1=启用 |
-| 吹扫开启 N2 阈值 | `anode_purge_on_n2_mole_fraction` | — | [0, 1] | 0.1 | workspace 变量 | 时序 | N2 积累超过此值触发吹扫 |
-| 吹扫关闭 N2 阈值 | `anode_purge_off_n2_mole_fraction` | — | [0, 1] | 0.05 | workspace 变量 | 时序 | N2 吹扫至低于此值停止 |
+| 回流基础命令 | `anode_recirculation_base` | — | [0, 1] | 0.2 | workspace 变量 | 时序 | 回流泵基础命令 |
+| 回流电流增益 | `anode_recirculation_current_gain_A_inv` | 1/A | [0, 1] | 0.00204 | workspace 变量 | 时序 | 电流相关回流补偿 |
+| 吹扫启用 | `anode_purge_enable` | — | 0/1 | 1 | workspace 变量 | 时序 | 0=禁用/1=启用 |
+| 吹扫开启 N2 阈值 | `anode_purge_on_n2_mole_fraction` | — | [0, 1] | 0.5 | workspace 变量 | 时序 | N2 积累超过此值触发吹扫 |
+| 吹扫关闭 N2 阈值 | `anode_purge_off_n2_mole_fraction` | — | [0, 1] | 0.1 | workspace 变量 | 时序 | N2 吹扫至低于此值停止 |
 
 ### 2.5 热管理控制
 
