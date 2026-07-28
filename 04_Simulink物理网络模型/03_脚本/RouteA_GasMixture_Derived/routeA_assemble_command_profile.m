@@ -51,32 +51,42 @@ function profile = routeA_assemble_command_profile(controls, study)
 %#ok<*NASGU>
 
 %% Resolve defaults from controls struct
-% Use getFieldOrDefault to provide safe defaults for missing fields
-oer = getField(controls, 'cathode', 'targetOer', 3.0);
-mdot = getField(controls, 'cathode', 'targetMdot_kg_s', 0.005);
-directCmd = getField(controls, 'cathode', 'directCommand', 0.5);
-srcP = getField(controls, 'cathode', 'sourcePressure_MPa_abs', 0.15);
-srcT = getField(controls, 'cathode', 'sourceTemperature_C', 20);
-o2Frac = getField(controls, 'cathode', 'o2MoleFraction', 0.21);
-h2oFrac = getField(controls, 'cathode', 'h2oMoleFraction', 0.0115);
-outP = getField(controls, 'cathode', 'outletPressure_MPa_abs', 0.1613);
-rh = getField(controls, 'cathode', 'humidifierRH', 0.9);
-humGain = getField(controls, 'cathode', 'humidifierEnabled', 1);
+% Defaults are derived from routeA_platform_default_parameters (single source
+% of truth). Callers that provide explicit values in the controls struct
+% override these defaults; callers that omit a field inherit the platform
+% default.
+params = routeA_platform_default_parameters();
+pCtrl = params.controls;
+pEnv  = params.environment;
+pCath = params.cathode;
+pAnode = params.anode;
+pTherm = params.thermal;
 
-cegrRatio = getField(controls, 'cegr', 'targetRatio', 0);
+oer = getField(controls, 'cathode', 'targetOer', pCtrl.target_oer.value);
+mdot = getField(controls, 'cathode', 'targetMdot_kg_s', pCtrl.target_mdot_kg_s.value);
+directCmd = getField(controls, 'cathode', 'directCommand', pCtrl.air_direct_command.value);
+srcP = getField(controls, 'cathode', 'sourcePressure_MPa_abs', pCtrl.cathode_source_pressure_MPa_abs.value);
+srcT = getField(controls, 'cathode', 'sourceTemperature_C', pCtrl.cathode_source_temperature_C.value);
+o2Frac = getField(controls, 'cathode', 'o2MoleFraction', pEnv.o2_mole_fraction.value);
+h2oFrac = getField(controls, 'cathode', 'h2oMoleFraction', pEnv.h2o_mole_fraction.value);
+outP = getField(controls, 'cathode', 'outletPressure_MPa_abs', pCtrl.backpressure_MPa_abs.value);
+rh = getField(controls, 'cathode', 'humidifierRH', pCath.humidifier.default_rh.value);
+humGain = getField(controls, 'cathode', 'humidifierEnabled', pCath.humidifier.enabled.value);
 
-anSrcP = getField(controls, 'anode', 'sourcePressure_MPa_abs', 0.3);
-anSrcT = getField(controls, 'anode', 'sourceTemperature_C', 20);
-anH2Frac = getField(controls, 'anode', 'h2MoleFraction', 0.9997);
-anInP = getField(controls, 'anode', 'inletPressure_MPa_abs', 0.15);
-anRH = getField(controls, 'anode', 'humidifierRH', 0.5);
-anRecircBase = getField(controls, 'anode', 'recirculationBaseCommand', 0);
-anRecircGain = getField(controls, 'anode', 'recirculationCurrentGain_A_inv', 0);
-anPurgeEn = getField(controls, 'anode', 'purgeEnabled', 0);
-anPurgeOn = getField(controls, 'anode', 'purgeOnN2MoleFraction', 0.1);
-anPurgeOff = getField(controls, 'anode', 'purgeOffN2MoleFraction', 0.05);
+cegrRatio = getField(controls, 'cegr', 'targetRatio', pCtrl.cegr_target_ratio.value);
 
-stackT = getField(controls, 'thermal', 'stackTemperatureSet_C', 80);
+anSrcP = getField(controls, 'anode', 'sourcePressure_MPa_abs', pCtrl.anode_source_pressure_MPa_abs.value);
+anSrcT = getField(controls, 'anode', 'sourceTemperature_C', pCtrl.anode_source_temperature_C.value);
+anH2Frac = getField(controls, 'anode', 'h2MoleFraction', pAnode.tank.yH2.value);
+anInP = getField(controls, 'anode', 'inletPressure_MPa_abs', pAnode.default_pressure_MPa_abs.value);
+anRH = getField(controls, 'anode', 'humidifierRH', pAnode.humidifier.default_rh.value);
+anRecircBase = getField(controls, 'anode', 'recirculationBaseCommand', pCtrl.anode_recirc_base.value);
+anRecircGain = getField(controls, 'anode', 'recirculationCurrentGain_A_inv', pCtrl.anode_recirc_gain_A_inv.value);
+anPurgeEn = getField(controls, 'anode', 'purgeEnabled', pCtrl.anode_purge_enable.value);
+anPurgeOn = getField(controls, 'anode', 'purgeOnN2MoleFraction', pCtrl.anode_purge_on_n2.value);
+anPurgeOff = getField(controls, 'anode', 'purgeOffN2MoleFraction', pCtrl.anode_purge_off_n2.value);
+
+stackT = getField(controls, 'thermal', 'stackTemperatureSet_C', pTherm.stack_temperature_set_C.value);
 
 %% Resolve the canonical 22-field schema (single source of truth)
 % Field names, labels, order, and step flags come from

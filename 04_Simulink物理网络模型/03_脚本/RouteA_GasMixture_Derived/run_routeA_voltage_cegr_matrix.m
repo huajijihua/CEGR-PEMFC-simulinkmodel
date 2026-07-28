@@ -25,6 +25,11 @@ if ~bdIsLoaded(model), load_system(modelFile); end
 mw = get_param(model, 'ModelWorkspace');
 bl = reshape(double(mw.getVariable('routeA_command_profile_baseline')), 1, []);
 
+% Resolve schema field indices (single source of truth)
+schema = routeA_command_profile_schema();
+idxAirTargetOer = find(schema.names == "air_target_oer");
+idxCegrRatio = find(schema.names == "cegr_ratio");
+
 % PI controller parameters (model workspace defaults)
 kp = 1;      % routeA_voltage_pi_Kp
 ki = 0.05;   % routeA_voltage_pi_Ki
@@ -38,10 +43,10 @@ for i = 1:n
     vtg = defs{i,2}; cr = defs{i,3};
     % Command profile: 4x23 [time, 22 values]
     cp = zeros(4, 23);
-    cp(:,1) = t;                    % time
+    cp(:,1) = t;                    % time column
     for c = 1:22, cp(:,c+1) = bl(c); end
-    cp(:,7)  = oer;                 % air_target_oer (col6 in 0-index, col7 in 1-index)
-    cp(:,12) = [0; 0; cr; cr];      % cegr_ratio (col11 -> col12)
+    cp(:, idxAirTargetOer+1) = oer;              % air_target_oer
+    cp(:, idxCegrRatio+1) = [0; 0; cr; cr];      % cegr_ratio
     % Voltage demand: start from initial state voltage (~427.6V), ramp to target
     % This prevents PI controller saturation from a 0V command mismatch
     v_init = 427.6;

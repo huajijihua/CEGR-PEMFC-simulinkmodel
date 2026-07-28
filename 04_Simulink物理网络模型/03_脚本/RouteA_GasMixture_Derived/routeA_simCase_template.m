@@ -18,114 +18,112 @@ function simCase = routeA_simCase_template()
 
 %#ok<*NASGU>  % template file, intentional unused assignments
 
+%% Derive defaults from platform parameter file (single source of truth)
+params = routeA_platform_default_parameters();
+pCtrl = params.controls;
+pEnv  = params.environment;
+pCath = params.cathode;
+pAnode = params.anode;
+pTherm = params.thermal;
+pNum = params.numerics;
+
 %% (a) 初始状态
-initialState = struct(...
-    'mode', 'cold', ...               % 'cold' | 'warm' | 'hot'
-    'source', '', ...                  % 初态文件路径（warm/hot 时使用）
-    'temperature_C', 20, ...           % 冷态初始温度 [degC]
-    'pressure_MPa_abs', 0.101325, ...  % 冷态初始压力 [MPa(abs)]
-    'o2MoleFraction', 0.21, ...        % 冷态初始 O2 分数
-    'h2oMoleFraction', 0.0115436, ...  % 冷态初始 H2O 分数
-    'h2MoleFraction', 0.9997           % 冷态初始 H2 分数
-);
+initialState = struct();
+initialState.mode = 'cold';                              % 'cold' | 'warm' | 'hot'
+initialState.source = '';                                % 初态文件路径（warm/hot 时使用）
+initialState.temperature_C = pEnv.ambient_T_C.value;     % 冷态初始温度 [degC]
+initialState.pressure_MPa_abs = pEnv.ambient_p_MPa_abs.value;  % 冷态初始压力 [MPa(abs)]
+initialState.o2MoleFraction = pEnv.o2_mole_fraction.value;     % 冷态初始 O2 分数
+initialState.h2oMoleFraction = pEnv.h2o_mole_fraction.value;   % 冷态初始 H2O 分数
+initialState.h2MoleFraction = pAnode.tank.yH2.value;           % 冷态初始 H2 分数
 
 %% (b) 控制设置
 % 电边界控制
-electrical = struct(...
-    'mode', 'Current', ...             % 'Current' | 'Power' | 'Voltage'
-    'profile', [], ...                 % 标量或 Nx2 矩阵 [t, value]
-    'voltageController', []            % Voltage 模式 PI 参数（可选）
-);
+electrical = struct();
+electrical.mode = 'Current';           % 'Current' | 'Power' | 'Voltage'
+electrical.profile = [];               % 标量或 Nx2 矩阵 [t, value]
+electrical.voltageController = [];     % Voltage 模式 PI 参数（可选）
 
 % Voltage 模式 PI 控制器参数（默认值）
-voltageController = struct(...
-    'Kp_A_V', 1, ...                   % 比例增益 [A/V]
-    'Ki_A_V_s', 0.05, ...              % 积分增益 [A/V/s]
-    'currentMin_A', 0, ...             % 电流下限 [A]
-    'currentMax_A', 392                % 电流上限 [A]
-);
+voltageController = struct();
+voltageController.Kp_A_V = pCtrl.voltage_pi_Kp.value;        % 比例增益 [A/V]
+voltageController.Ki_A_V_s = pCtrl.voltage_pi_Ki.value;      % 积分增益 [A/V/s]
+voltageController.currentMin_A = pCtrl.voltage_current_min_A.value;  % 电流下限 [A]
+voltageController.currentMax_A = pCtrl.voltage_current_max_A.value;  % 电流上限 [A]
 
 % 阴极气路控制
-cathode = struct(...
-    'airControlMode', 2, ...           % 1=流量/2=OER/3=直接
-    'targetOer', 3.0, ...              % 目标 OER
-    'targetMdot_kg_s', 0.005, ...      % 目标质量流量 [kg/s]
-    'directCommand', 0, ...            % 直接命令
-    'sourcePressure_MPa_abs', 0.15, ...% 阴极源压力 [MPa(abs)]
-    'sourceTemperature_C', 20, ...     % 阴极源温度 [degC]
-    'outletPressure_MPa_abs', 0.1613,...% 阴极出口压力/背压 [MPa(abs)]
-    'humidifierRH', 0.9, ...           % 加湿器设定 RH
-    'humidifierEnabled', 1             % 加湿器启用 [0/1]
-);
+cathode = struct();
+cathode.airControlMode = pCtrl.air_control_mode.value;       % 1=流量/2=OER/3=直接
+cathode.targetOer = pCtrl.target_oer.value;                  % 目标 OER
+cathode.targetMdot_kg_s = pCtrl.target_mdot_kg_s.value;      % 目标质量流量 [kg/s]
+cathode.directCommand = pCtrl.air_direct_command.value;      % 直接命令
+cathode.sourcePressure_MPa_abs = pCtrl.cathode_source_pressure_MPa_abs.value;  % 阴极源压力
+cathode.sourceTemperature_C = pCtrl.cathode_source_temperature_C.value;        % 阴极源温度
+cathode.outletPressure_MPa_abs = pCtrl.backpressure_MPa_abs.value;             % 阴极出口压力/背压
+cathode.humidifierRH = pCath.humidifier.default_rh.value;   % 加湿器设定 RH
+cathode.humidifierEnabled = pCath.humidifier.enabled.value;  % 加湿器启用 [0/1]
 
 % cEGR 控制
-cegr = struct(...
-    'enabled', true, ...               % cEGR 启用
-    'targetRatio', 0, ...              % 目标 cEGR 比
-    'valveMode', 1, ...                % 阀模式 [1=开度/2=压力]
-    'controlMode', 1, ...              % 控制模式
-    'targetInputMode', 1               % 目标输入模式
-);
+cegr = struct();
+cegr.enabled = pCtrl.cegr_enabled.value;                     % cEGR 启用
+cegr.targetRatio = pCtrl.cegr_target_ratio.value;            % 目标 cEGR 比
+cegr.valveMode = pCtrl.cegr_valve_mode.value;                % 阀模式 [1=开度/2=压力]
+cegr.controlMode = pCtrl.cegr_control_mode.value;            % 控制模式
+cegr.targetInputMode = 1;                                    % 目标输入模式
 
 % 阳极控制
-anode = struct(...
-    'sourcePressure_MPa_abs', 0.3, ... % 氢源压力 [MPa(abs)]
-    'sourceTemperature_C', 20, ...     % 氢源温度 [degC]
-    'inletPressure_MPa_abs', 0.15, ... % 阳极入口压力 [MPa(abs)]
-    'humidifierRH', 0.5, ...           % 阳极加湿 RH
-    'recirculationBaseCommand', 0, ... % 回流基础命令
-    'recirculationCurrentGain_A_inv', 0, ... % 回流电流增益 [1/A]
-    'purgeEnabled', 0, ...             % 吹扫启用 [0/1]
-    'purgeOnN2MoleFraction', 0.1, ...  % 吹扫开启 N2 阈值
-    'purgeOffN2MoleFraction', 0.05     % 吹扫关闭 N2 阈值
-);
+anode = struct();
+anode.sourcePressure_MPa_abs = pCtrl.anode_source_pressure_MPa_abs.value;   % 氢源压力
+anode.sourceTemperature_C = pCtrl.anode_source_temperature_C.value;         % 氢源温度
+anode.inletPressure_MPa_abs = pAnode.default_pressure_MPa_abs.value;        % 阳极入口压力
+anode.humidifierRH = pAnode.humidifier.default_rh.value;                   % 阳极加湿 RH
+anode.recirculationBaseCommand = pCtrl.anode_recirc_base.value;            % 回流基础命令
+anode.recirculationCurrentGain_A_inv = pCtrl.anode_recirc_gain_A_inv.value; % 回流电流增益
+anode.purgeEnabled = pCtrl.anode_purge_enable.value;                       % 吹扫启用 [0/1]
+anode.purgeOnN2MoleFraction = pCtrl.anode_purge_on_n2.value;               % 吹扫开启 N2 阈值
+anode.purgeOffN2MoleFraction = pCtrl.anode_purge_off_n2.value;             % 吹扫关闭 N2 阈值
 
 % 热管理控制
-thermal = struct(...
-    'stackTemperatureSet_C', 80        % 堆温设定 [degC]
-);
+thermal = struct();
+thermal.stackTemperatureSet_C = pTherm.stack_temperature_set_C.value;  % 堆温设定 [degC]
 
 % 环境/边界条件
-environment = struct(...
-    'ambientPressure_MPa_abs', 0.101325, ... % 环境压力 [MPa(abs)]
-    'ambientTemperature_C', 20, ...          % 环境温度 [degC]
-    'o2MoleFraction', 0.21, ...              % 环境 O2 分数 [-] -> env_yO2
-    'h2oMoleFraction', 0.0115436, ...        % 环境 H2O 分数 [-] -> env_yH20
-    'h2MoleFraction', 0.9997                 % 阳极 H2 分数 [-] -> tank_yH2
-);
+environment = struct();
+environment.ambientPressure_MPa_abs = pEnv.ambient_p_MPa_abs.value;  % 环境压力
+environment.ambientTemperature_C = pEnv.ambient_T_C.value;           % 环境温度
+environment.o2MoleFraction = pEnv.o2_mole_fraction.value;            % 环境 O2 分数 -> env_yO2
+environment.h2oMoleFraction = pEnv.h2o_mole_fraction.value;          % 环境 H2O 分数 -> env_yH20
+environment.h2MoleFraction = pAnode.tank.yH2.value;                  % 阳极 H2 分数 -> tank_yH2
 
 % 组合 controls
-controls = struct(...
-    'electrical', electrical, ...
-    'cathode', cathode, ...
-    'cegr', cegr, ...
-    'anode', anode, ...
-    'thermal', thermal, ...
-    'environment', environment ...
-);
+controls = struct();
+controls.electrical = electrical;
+controls.cathode = cathode;
+controls.cegr = cegr;
+controls.anode = anode;
+controls.thermal = thermal;
+controls.environment = environment;
 
 %% (c) 求解器设置
-solver = struct(...
-    'stopTime_s', 600, ...             % 仿真时长 [s]
-    'solver', 'VariableStepAuto', ...  % 求解器类型
-    'relTol', 1e-3, ...                % 相对容差
-    'absTol', 1e-3, ...                % 绝对容差
-    'maxStep_s', 5, ...                % 最大步长 [s]
-    'signalLogging', 'on', ...         % 信号日志
-    'signalLoggingName', 'logsout', ...% 日志名称
-    'simscapeLogType', 'all', ...      % Simscape 日志类型
-    'returnWorkspaceOutputs', 'on', ...% 返回工作区输出
-    'saveOperatingPoint', 'off', ...   % 保存 operating point
-    'operatingPointFile', ''           % 保存路径
-);
+solver = struct();
+solver.stopTime_s = pNum.stopTime_s.value;        % 仿真时长 [s]
+solver.solver = pNum.solver.value;                % 求解器类型
+solver.relTol = pNum.relTol.value;                % 相对容差
+solver.absTol = pNum.absTol.value;                % 绝对容差
+solver.maxStep_s = pNum.maxStep_s.value;          % 最大步长 [s]
+solver.signalLogging = 'on';                      % 信号日志
+solver.signalLoggingName = 'logsout';             % 日志名称
+solver.simscapeLogType = 'all';                   % Simscape 日志类型
+solver.returnWorkspaceOutputs = 'on';             % 返回工作区输出
+solver.saveOperatingPoint = 'off';                % 保存 operating point
+solver.operatingPointFile = '';                   % 保存路径
 
 %% 组合顶层 simCase
-simCase = struct(...
-    'caseId', '', ...
-    'description', '', ...
-    'initialState', initialState, ...
-    'controls', controls, ...
-    'solver', solver ...
-);
+simCase = struct();
+simCase.caseId = '';
+simCase.description = '';
+simCase.initialState = initialState;
+simCase.controls = controls;
+simCase.solver = solver;
 
 end
