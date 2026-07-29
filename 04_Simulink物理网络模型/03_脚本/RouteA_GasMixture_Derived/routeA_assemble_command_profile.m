@@ -129,11 +129,12 @@ for idx = 1:count
     thisLabel = schema.labels(idx);
     thisValue = defaults.(schema.names(idx));
     thisIsStep = schema.isStep(idx);
+    thisInitialValue = initialProfileValue(thisValue);
     thisOptions = struct( ...
         'duration_s', study.researchDuration_s, ...
         'commandStartOffset_s', study.commandStartOffset_s, ...
         'startupRampDuration_s', study.startupRampDuration_s, ...
-        'initialValue', thisValue, ...
+        'initialValue', thisInitialValue, ...
         'label', thisLabel);
     if thisIsStep
         thisOptions.startupRampDuration_s = 0;
@@ -164,6 +165,36 @@ end
 profile.workspaceValue = [time, value];
 profile.schema = schema.version;
 
+end
+
+function value = initialProfileValue(spec)
+% Keep profile specifications dynamic while supplying a scalar initial value.
+value = spec;
+if isa(spec, 'timeseries')
+    value = spec.Data(1);
+    return;
+end
+if ~isstruct(spec) || ~isscalar(spec)
+    return;
+end
+if isfield(spec, 'profile')
+    value = initialProfileValue(spec.profile);
+elseif isfield(spec, 'time_s') && isfield(spec, 'value')
+    value = spec.value(1);
+elseif isfield(spec, 'kind') || isfield(spec, 'shape')
+    if isfield(spec, 'kind')
+        kind = lower(string(spec.kind));
+    else
+        kind = lower(string(spec.shape));
+    end
+    if kind == "constant" && isfield(spec, 'value')
+        value = spec.value;
+    elseif kind == "step" && isfield(spec, 'before')
+        value = spec.before;
+    elseif kind == "ramp" && isfield(spec, 'start_value')
+        value = spec.start_value;
+    end
+end
 end
 
 %% -----------------------------------------------------------------------

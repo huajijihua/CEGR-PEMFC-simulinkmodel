@@ -44,6 +44,8 @@ for idx = 1:numel(axisNames)
     axisValues{idx} = value(:).';
 end
 
+paths = routeA_project_paths();
+model = paths.modelName;
 [command, cegr, oer, o2] = ndgrid(axisValues{1}, axisValues{2}, ...
     axisValues{3}, axisValues{4});
 count = numel(command);
@@ -53,10 +55,11 @@ if count > 24
 end
 
 cases = repmat(struct('caseId', "", 'simCase', struct(), ...
-    'simulationInput', [], 'output', [], 'results', struct(), ...
-    'passed', false, 'errorId', "", 'errorMessage', ""), count, 1);
-inputs = repmat(Simulink.SimulationInput( ...
-    'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01'), count, 1);
+    'simulationInput', [], 'context', struct(), 'output', [], ...
+    'results', struct(), ...
+    'passed', false, 'errorId', "", 'errorMessage', "", ...
+    'failureCategory', "not_run"), count, 1);
+inputs = repmat(Simulink.SimulationInput(model), count, 1);
 params = routeA_platform_default_parameters();
 rampDuration_s = min(params.numerics.startupRampDuration_s.value, ...
     0.1 * baseCase.solver.stopTime_s);
@@ -76,15 +79,16 @@ for idx = 1:count
     sc = routeA_validate_case(sc);
     cases(idx).caseId = sc.caseId;
     cases(idx).simCase = sc;
-    inputs(idx) = routeA_panel_build_simulation_input(sc, rampDuration_s);
+    [inputs(idx), cases(idx).context] = ...
+        routeA_panel_build_simulation_input(sc, rampDuration_s);
 end
 
-modelDir = fullfile(fileparts(mfilename('fullpath')), '..', '..', ...
-    '01_模型', 'RouteA_GasMixture_Derived');
-modelFile = fullfile(modelDir, ...
-    'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01.slx');
-scriptDir = fileparts(mfilename('fullpath'));
+modelDir = paths.modelDir;
+modelFile = paths.modelFile;
+scriptDir = paths.scriptDir;
 if executionMode == "parallel"
+    dispatchErrors = repmat(struct('identifier', "", 'message', "", ...
+        'category', ""), count, 1);
     pool = gcp('nocreate');
     if isempty(pool)
         parpool('local', 2);
@@ -99,8 +103,16 @@ if executionMode == "parallel"
     outputs = num2cell(rawOutputs);
 else
     outputs = cell(count, 1);
+    dispatchErrors = repmat(struct('identifier', "", 'message', "", ...
+        'category', ""), count, 1);
     for idx = 1:count
-        outputs{idx} = sim(inputs(idx));
+        try
+            outputs{idx} = sim(inputs(idx));
+        catch ME
+            dispatchErrors(idx).identifier = string(ME.identifier);
+            dispatchErrors(idx).message = string(ME.message);
+            dispatchErrors(idx).category = matrixFailureCategory(ME);
+        end
     end
 end
 
@@ -108,19 +120,41 @@ for idx = 1:count
     cases(idx).simulationInput = inputs(idx);
     cases(idx).output = outputs{idx};
     try
+        if isempty(outputs{idx})
+            cases(idx).errorId = dispatchErrors(idx).identifier;
+            cases(idx).errorMessage = dispatchErrors(idx).message;
+            cases(idx).failureCategory = dispatchErrors(idx).category;
+            cases(idx).results = struct( ...
+                'caseId', cases(idx).caseId, ...
+                'status', "simulation_failed", ...
+                'passed', false, ...
+                'warningOnly', false, ...
+                'failureCategory', cases(idx).failureCategory, ...
+                'errorId', cases(idx).errorId, ...
+                'errorMessage', cases(idx).errorMessage);
+            continue;
+        end
         out = outputs{idx};
         if strlength(string(out.ErrorMessage)) > 0
             error('RouteA:PanelMatrixSimulation', '%s', out.ErrorMessage);
         end
-        result = routeA_panel_extract_results(out, cases(idx).simCase);
-        result.actual_cegr_ratio = actualCegrRatio(out);
-        result.target_command = cases(idx).simCase.controls.electrical.profile;
-        result = assessAcceptance(result, cases(idx).simCase);
+        result = routeA_panel_extract_results(out, cases(idx).simCase, ...
+            cases(idx).context);
         cases(idx).results = result;
         cases(idx).passed = result.passed;
+        cases(idx).failureCategory = result.failureCategory;
     catch ME
         cases(idx).errorId = string(ME.identifier);
         cases(idx).errorMessage = string(ME.message);
+        cases(idx).failureCategory = matrixFailureCategory(ME);
+        cases(idx).results = struct( ...
+            'caseId', cases(idx).caseId, ...
+            'status', "simulation_failed", ...
+            'passed', false, ...
+            'warningOnly', false, ...
+            'failureCategory', cases(idx).failureCategory, ...
+            'errorId', cases(idx).errorId, ...
+            'errorMessage', cases(idx).errorMessage);
     end
 end
 
@@ -136,87 +170,39 @@ else
 end
 study.cases = cases;
 study.allPassed = all([cases.passed]);
+study.failureCount = sum(~[cases.passed]);
+study.modelVersion = cases(1).context.initialStateMetadata.modelVersion;
+study.topologyHash = string(cases(1).context.initialStateMetadata.topologyHash);
+study.parameterLayer = string(cases(1).context.initialStateMetadata.parameterLayer);
+study.initializationPolicy = string(cases(1).context.initializationPolicy);
+study.operatingPointLoaded = logical( ...
+    cases(1).context.initialStateSelection.operatingPointLoaded);
+study.externalCaseEnabled = logical( ...
+    cases(1).context.initialStateMetadata.externalCaseEnabled);
+if isfield(cases(1).results, 'waterCapability')
+    study.waterCapability = cases(1).results.waterCapability;
+else
+    study.waterCapability = struct( ...
+        'level', "L2", ...
+        'status', "not_available", ...
+        'liquidWaterConclusionAllowed', false, ...
+        'warnings', "No completed panel result was available for the water-capability contract.");
+end
+study.warningCount = sum(arrayfun(@(item) isfield(item.results, 'warningOnly') && ...
+    item.results.warningOnly, cases));
 study.summaryTable = buildSummaryTable(cases);
 end
 
-function result = assessAcceptance(result, simCase)
-finiteKpi = all(isfinite([result.voltage_V, result.current_A, ...
-    result.power_kW, result.actual_cegr_ratio]));
-result.command_error = NaN;
-result.command_error_pct = NaN;
-result.cegr_error = NaN;
-result.cegr_tolerance = NaN;
-result.steady_relative_change = NaN;
-result.finitePassed = finiteKpi;
-result.steadyPassed = false;
-result.trackingPassed = false;
-result.cegrPassed = false;
-if ~finiteKpi
-    result.passed = false;
-    return;
-end
-
-target = simCase.controls.electrical.profile;
-mode = string(simCase.controls.electrical.mode);
-switch mode
-    case "Current"
-        actual = result.current_A;
-    case "Power"
-        actual = result.power_kW;
-    case "Voltage"
-        actual = result.voltage_V;
-    otherwise
-        error('RouteA:PanelMatrixMode', 'Unsupported matrix mode: %s.', mode);
-end
-result.command_error = actual - target;
-result.command_error_pct = abs(result.command_error) / ...
-    max(abs(target), 1) * 100;
-result.trackingPassed = result.command_error_pct <= 0.5;
-
-result.cegr_error = result.actual_cegr_ratio - ...
-    simCase.controls.cegr.targetRatio;
-result.cegr_tolerance = max(0.002, ...
-    0.1 * max(simCase.controls.cegr.targetRatio, 0.01));
-cegrPassed = abs(result.cegr_error) <= result.cegr_tolerance;
-result.cegrPassed = cegrPassed;
-
-time = result.voltage_ts.Time;
-tailStart = max(time) - min(60, max(time) - min(time));
-tailMask = time >= tailStart;
-tailTime = time(tailMask);
-tailVoltage = result.voltage_ts.Data(tailMask);
-if numel(tailTime) >= 4
-    midpoint = (tailTime(1) + tailTime(end)) / 2;
-    first = tailVoltage(tailTime <= midpoint);
-    second = tailVoltage(tailTime > midpoint);
-    if ~isempty(first) && ~isempty(second)
-        result.steady_relative_change = abs(mean(second) - mean(first)) / ...
-            max(abs(mean(first)), 1);
-    end
-end
-result.steadyPassed = isfinite(result.steady_relative_change) && ...
-    result.steady_relative_change <= 0.005;
-
-% A short matrix is a compile/logging smoke. It must be finite, but should
-% not be rejected because the cEGR or electrical loop has not settled yet.
-if simCase.solver.stopTime_s < 120
-    result.passed = finiteKpi;
+function category = matrixFailureCategory(exception)
+identifier = string(exception.identifier);
+if contains(identifier, "OperatingPoint")
+    category = "initial_state_or_interface";
+elseif contains(identifier, "Observation") || contains(identifier, "MissingSignal")
+    category = "observation_contract";
+elseif contains(identifier, "ElectricalBoundary") || contains(identifier, "Panel")
+    category = "panel_input_or_acceptance";
 else
-    result.passed = result.trackingPassed && cegrPassed && result.steadyPassed;
-end
-end
-
-function ratio = actualCegrRatio(out)
-ratio = NaN;
-logsout = out.get('logsout');
-if isempty(logsout) || ...
-        ~any(strcmp(logsout.getElementNames, 'routeA_egr_ratio_comp_in'))
-    return;
-end
-signal = logsout.get('routeA_egr_ratio_comp_in').Values;
-mask = signal.Time >= max(signal.Time) - 60;
-if any(mask)
-    ratio = mean(signal.Data(mask));
+    category = "simulation_failed";
 end
 end
 

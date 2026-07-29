@@ -96,20 +96,21 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         simCase  % Current simCase struct
         isRunning = false
         lastMatrixStudy = struct()
+        platformPaths
     end
     
     % Callbacks (public for testing)
     methods (Access = public)
 
         % Button pushed function: RunButton
-        function RunButtonPushed(app, event)
+        function RunButtonPushed(app, ~)
             if app.isRunning
                 return;
             end
             app.isRunning = true;
             app.RunButton.Enable = 'off';
             app.MatrixButton.Enable = 'off';
-            cleanup = onCleanup(@() app.finishRun()); %#ok<NASGU>
+            cleanup = onCleanup(@() app.finishRun());
             try
                 [app.simCase, rampDuration] = app.collectSimCaseFromUi();
 
@@ -120,17 +121,17 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
                 % Build SimulationInput
                 app.addLog('> 构建仿真输入...');
-                simIn = routeA_panel_build_simulation_input(app.simCase, rampDuration);
+                [simIn, context] = routeA_panel_build_simulation_input( ...
+                    app.simCase, rampDuration);
                 app.addLog('  ✓ SimulationInput 已构建');
 
                 % The helper loads the model when needed. A panel run only
                 % applies SimulationInput overrides and does not save the
                 % model as a side effect.
-                model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
+                app.ensurePlatformContract();
+                model = app.platformPaths.modelName;
                 if ~bdIsLoaded(model)
-                    modelDir = fullfile(fileparts(mfilename('fullpath')), '..', '..', ...
-                        '01_模型', 'RouteA_GasMixture_Derived');
-                    load_system(fullfile(modelDir, [model '.slx']));
+                    load_system(app.platformPaths.modelFile);
                 end
                 app.addLog(sprintf('> 使用模型 %s...', model));
 
@@ -145,11 +146,26 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 elapsed = toc;
                 app.addLog(sprintf('  ✓ 仿真完成（耗时 %.1f s）', elapsed));
 
+                observationReport = routeA_validate_observation_output(out, ...
+                    routeA_observation_registry(app.platformPaths));
+                if ~observationReport.passed
+                    error('RouteA:ObservationContractFailed', '%s', ...
+                        strjoin(cellstr(observationReport.errors), newline));
+                end
+                app.addLog(sprintf('  ✓ 观测量契约通过（%d signals）', ...
+                    numel(observationReport.present)));
+
                 % Extract results
                 app.addLog('> 提取结果...');
-                results = routeA_panel_extract_results(out, app.simCase);
+                results = routeA_panel_extract_results(out, app.simCase, context);
                 app.addLog(sprintf('  ✓ 尾窗电压: %.2f V, 电流: %.2f A, 功率: %.2f kW', ...
                     results.voltage_V, results.current_A, results.power_kW));
+                app.addLog(sprintf('  状态: %s | gas closure=%d | L2液水=%s', ...
+                    results.status, results.gasClosurePassed, ...
+                    results.waterCapability.status));
+                if ~isempty(results.warnings)
+                    app.addLog(sprintf('  警告: %s', strjoin(cellstr(results.warnings), ' | ')));
+                end
 
                 % Update KPI table
                 app.addResultToTable(results);
@@ -158,9 +174,13 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.plotTimeSeries(results);
 
                 % Update status
-                app.StatusLabel.Text = sprintf('状态: 完成 | caseId: %s | V=%.2f V', ...
-                    app.simCase.caseId, results.voltage_V);
-                app.StatusLabel.BackgroundColor = [0.8 1 0.8];
+                app.StatusLabel.Text = sprintf('状态: %s | caseId: %s | V=%.2f V', ...
+                    results.status, app.simCase.caseId, results.voltage_V);
+                if results.passed
+                    app.StatusLabel.BackgroundColor = [0.8 1 0.8];
+                else
+                    app.StatusLabel.BackgroundColor = [1 0.8 0.8];
+                end
 
             catch ME
                 app.addLog(sprintf('  ✗ 失败: %s', ME.message));
@@ -171,7 +191,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         end
 
         % Button pushed function: MatrixButton
-        function MatrixButtonPushed(app, event)
+        function MatrixButtonPushed(app, ~)
             if app.isRunning
                 return;
             end
@@ -183,10 +203,11 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.isRunning = true;
             app.RunButton.Enable = 'off';
             app.MatrixButton.Enable = 'off';
-            cleanup = onCleanup(@() app.finishRun()); %#ok<NASGU>
+            cleanup = onCleanup(@() app.finishRun());
             try
                 [baseCase, ~] = app.collectSimCaseFromUi();
                 baseCase = routeA_validate_case(baseCase);
+                app.ensurePlatformContract();
                 app.addLog(sprintf('> 矩阵运行: %s, %d x %d x %d x %d ...', ...
                     baseCase.controls.electrical.mode, ...
                     numel(axes.electricalCommand), numel(axes.cegrRatio), ...
@@ -202,8 +223,13 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                     if study.cases(idx).passed
                         app.addResultToTable(study.cases(idx).results);
                     else
+                        message = study.cases(idx).errorMessage;
+                        if strlength(string(message)) == 0 && ...
+                                isfield(study.cases(idx).results, 'failureCategory')
+                            message = study.cases(idx).results.failureCategory;
+                        end
                         app.addLog(sprintf('  ✗ %s: %s', ...
-                            study.cases(idx).caseId, study.cases(idx).errorMessage));
+                            study.cases(idx).caseId, message));
                     end
                 end
                 app.plotMatrixResults(study);
@@ -464,6 +490,15 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
     % Component initialization
     methods (Access = private)
+
+        function ensurePlatformContract(app)
+            [~, report] = routeA_model_contract(app.platformPaths, ...
+                struct('loadModel', true, 'strict', true));
+            if ~report.passed
+                error('RouteA:ModelContractCheckFailed', '%s', ...
+                    strjoin(cellstr(report.errors), newline));
+            end
+        end
 
         function createComponents(app)
             % Create UIFigure and components
@@ -802,7 +837,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.UIFigure.Visible = 'on';
         end
 
-        function BoundaryModeChanged(app, event)
+        function BoundaryModeChanged(app, ~)
             mode = string(app.BoundaryModeDropDown.Value);
             params = routeA_platform_default_parameters();
             switch mode
@@ -824,7 +859,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             end
         end
 
-        function AdvancedBoundaryModeChanged(app, event)
+        function AdvancedBoundaryModeChanged(app, ~)
             mode = string(app.AdvancedBoundaryModeDropDown.Value);
             params = routeA_platform_default_parameters();
             switch mode
@@ -902,6 +937,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
     methods (Access = public)
         
         function app = RouteA_Panel_v01
+            app.platformPaths = routeA_project_paths();
             % Create UIFigure and components
             createComponents(app)
             

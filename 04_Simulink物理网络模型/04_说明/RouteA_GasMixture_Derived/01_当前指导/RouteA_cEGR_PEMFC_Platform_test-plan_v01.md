@@ -1,10 +1,10 @@
 # RouteA cEGR-PEMFC Platform Test Plan v01
 
 文件类型：平台验证计划  
-日期：2026-07-24（初稿）；2026-07-27（更新：S2/S3 验证完成）  
+日期：2026-07-24（初稿）；2026-07-29（更新：cold-start-only 回归）
 前置文档：[模型裁决与资产处置](RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)、[收敛实施路线图](RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)、[系统规格](RouteA_cEGR_PEMFC_Platform_system_v01.md)、[架构规格](RouteA_cEGR_PEMFC_Platform_architecture_v01.md)、[CEGR 文献研究与模型映射](../03_审计与研究/RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)
 
-本文件定义验证门槛。**当前状态：Gate 0/1/2/3 已通过**（Source_Conditioner 已删除、冷态 smoke 四个 case 全部通过、恒电流/恒功率/恒电压 + cEGR 稳态验证全部完成）。Gate 4 动态验证和正式矩阵准入待推进。v09 结果只作为历史回归证据。
+本文件定义验证门槛。**当前状态：Gate 0/1/2/3 已有通过证据；Gate 4 历史代表性专项已通过；活动运行链已切换为 cold-start-only。** Cold Voltage 的 purge-enabled case 已完成控制链审计并按周期响应门通过；Current/Power 3600 s 也通过严格门。Hydrogen Source runtime warning 已关闭，600 s/面板/完整 cold 矩阵仍待推进。
 
 ## 1. 验证原则
 
@@ -101,6 +101,64 @@ Gate 0.5 未通过时，只允许做只读盘点、文献精读、接口表和�
 - Current、Power、Voltage 用户侧边界的一致 plant 响应。
 
 动态测试不强制稳态门，但必须保留完整时序并检查命令、响应、限幅、NaN/Inf、守恒和失败分类。
+
+### 6.1 已完成代表性证据
+
+| Case | 结果 |
+|---|---|
+| Power ramp | PASS；`P=11.974169 kW`，气相闭合、限幅和有限尾窗通过 |
+| Voltage ramp | PASS；`V=427.412848 V`，气相闭合、限幅和有限尾窗通过 |
+| Power cEGR `0 -> 0.1 -> 0.3` | PASS；尾窗 actual `0.299999994`，tracking error 约 `-6.2e-9`，无 purge |
+
+### 6.2 已完成控制专项
+
+| 专项 | Case | 实际结果 |
+|---|---|---|
+| 空气供给/OER | `S5_gate4_air_oer_step_600s` | OER `2.5 -> 3.5`，Power、lambda、气相闭合和有限尾窗通过 |
+| 阴极背压 | `S5_gate4_backpressure_step_600s` | `0.161325 -> 0.175 MPa`，Power、lambda、气相闭合和有限尾窗通过 |
+| 阴极湿度 | `S5_gate4_humidity_step_600s` | RH `1.0 -> 0.8`，Power、lambda、气相闭合和有限尾窗通过 |
+| 堆温 | `S5_gate4_temperature_step_600s` | `80 -> 82 degC`，Power、lambda、气相闭合和有限尾窗通过 |
+| 阳极 purge | `S5_gate4_purge_event_600s` | 检测到 3 个事件，尾窗无 purge，Power、气相闭合和有限尾窗通过 |
+
+以上 case 的紧凑结果保存在 `outputs/RouteA_S5_20260728/S5_gate4_control_specials_600s.mat`。
+
+### 6.3 S5 尚未完成的收口项
+
+Hydrogen Source runtime dangling-line warning 已关闭；cold 600 s I/P/V 和面板 `cEGR=0/0.3` 矩阵仍未按稳态门收口。因此 Gate 4 历史代表性专项通过，不等于当前 cold-only S5 整体完成。77 条结构 warning 已形成逐条 ledger，见 [warning ledger](../03_审计与研究/RouteA_cEGR_PEMFC_model_check_warning_ledger_20260729_v01.md)；Voltage 控制链和 purge 周期诊断见 `outputs/RouteA_S5_20260728/S5_voltage_control_coupling_diagnostic_20260729.mat`。
+
+### 6.4 Cold-start-only 回归证据（2026-07-29）
+
+以下结果均使用当前 Route A 主模型、`platform_default`、拓扑 hash `2D8AE250-895A2A82-1980FB9C-C8E0A06A`、`VariableStepAuto`、`RelTol=1e-3`、`AbsTol=1e-3`、`MaxStep=5 s`，并由统一 runner 设置 `LoadInitialState="off"`。
+
+注：下表的首轮 cold compact 结果形成于 2026-07-29 OER 基线对齐之前，保留作历史审计；最终 `platform_default` 对齐后的 3600 s 验收以 `outputs/RouteA_P0_acceptance/RouteA_P0_acceptance_latest.mat` 和第 6.5 节诊断为准。
+
+| Case | 结果 | 尾窗 KPI 和判据 |
+|---|---|---|
+| cold Current 28 A, 600 s | 完成但 `not_steady` | `I=28 A`、`V=424.917593 V`、`P=11.8976926 kW`、gas closure=1、tail purge=1 |
+| cold Power 11.974169 kW, 600 s | 完成但 `not_steady` | `I=28.1855047 A`、`V=424.834311 V`、`P=11.974169 kW`、gas closure=1、tail purge=1 |
+| cold Voltage 427.648894 V, 600 s | 完成但 `not_steady` | `I=22.2373524 A`、`V=427.574962 V`、`P=9.50813563 kW`、gas closure=1、tail purge=1 |
+| cold Current 28 A, 3600 s | `PASS` | `I=28 A`、`V=425.441491 V`、`P=11.9123618 kW`、steady=1、gas closure=1、tail purge=1 |
+| cold Power 11.974169 kW, 3600 s | `PASS` | `I=28.1478294 A`、`V=425.402950 V`、`P=11.974169 kW`、steady=1、gas closure=1、tail purge=1 |
+| cold Voltage 427.648894 V, 3600 s | `periodic_response_voltage_tracked` | purge-enabled；Voltage tracking/gas closure/nonperiodic signals pass；4 events、3 complete cycles；Current/Power/derived O2 stoich classified as periodic response |
+
+面板 Current `cEGR=0/0.3` 的 600 s 矩阵两例均完成，分别得到 `V=425.195887/421.979674 V`、`P=11.9054848/11.8154309 kW`，实际 cEGR 为 `1.84146506e-6/0.299979826`；两例均因 `not_steady` 未通过，未出现仿真错误。
+
+结果文件：`outputs/RouteA_S5_20260728/S5_cold_current_28A_600s_20260729.mat`、`S5_cold_power_P0_600s_20260729.mat`、`S5_cold_voltage_V0_600s_20260729.mat`、`S5_cold_current_28A_3600s_20260729.mat`、`S5_cold_power_P0_3600s_20260729.mat`、`S5_cold_voltage_V0_3600s_20260729.mat` 和 `S5_cold_panel_current_cegr_0_030_600s_20260729.mat`。
+
+### 6.5 Voltage 控制链与 purge 周期响应（2026-07-29）
+
+同一 cold V0 工况分别运行 purge-enabled 和 purge-disabled 3600 s 对照，空气基线已按 `platform_default` 对齐为 `air_target_oer=3.0`、阴极背压 `0.1613 MPa`。控制链读回为：`Voltage Error = V_stack - V_ref`，Voltage PI `Kp=1 A/V`、`Ki=0.05 A/(V*s)`、电流限幅 `[0,392] A`、anti-windup=`clamping`，PI 输出经 `0.1 s` 电流命令动态后进入唯一 `I_cmd`。
+
+空气控制为 mode 2 `target OER`。其设定流量由 `OER * max(abs(I_stack), 0.1*stack_iL*stack_area)` 换算，当前最小电流折算值为 `39.2 A`。两个 V0 case 的电流均低于该值，因此 `air_mdot_set=0.016667929 kg/s` 全程不随电流波动；实际压缩机流量只在该设定附近跟踪，电流并未直接驱动阴极设定流量。
+
+| Case | 结果 | 关键读回 |
+|---|---|---|
+| purge-enabled | `periodic_response_voltage_tracked` | 4 个 purge event、3 个完整周期，周期均值 `759.972257 s`、标准差 `1.557600 s`；Voltage tail 相对误差 `0.0577%`，tail span `0.011457 V`；只有 Current/Power/derived O2 stoich 超过原始 `1%` 稳态门，最大变化 `1.554%` |
+| purge-disabled | `strict PASS` | 最大稳态变化 `0.0874%`，Voltage tail 相对误差 `0.00153%`，无 purge event |
+
+结论：PI 符号和反馈方向正确；阳极 purge 改变阳极库存和堆电压，Voltage PI 随后调节 `I_cmd`，电流变化再影响由电流派生的氧计量比。当前结果是物理周期响应，不是恒电压控制符号错误。P0 验收已增加周期响应门：Voltage 跟踪、限幅、气相闭合、`lambda>1` 以及温度/压缩机/压力/RH 等非周期信号仍为强制门；Current、Power 和派生氧计量比仅在已识别且周期稳定的 purge case 中转为周期诊断项。
+
+证据文件：`outputs/RouteA_S5_20260728/S5_voltage_control_coupling_diagnostic_20260729.mat`、`outputs/RouteA_P0_acceptance/RouteA_P0_acceptance_latest.mat`。
 
 ## 7. 回归和长期门禁
 

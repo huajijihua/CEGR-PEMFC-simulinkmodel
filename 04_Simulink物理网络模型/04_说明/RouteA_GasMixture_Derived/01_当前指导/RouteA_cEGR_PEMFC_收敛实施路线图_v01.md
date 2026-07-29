@@ -1,7 +1,7 @@
 # Route A cEGR-PEMFC 收敛实施路线图
 
 文件类型：后续实施、模型收敛和验证路线图  
-日期：2026-07-27（S2/S3 验证完成后更新）  
+日期：2026-07-29（cold-start-only 决策后更新）
 决策前置：[模型裁决与资产处置](RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)
 
 ## 1. 总目标
@@ -20,12 +20,12 @@
 
 | 阶段 | 核心任务 | 状态 | 必须产物 | 出口门 |
 |---|---|---|---|---|
-| S0 决策冻结 | 固定模型、接口和资产处置 | ✅ 已完成 | 裁决记录、参数清单、warning ledger 草案 | 用户确认本路线；不再新增模型副本 |
+| S0 决策冻结 | 固定模型、接口和资产处置 | ✅ 已完成 | 裁决记录、参数清单、warning ledger | 用户确认本路线；不再新增模型副本 |
 | S1 物理边界收敛 | 关闭真实未连接端口，恢复单一供气边界 | ✅ 已完成 | 端口处置表、模型 read-back、结构检查记录 | Source_Conditioner 不再有未解释真实端口；结构 warning 可分类 |
 | S2 最小 plant | 保留官方 stack/BOP，缩小 cEGR 到最小可验证路径 | ✅ 已完成 | 最小闭环模型记录、hash、compile/update 证据 | 无 DAE 初态失败的短 smoke |
 | S3 参数和控制收敛 | 参数分层、单一 I_cmd、统一 case 装配 | ✅ 已完成 | 参数 API、case schema、兼容适配器 | Current/Power/Voltage 同一拓扑可装配 |
-| S4 初态和数值收敛 | 冷态基线、热初态和边界敏感性 | ⏳ 待推进 | v10 初态包、生成/审计记录 | 四个 Gate 2 case 全部通过 |
-| S5 分层验证 | 子系统、整机、策略和回归 | ⏳ 待推进 | 紧凑 KPI、失败栈、测试记录 | Gate 0-4 通过，才允许正式矩阵 |
+| S4 初态和数值收敛 | 冷态基线、求解器和边界敏感性 | ✅ 完成，Current/Power 严格通过，Voltage purge 周期响应已分类 | cold-start-only 合同、I/P/V 3600 s 结果、控制耦合诊断 | 电压跟踪、供气安全和周期响应门明确 |
+| S5 分层验证 | 子系统、整机、策略和回归 | 部分完成，P0 I/P/V 3600 s 已通过，Hydrogen runtime warning 已关闭，77 条 warning ledger 已形成 | 紧凑 KPI、失败栈、warning ledger、首轮矩阵记录 | 600 s/面板/完整矩阵收口后再开放研究扩展 |
 | S6 CEGR 研究扩展 | 扫描回流比、背压、湿度、负载和控制策略 | ⏳ 待推进 | 文献映射结果、敏感性/策略报告 | 每项扩展不改变平台边界和证据链 |
 
 ## 3. S0：决策冻结 — 已完成
@@ -99,27 +99,43 @@
 
 ### 已知限制
 
-- 初始状态文件仍为 v09 schema，正式 runner 链无法使用（绕过方式：直接构建 SimulationInput）
+- v09 初始状态和 v10 I/P/V bundle 均冻结为历史审计/回归材料；当前活动 runner 不加载 operating point
 - 22 列 profile 的 O2/H2O 字段被 Terminator 吸收，不参与 Air Intake 控制
 - H2O > 0.04 可能触发 DAE IC Failure
 
-## 7. S4：初态与数值收敛 — 待推进
+## 7. S4：初态与数值收敛 — cold-only 回归完成，Voltage purge 周期响应已分类
 
-冷态模式用于排查边界和方程一致性；热初态只作为减少启动过渡的便利，不拥有场景命令。正式 v10 初态必须在当前主模型、当前参数链和当前拓扑 hash 下重新生成，并分别审计 Current、Power、Voltage 三个分支的模型名、schema、拓扑和元数据。
+冷态模式现在是活动 Route A 的唯一初始化路径。此前生成并提升的 v10 Current/Power/Voltage bundle 仅保留为历史审计/对比资产，不拥有活动场景命令，也不再作为 runner 前置。
 
-初态门禁：
+实际出口证据：
 
 - 模型名和拓扑 hash 与当前主模型一致；
 - `platform_default`/`external_case` 标识正确；
 - 初态不携带场景命令、cEGR 目标或功率/电压控制语义；
-- 三分支都能被统一 runner 读取，旧 v09/v03 包被明确拒绝；
-- 2 s 热启动 smoke 不出现 DAE failure，且与 cold case 的方向一致。
+- 活动 runner 固定 `initializationPolicy="cold_start_only"`，并显式设置 `LoadInitialState="off"`；
+- v10 bundle 仍可被 contract 读回用于 provenance 审计，但不会被活动 panel/runner 加载；
+- cold Current 10 s smoke 已通过，600 s Current/Power/Voltage cold 回归作为本轮出口证据。
 
-## 8. S5：验证和正式矩阵准入 — 待推进
+S4 的 cold-only 回归已在同一输入契约下完成：Current/Power 3600 s 通过；purge-disabled Voltage 严格通过；purge-enabled Voltage 的电压跟踪、气相、温度和空气侧非周期信号通过，Current/Power/derived O2 stoich 被识别为阳极 purge 周期响应，并按专门门接受。当前 `model_check(all)` 仍为 `77` 条 warning、无 error；`unconnected_lines` 专项检查 healthy，77 条结构 warning 已逐条形成 [warning ledger](../03_审计与研究/RouteA_cEGR_PEMFC_model_check_warning_ledger_20260729_v01.md)，Hydrogen Source 运行时 dangling-line warning 已通过最小物理连线修复关闭。Power/Voltage 历史 hot 结果只作对比，不替代 cold 结果。
 
-验证严格按"结构 -> 子系统开环 -> 整机开环 -> 闭环策略 -> 回归矩阵"顺序。Gate 0/0.5 来源和文献口径、Gate 1 结构闭合、Gate 2 冷态稳定、Gate 3 KPI/守恒、Gate 4 动态与策略全部通过后，才允许长时间或多工况矩阵。
+## 8. S5：验证和正式矩阵准入 — P0 3600 s 收口，P1 条件准入，矩阵专项待收口
 
-正式矩阵的每个结果必须包含紧凑摘要、模型 hash、参数层、case schema、solver、初态、KPI、warning/error 分类和失败栈路径。v09 结果只做历史回归对照，不与 v10 结果混写。
+验证继续按"结构 -> 子系统开环 -> 整机开环 -> 闭环策略 -> 回归矩阵"顺序。既有 Gate 4 和 hot-start 矩阵只作为历史证据；当前活动验收改以 cold-start-only 的 I/P/V 600/3600 s case、面板矩阵和 warning ledger 为准。Voltage 的 purge 周期响应门已落地并在正式 P0 回归中通过；Hydrogen Source runtime warning 已关闭，600 s/面板/完整 cold 矩阵仍待处理，因此 S5 尚未整体标记完成。
+
+正式矩阵的每个结果必须包含紧凑摘要、模型 hash、参数层、case schema、solver、cold 初始化策略、KPI、warning/error 分类和失败栈路径。当前历史结果见[ S5 实施记录 ](../02_实施记录/01_当前分卷/RouteA_cEGR_PEMFC_实施记录_20260728_S5分层验证与正式矩阵首轮_v01.md)；v09/v10 hot 结果只做历史回归对照，不与 cold 结果混写。
+
+### 8.1 P1 实施准入结论（2026-07-29）
+
+当前允许进入 P1，但结论是“P1 面板基础版实施准入”，不是“P1 已完成”或“S5 全部收口”。准入依据如下：
+
+- P0 依赖检查、model contract、cold-start-only 输入契约和观测注册链通过；
+- 10 s smoke 通过，正式 Current/Power/Voltage 3600 s P0 回归 `overall=1`；
+- Hydrogen Source dangling-line runtime warning 已关闭，修复后 Hydrogen Source 12/12 条内部线均已连接；
+- 现有 `RouteA_Panel_v01`、panel SimulationInput 装配、结果提取和 panel matrix helper 已可作为 P1 基础。
+
+P1 的实施边界固定为：完善现有面板的电边界、阴极进气、温度和气相/水管理结果闭环，复用统一 runner、参数注册表、观测注册表和结果契约；不新增未经批准的物理块，不把 inventory/unresolved 参数直接开放为 UI 控件，不以 UI 控件掩盖模型或观测缺口。
+
+P1 的验收前置仍保留以下未决项：cold 600 s I/P/V 和面板 `cEGR=0/0.3` 矩阵的稳态判定、完整 cold 矩阵、阳极/冷却未解析观测量，以及 L2 液水库存/输运/排液/分离效率闭合。每个 P1 功能必须经过单工况 smoke、基线回归、最小矩阵和实施记录后才能标记完成。
 
 ## 9. S6：CEGR 研究扩展顺序 — 待推进
 

@@ -68,7 +68,7 @@ Route A 是一个面向系统尺度的阴极尾气循环 PEMFC 仿真平台，�
 | Anode operation | `recirc_cmd`, `purge_cmd` | - | 回流和吹扫控制接口 |
 | Thermal | `T_stack_cmd` 或冷却侧设定点 | degC 或模型单位 | 只在已有热网络实际响应时开放 |
 
-用户侧可以提供 `Current`、`Power` 或 `Voltage` 研究命令，但模型内部只保留一个 `I_cmd` plant 端口。`Power` 通过 `I_cmd=P/V` 转换；`Voltage` 由一个明确的电压控制器输出 `I_cmd`。三者不是三个不同物理 plant，也不需要三套热启动状态。
+用户侧可以提供 `Current`、`Power` 或 `Voltage` 研究命令，但模型内部只保留一个 `I_cmd` plant 端口。`Power` 通过 `I_cmd=P/V` 转换；`Voltage` 由一个明确的电压控制器输出 `I_cmd`。三者不是三个不同物理 plant。当前活动 panel/runner 统一从 cold start 进入，不加载 operating point。
 
 ### 4.2 `w`：外部扰动和边界条件
 

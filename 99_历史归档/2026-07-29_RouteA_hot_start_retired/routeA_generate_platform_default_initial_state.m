@@ -14,17 +14,14 @@ if ~isstruct(userCfg) || ~isscalar(userCfg)
         'userCfg must be a scalar struct.');
 end
 
-scriptDir = fileparts(mfilename('fullpath'));
-modelDir = fullfile(scriptDir, '..', '..', '01_模型', ...
-    'RouteA_GasMixture_Derived');
-model = 'PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01';
-modelFile = fullfile(modelDir, [model '.slx']);
-oldDir = pwd;
+paths = routeA_project_paths();
+scriptDir = paths.scriptDir;
+modelDir = paths.modelDir;
+model = paths.modelName;
+modelFile = paths.modelFile;
 addpath(scriptDir);
 addpath(modelDir);
-cd(modelDir);
-cleanup = onCleanup(@() routeA_restore_model_and_folder( ...
-    model, modelFile, oldDir));
+cleanup = onCleanup(@() restoreModelFromDisk(model, modelFile));
 
 cfg = defaultInitialStateConfig();
 cfg = mergeKnownFields(cfg, userCfg);
@@ -83,7 +80,6 @@ end
 routeA_initial_metadata = metadata;
 save(candidateFile, 'routeA_initial_state', ...
     'routeA_initial_metadata', '-v7.3');
-assignCandidateMetadata(cfg.loadInputType, routeA_initial_metadata);
 fprintf('Saved Route A %s initial-state candidate: %s\n', ...
     cfg.loadInputType, candidateFile);
 clear cleanup;
@@ -180,7 +176,8 @@ required = {'schema', 'model', 'snapshotTimeS', 'physicalSummary', ...
     'cegrValveMaxArea_m2', 'loadInputType', ...
     'commandProfileSchema', 'commandProfileFields', ...
     'commandProfileBaseline', 'baselineElectricalCommand', ...
-    'sourceConditionerState', 'modelVersion'};
+    'supplyBoundaryState', 'topologyHash', 'parameterLayer', ...
+    'externalCaseEnabled', 'modelVersion'};
 for idx = 1:numel(required)
     if ~isfield(source, required{idx})
         error('RouteA:InitialStateCurrentSourceMetadata', ...
@@ -223,21 +220,18 @@ if metadata.cegrValveModeId ~= source.cegrValveModeId || ...
         '%s candidate did not retain the Current source cEGR topology.', ...
         loadInputType);
 end
-if ~isequal(metadata.sourceConditionerState, source.sourceConditionerState)
-    error('RouteA:InitialStateSourceConditioner', ...
-        '%s candidate source-conditioner topology or parameters differ from Current.', ...
+if ~isequal(metadata.supplyBoundaryState, source.supplyBoundaryState)
+    error('RouteA:InitialStateSupplyBoundary', ...
+        '%s candidate supply-boundary topology or parameters differ from Current.', ...
         loadInputType);
 end
 end
 
-function assignCandidateMetadata(type, metadata)
-switch type
-    case "Current"
-        variableName = 'routeA_platform_default_current_candidate_metadata';
-    case "Power"
-        variableName = 'routeA_platform_default_power_candidate_metadata';
-    case "Voltage"
-        variableName = 'routeA_platform_default_voltage_candidate_metadata';
+function restoreModelFromDisk(model, modelFile)
+if bdIsLoaded(model)
+    close_system(model, 0);
 end
-assignin('base', variableName, metadata);
+if isfile(modelFile)
+    load_system(modelFile);
+end
 end

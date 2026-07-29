@@ -29,8 +29,8 @@ pNum = params.numerics;
 
 %% (a) 初始状态
 initialState = struct();
-initialState.mode = 'cold';                              % 'cold' | 'warm' | 'hot'
-initialState.source = '';                                % 初态文件路径（warm/hot 时使用）
+initialState.mode = 'cold';                              % active Route A policy: cold-start-only
+initialState.source = 'model_default_cold';              % active cold provenance
 initialState.temperature_C = pEnv.ambient_T_C.value;     % 冷态初始温度 [degC]
 initialState.pressure_MPa_abs = pEnv.ambient_p_MPa_abs.value;  % 冷态初始压力 [MPa(abs)]
 initialState.o2MoleFraction = pEnv.o2_mole_fraction.value;     % 冷态初始 O2 分数
@@ -119,8 +119,7 @@ solver.signalLogging = 'on';                      % 信号日志
 solver.signalLoggingName = 'logsout';             % 日志名称
 solver.simscapeLogType = 'all';                   % Simscape 日志类型
 solver.returnWorkspaceOutputs = 'on';             % 返回工作区输出
-solver.saveOperatingPoint = 'off';                % 保存 operating point
-solver.operatingPointFile = '';                   % 保存路径
+solver.saveOperatingPoint = 'off';                % active runs never save an operating point
 
 %% 组合顶层 simCase
 simCase = struct();

@@ -24,7 +24,7 @@ compRpm = loggedTimeseries(logsout, 'routeA_compressor_rpm');
 airMdotSet = magnitudeTimeseries(loggedTimeseries(logsout, ...
     'routeA_air_mdot_set'));
 airControlError = loggedTimeseries(logsout, 'routeA_air_control_error');
-egrMdot = magnitudeTimeseries(loggedTimeseries(logsout, 'routeA_egr_mdot'));
+egrMdot = magnitudeTimeseries(loggedTimeseries(logsout, 'EGR_mdot_log'));
 stackCurrent = loggedTimeseries(logsout, 'routeA_stack_current_A');
 stackVoltage = loggedTimeseries(logsout, 'routeA_stack_voltage_V');
 stackPower = routeA_stack_electrical_power_timeseries(logsout);
@@ -112,6 +112,8 @@ saturation = assessSaturation(logsout, context, stackVoltage, ...
 gasClosure = routeA_stage1_cathode_gas_closure_from_outputs(out, ...
     model, context);
 purge = purgeStats(out, model, context);
+periodicAnode = assessPeriodicAnodeBehavior(stackCurrent, stackVoltage, ...
+    stackPower, purge, context);
 result = struct();
 result.caseId = getCaseId(caseCfg);
 result.modeId = 1;
@@ -137,9 +139,12 @@ result.saturation = saturation;
 result.gasClosure = gasClosure;
 result.gasClosurePassed = gasClosure.passed;
 result.purge = purge;
+result.periodicAnode = periodicAnode;
 result.tailPurgeFree = purge.tailEventCount == 0;
 result.finiteTail = tailFinite(tail);
 result.steadyPassed = steady.passed;
+result.steadyStrictPassed = steady.strictPassed;
+result.steadyEngineeringPassed = steady.engineeringPassed;
 result.lambdaTailMin = tail.lambdaCaIn.minimum;
 result.lambdaPassed = tail.lambdaCaIn.nonfiniteCount == 0 && ...
     tail.lambdaCaIn.minimum > 1;
@@ -237,6 +242,10 @@ function steady = assessSteady(signals, context)
 steady = struct('required', context.calculationType == "steady", ...
     'passed', true, 'windowModel_s', [NaN, NaN], ...
     'relativeVariationLimit', context.steadyRelativeVariationLimit, ...
+    'engineeringRelativeVariationLimit', ...
+        context.engineeringSteadyRelativeVariationLimit, ...
+    'strictPassed', true, 'engineeringPassed', true, ...
+    'classification', "not_applicable", ...
     'maximumRelativeChange', NaN, 'metrics', struct());
 if ~steady.required
     return;
@@ -262,12 +271,25 @@ for idx = 1:numel(names)
         'secondHalfMean', second.mean, ...
         'relativeChange', relativeChange, ...
         'finite', first.nonfiniteCount == 0 && second.nonfiniteCount == 0, ...
-        'passed', false);
-    metric.passed = metric.finite && ...
+        'strictPassed', false, 'engineeringPassed', false, 'passed', false);
+    metric.strictPassed = metric.finite && ...
         metric.relativeChange <= context.steadyRelativeVariationLimit;
+    metric.engineeringPassed = metric.finite && ...
+        metric.relativeChange <= context.engineeringSteadyRelativeVariationLimit;
+    metric.passed = metric.strictPassed;
     steady.metrics.(name) = metric;
-    steady.passed = steady.passed && metric.passed;
+    steady.strictPassed = steady.strictPassed && metric.strictPassed;
+    steady.engineeringPassed = steady.engineeringPassed && ...
+        metric.engineeringPassed;
     maximum = max(maximum, relativeChange);
+end
+steady.passed = steady.strictPassed;
+if steady.strictPassed
+    steady.classification = "strict_steady";
+elseif steady.engineeringPassed
+    steady.classification = "engineering_steady";
+else
+    steady.classification = "not_steady";
 end
 steady.maximumRelativeChange = maximum;
 end
@@ -554,11 +576,15 @@ if size(data, 1) ~= numel(signal.Time)
 end
 species = abs(data);
 total = sum(species, 2);
-if any(total <= 0) || any(~isfinite(total))
+if any(~isfinite(total))
     error('RouteA:ElectricalBoundarySpeciesTotal', ...
-        'The cathode inlet species total is nonpositive or nonfinite.');
+        'The cathode inlet species total is nonfinite.');
 end
-massFraction = species ./ total;
+% Cold starts may legitimately have zero inlet flow before the startup ramp.
+% Keep those rows finite; tail-window checks decide whether flow was established.
+massFraction = zeros(size(species));
+positive = total > 0;
+massFraction(positive, :) = species(positive, :) ./ total(positive);
 end
 
 function lambda = inletOxygenStoich(speciesMdot, stackCurrent, stackCells)
@@ -592,6 +618,62 @@ tailEvents = eventTimes(eventTimes >= context.tailWindow_s(1) & ...
 purge = struct('eventTimesModel_s', eventTimes(:).', ...
     'tailEventTimesModel_s', tailEvents(:).', ...
     'tailEventCount', numel(tailEvents));
+end
+
+function periodic = assessPeriodicAnodeBehavior(current, voltage, power, ...
+        purge, context)
+% Report purge-cycle behavior separately from the steady-signal gate.
+events = purge.eventTimesModel_s(:);
+periodic = struct( ...
+    'classification', "no_periodic_events", ...
+    'eventCount', numel(events), ...
+    'tailEventCount', purge.tailEventCount, ...
+    'completeCycleCount', 0, ...
+    'cyclePeriod_s', zeros(0, 1), ...
+    'cyclePeriodMean_s', NaN, ...
+    'cyclePeriodStd_s', NaN, ...
+    'cycleStats', periodicCycleTemplate(zeros(0, 1)), ...
+    'tailWindow', periodicWindowStats(current, voltage, power, ...
+        context.tailWindow_s));
+if numel(events) < 2
+    if isscalar(events)
+        periodic.classification = "insufficient_events";
+    end
+    return;
+end
+
+periodic.classification = "periodic_anode_inventory";
+periodic.completeCycleCount = numel(events) - 1;
+periodic.cyclePeriod_s = diff(events);
+periodic.cyclePeriodMean_s = mean(periodic.cyclePeriod_s);
+periodic.cyclePeriodStd_s = std(periodic.cyclePeriod_s, 0);
+cycles = periodicCycleTemplate(events(1:end - 1));
+for idx = 1:numel(cycles)
+    window = [events(idx), events(idx + 1)];
+    cycles(idx).end_s = window(2);
+    cycles(idx).period_s = diff(window);
+    cycles(idx).signals = periodicWindowStats(current, voltage, power, ...
+        window);
+end
+periodic.cycleStats = cycles;
+end
+
+function cycles = periodicCycleTemplate(startTimes)
+cycles = repmat(struct( ...
+    'start_s', NaN, ...
+    'end_s', NaN, ...
+    'period_s', NaN, ...
+    'signals', struct()), numel(startTimes), 1);
+for idx = 1:numel(startTimes)
+    cycles(idx).start_s = startTimes(idx);
+end
+end
+
+function stats = periodicWindowStats(current, voltage, power, window)
+stats = struct( ...
+    'stackCurrent_A', windowStats(current, window), ...
+    'stackVoltage_V', windowStats(voltage, window), ...
+    'stackPower_kW', windowStats(power, window));
 end
 
 function passed = tailFinite(tail)

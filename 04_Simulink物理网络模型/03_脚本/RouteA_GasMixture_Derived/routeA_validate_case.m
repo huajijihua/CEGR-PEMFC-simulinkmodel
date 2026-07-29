@@ -81,11 +81,10 @@ end
 %% -----------------------------------------------------------------------
 function validateInitialStateMode(mode)
 mode = string(mode);
-valid = ["cold", "warm", "hot"];
-if ~any(mode == valid)
+if ~isscalar(mode) || mode ~= "cold"
     error('RouteA:ValidateInitialStateMode', ...
-        'initialState.mode must be one of: %s. Got: %s', ...
-        strjoin(valid, ', '), mode);
+        'The active Route A runner supports cold-start-only execution. Got: %s', ...
+        mode);
 end
 end
 

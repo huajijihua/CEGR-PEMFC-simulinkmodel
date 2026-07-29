@@ -25,7 +25,7 @@ logsout = out.logsout;
 compMdot = magnitudeTimeseries(loggedTimeseries(logsout, ...
     'routeA_mdot_comp_inlet'));
 compYi = loggedTimeseries(logsout, 'routeA_yi_comp_inlet');
-egrMdot = magnitudeTimeseries(loggedTimeseries(logsout, 'routeA_egr_mdot'));
+egrMdot = magnitudeTimeseries(loggedTimeseries(logsout, 'EGR_mdot_log'));
 exhaustMdot = magnitudeTimeseries(outputTimeseries(out, logsout, ...
     'routeA_exhaust_mdot', 'routeA_exhaust_mdot_ts'));
 outletYi = loggedTimeseries(logsout, 'routeA_yi_outlet');

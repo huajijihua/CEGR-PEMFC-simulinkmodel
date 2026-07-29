@@ -40,6 +40,14 @@
 | D4 批量矩阵 | 首个矩阵已闭环 | Power 40 kW × cEGR `[0,0.1,0.3]`，600 s serial，3/3 PASS |
 | D5 测试与收尾 | 进行中 | 当前实施记录已追加；完整测试矩阵、`.mlapp` 和最终收尾未完成 |
 
+### 1.2.1 Phase D 之后的规划入口
+
+用户已确认 Phase D 面板不是最终工具形态。D5 收尾后，后续工作转入“完整燃料电池系统面板 -> cEGR 研究扩展 -> 参数和观测量全面开放 -> 迁移交付”的连续平台建设主线。详细目标、部署边界、参数开放门槛、cEGR 目标比例/阀面积控制语义、精简/完整结果分级和 P0-P5 路线见：
+
+- [面板-模型双向迭代规划](../RouteA_GasMixture_Derived/01_当前指导/RouteA_cEGR_PEMFC_面板-模型双向迭代规划_v01.md)
+
+该规划是后续目标，不改变 D3/D4 已完成事实，也不把尚未实现的功能写成 Phase D 证据。
+
 ### 1.3 当前确认的 D3 阻断项
 
 1. Current 路径真实输入是 `FromWorkspace` 的 `[drive_cycle_time, drive_cycle_current]`，helper 不能设置不存在的 `Value` 参数。
@@ -63,6 +71,8 @@
 - 单工况结果自动提取尾窗 KPI 和时序曲线。
 - 保留 caseId、参数快照、运行状态和错误信息，保证结果可追溯。
 - D3 完成后再实现 D4 的矩阵对话框和 `parsim`。
+
+Phase D 只负责建立可运行面板和最小仿真闭环，不承担完整系统参数实验台、完整气路观测面板和迁移交付的全部目标。
 
 ### 2.2 范围约束
 
@@ -295,7 +305,7 @@ Voltage 初始参考值必须来自参数入口或明确的 Route A 平台默认
 - 只保留必要的结果摘要和测试产物；Simulink 缓存不纳入 Git。
 - 提交前检查 `git status`、`git diff` 和最近提交记录，只纳入本阶段意图文件。
 
-**当前状态：** 实施记录已追加为 [Phase D D3 闭环与 D4 首个矩阵记录](../RouteA_GasMixture_Derived/02_实施记录/01_当前分卷/RouteA_cEGR_PEMFC_实施记录_20260728_PhaseD_D3闭环与D4首个矩阵_v01.md)。`.mlapp` 转存、完整 CR2 高级字段、后台异步和最终提交审查仍待完成。
+**当前状态：** 实施记录已追加为 [Phase D D3 闭环与 D4 首个矩阵记录](../RouteA_GasMixture_Derived/02_实施记录/01_当前分卷/RouteA_cEGR_PEMFC_实施记录_20260728_PhaseD_D3闭环与D4首个矩阵_v01.md)。`.mlapp` 转存、完整 CR2 高级字段、后台异步和最终提交审查仍待完成。Phase D 之后的用户确认目标已记录在 [面板-模型双向迭代规划](../RouteA_GasMixture_Derived/01_当前指导/RouteA_cEGR_PEMFC_面板-模型双向迭代规划_v01.md)，不作为本轮已完成证据。
 
 ## 5. 验证门槛与停止条件
 
@@ -352,6 +362,7 @@ Voltage 初始参考值必须来自参数入口或明确的 Route A 平台默认
 - [CR3 三要素 schema](../RouteA_GasMixture_Derived/01_当前指导/RouteA_cEGR_PEMFC_CR3三要素schema_v01.md)
 - [模型裁决与资产处置](../RouteA_GasMixture_Derived/01_当前指导/RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)
 - [Phase D 前审计修复记录](../RouteA_GasMixture_Derived/02_实施记录/01_当前分卷/RouteA_cEGR_PEMFC_实施记录_20260728_PhaseD前审计修复_v01.md)
+- [面板-模型双向迭代规划](../RouteA_GasMixture_Derived/01_当前指导/RouteA_cEGR_PEMFC_面板-模型双向迭代规划_v01.md)
 - `../../03_脚本/RouteA_GasMixture_Derived/routeA_simCase_template.m`
 - `../../03_脚本/RouteA_GasMixture_Derived/routeA_validate_case.m`
 - `../../03_脚本/RouteA_GasMixture_Derived/routeA_assemble_command_profile.m`

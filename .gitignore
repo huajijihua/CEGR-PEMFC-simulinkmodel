@@ -33,3 +33,16 @@ work/
 # Local archival buckets for generated caches and client settings
 99_历史归档/**/04_本地缓存与自动生成物/
 99_历史归档/**/05_本地客户端设置/
+
+# Route A generated simulation outputs; compact milestone evidence is allow-listed
+outputs/*
+!outputs/RouteA_S5_20260728/
+outputs/RouteA_S5_20260728/*
+!outputs/RouteA_S5_20260728/S5_voltage_control_coupling_diagnostic_20260729.mat
+04_Simulink物理网络模型/outputs/*
+!04_Simulink物理网络模型/outputs/RouteA_P0_acceptance/
+04_Simulink物理网络模型/outputs/RouteA_P0_acceptance/*
+!04_Simulink物理网络模型/outputs/RouteA_P0_acceptance/RouteA_P0_acceptance_latest.mat
+
+# Superseded intermediate initial-state bundles
+99_历史归档/2026-07-22_Stage1_InitialState_Superseded/RouteA_platform_default_initial_state_pre_v10_*.mat

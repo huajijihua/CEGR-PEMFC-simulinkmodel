@@ -4,8 +4,8 @@ function schema = routeA_command_profile_schema()
 % The 22-field schema is referenced by every consumer of the unified runtime
 % command profile:
 %   - routeA_assemble_command_profile       builds the struct + compat matrix
-%   - routeA_prepare_electrical_boundary_input   validates the v10 baseline
-%   - routeA_attach_platform_default_initial_state   validates saved v10 metadata
+%   - routeA_prepare_electrical_boundary_input   reads the model baseline
+%   - routeA_model_contract                   checks the model alignment
 %
 % The model-workspace variable routeA_command_profile_fields and the
 % routeA_command_profile_baseline row vector must stay aligned with this
@@ -78,6 +78,8 @@ schema.names = names;
 schema.labels = labels;
 schema.isStep = isStep;
 schema.count = numel(names);
+% v10 is the established command-profile schema revision. It does not define
+% the active runtime initialization policy.
 schema.version = "RouteA_Command_Profile_v10";
 
 if schema.count ~= 22

@@ -40,8 +40,8 @@ simCase = struct(...
 
 ```matlab
 simCase.initialState = struct(...
-    'mode', 'cold', ...              % 'cold' | 'warm' | 'hot'
-    'source', '', ...                % 初态文件路径（warm/hot 时使用）
+    'mode', 'cold', ...              % 活动 Route A 仅允许 cold
+    'source', '', ...                % 保留为空的历史 provenance 字段
     'temperature_C', 20, ...         % 冷态初始温度 [°C]
     'pressure_MPa_abs', 0.101325, ...% 冷态初始压力 [MPa(abs)]
     'o2MoleFraction', 0.21, ...      % 冷态初始 O2 分数 [-]
@@ -54,14 +54,14 @@ simCase.initialState = struct(...
 
 | mode | 行为 | 适用场景 |
 |------|------|---------|
-| `cold` | 使用默认参数完全冷态初始化，不加载任何 operating point。忽略 `source` 字段。 | 基线验证、首次运行 |
-| `warm` | 尝试加载 `source` 指定的 operating point。若加载失败（schema 不匹配、文件不存在等），**回退到 cold** 并记录警告。 | 日常研究，加速启动 |
-| `hot` | 必须加载 `source` 指定的 operating point。若加载失败，**报错终止**。 | 正式矩阵、批量运行 |
+| `cold` | 使用默认参数完全冷态初始化，不加载任何 operating point；活动输入显式设置 `LoadInitialState="off"`。 | 全部活动 Route A 基线、面板和正式 runner |
+
+`warm`/`hot` 只保留在历史 schema 和归档脚本中，不属于当前活动 API；`routeA_validate_case` 对这两种模式明确拒绝。
 
 ### 3.2 默认值覆盖
 
 - 当 `mode='cold'` 时，`temperature_C`、`pressure_MPa_abs`、`o2MoleFraction`、`h2oMoleFraction`、`h2MoleFraction` 用于设定 Simulink 模型的初始工作区变量
-- 当 `mode='warm'` 或 `mode='hot'` 时，上述温度/压力/组分字段被忽略（初态文件中的值优先）
+- 当前活动 API 不存在 operating-point 覆盖路径；上述冷态边界字段由平台模型默认值和 case controls 装配。
 
 ---
 

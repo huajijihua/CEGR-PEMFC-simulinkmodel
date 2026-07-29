@@ -135,11 +135,10 @@ platform.observability
 
 ## 6. 状态与求解器架构
 
-1. 冷态 nominal 是第一等价验证路径，必须先通过短 smoke；热启动只是加速工具。
+1. 冷态 nominal 是活动 Route A 的唯一验证路径；热启动不属于当前活动能力。
 2. 初态只描述 plant 的结构兼容性和已声明的基准工作点，不锁定后续研究的电流、功率、电压、cEGR、空气、压力、湿度或热命令。
-3. 目标架构先保留一个 canonical hot-start operating point；I/P/V 由同一 `I_cmd` 接口处理，不生成三套分支 MOP。
-4. 若 Simulink 的某个具体实现仍需要分支匹配，必须先证明这是工具限制而不是架构需要，并把分支文件标记为兼容缓存，而不是三种平台初态真源。
-5. `StartTime=0`、求解器名称、容差和 `MaxStep` 属于 study 合同；OperatingPoint 的绝对快照时间与逻辑研究时间必须分开记录。
+3. I/P/V 由同一 `I_cmd` 接口处理，不生成活动分支 MOP；已有 v10 bundle 只作历史兼容缓存。
+4. 活动 study 合同固定 `StartTime=0`、`LoadInitialState=off`、求解器名称、容差和 `MaxStep`；不存在 OperatingPoint 绝对快照时间与逻辑研究时间的活动混用。
 
 ## 7. 观测和审计架构
 

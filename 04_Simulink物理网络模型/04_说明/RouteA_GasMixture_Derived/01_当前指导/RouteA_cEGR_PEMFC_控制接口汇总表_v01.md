@@ -203,7 +203,7 @@
 | 1 | 入口气体组分编译时固定 | `env_yO2`/`env_yH20`/`tank_yH2` 在仿真开始前确定，仿真期间不能变化。如需变化需修改模型结构（Reservoir → Controlled Reservoir） |
 | 2 | 22 列 profile 承载时序控制 | 当前所有"时序"控制量通过 22 列 `routeA_command_profile` 矩阵传递，后续将收缩为结构体（Phase B） |
 | 3 | 电边界模式通过 `setBlockParameter` 切换 | 当前在脚本中切换，后续可考虑移入模型 Mask 参数 |
-| 4 | v09 初始状态 schema 不兼容 | 当前正式 runner 链无法使用热启动，需绕过或生成 v10 初态包 |
+| 4 | 初态策略 | 活动 panel/runner 固定 `initializationPolicy="cold_start_only"` 并设置 `LoadInitialState="off"`；v09 和 v10 I/P/V bundle 仅作历史审计/对比 |
 
 ---
 

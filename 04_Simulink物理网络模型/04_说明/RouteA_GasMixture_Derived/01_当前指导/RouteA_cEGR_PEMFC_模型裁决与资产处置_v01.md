@@ -1,7 +1,7 @@
 # Route A cEGR-PEMFC 模型裁决与资产处置
 
 文件类型：模型裁决记录（当前决策真源）  
-日期：2026-07-27（S2/S3 稳态验证完成后更新）  
+日期：2026-07-29（cold-start-only 决策后更新）
 适用范围：当前工作树内的官方 Gas Mixture PEMFC 资产、三个 Route A 模型版本、活动脚本、初态包和 v09 结果。
 
 ## 1. 裁决摘要
@@ -12,9 +12,16 @@
 
 官方 MathWorks Gas Mixture PEMFC 示例和 `FuelCell_lib` 组件作为不可变参考内核；cEGR、BOP 接口、观测和平台脚本在该主模型上收敛。`RouteA_v2` 不继续作为第二条主线，而是作为当前收敛工作的隔离验证副本，只有经过读回、结构检查和最小仿真验证的局部脚本改进才允许回迁。`RouteA_before`、旧 Route B、旧台架模型和历史 runner 全部降级为证据或外部案例，不进入默认 MATLAB path、默认参数链或默认验收标准。
 
-当前不裁决”继续增加功能”，而裁决”先恢复可解释、可初始化、可验证的最小 plant”。在 Source_Conditioner 端口闭合、冷态初始条件和 warning ledger 未通过前，不扩大 cEGR 控制、液水、整车接口或正式矩阵。
+当前不裁决”继续增加功能”，而裁决”先恢复可解释、可初始化、可验证的最小 plant”。在 cold Voltage 收敛边界未收口前，不扩大 cEGR 控制、液水、整车接口或完整正式矩阵；Hydrogen Source runtime warning 已由最小物理连线修复收口。
 
-**更新（2026-07-27）：** Source_Conditioner 已删除（恢复官方供气路径），S2 冷态 smoke 四个 case 全部通过，S3 稳态验证（恒电流/恒功率/恒电压 + cEGR 矩阵 + 入口组分控制）全部完成。当前状态已通过 Gate 1/2/3 门槛，但仍需生成 v10 正式初态包才能使用正式 runner 链。
+**更新（2026-07-29）：** Source_Conditioner 已删除（恢复官方供气路径），S2 冷态 smoke、S3 稳态验证和当前拓扑 metadata 读回均已完成。此前生成并提升的 Current/Power/Voltage v10 formal bundle 现在降级为历史审计/对比资产；活动 panel 和正式 runner 固定使用 `cold_start_only`，不加载 `ModelOperatingPoint`。
+
+### 当前初始化裁决
+
+1. 活动 Route A 只允许 `simCase.initialState.mode="cold"`。
+2. 活动输入装配显式设置 `LoadInitialState="off"`，所有 case 从模型默认冷态在逻辑 `t=0` 开始。
+3. v10 bundle、其 topology hash 和 metadata 仍可用于 provenance 读回，但不能作为活动运行前置或默认参数真源。
+4. 热启动 attach/generate helper 和 bundle 已移入 `99_历史归档/2026-07-29_RouteA_hot_start_retired/`；活动 contract 只读其 provenance，不得由 panel/runner 调用或加载。
 
 ## 2. 资产证据与版本关系
 
@@ -36,8 +43,8 @@
 
 保留其官方派生的 Stack/MEA、官方 FuelCell 气体和热组件、已形成的 cEGR 主气路、BOP 分层和观测接口。下一步只做以下范围内的修改：
 
-1. 关闭或重构已确认未闭合的 Source_Conditioner 物理端口；
-2. 恢复单一且可追溯的新鲜空气/氢气边界，避免官方路径与独立物种质量源并联；
+1. 保持已完成的 Source_Conditioner 删除和端口处置证据，不在活动模型重新引入竞争边界；
+2. 保持已恢复的单一且可追溯的新鲜空气/氢气边界，避免官方路径与独立物种质量源并联；
 3. 将 cEGR 固定为“阴极出口分流 -> 压降/阀/管路 -> 入口混合”的物理路径，被动零流量为默认；
 4. 将 Current、Power、Voltage 统一映射到一个内部 `I_cmd`，不复制 plant 拓扑；
 5. 将参数、命令、初态和结果审计分层。
@@ -63,7 +70,7 @@ v2 允许承载冷态模式选择、局部 M/Phi 观测闭合和脚本兼容性�
 
 ### 4.1 新鲜气体边界
 
-官方 Oxygen/Hydrogen supply、compressor/reservoir、gas mixture 和 stack 路径是默认边界。当前阴极和阳极 `Source_Conditioner` 中的三端口 chamber 存在 `MIn/TIn/A/B/C/pC/TC/yC_i/H` 未闭合读回；这不是可由编译通过或 Terminator 掩盖的正常平台状态。
+官方 Oxygen/Hydrogen supply、compressor/reservoir、gas mixture 和 stack 路径是默认边界。阴极和阳极 `Source_Conditioner` 已从活动模型删除；其历史端口处置记录保留在已封闭实施记录中，不得作为当前活动拓扑读回。
 
 裁决顺序为：先恢复官方供气路径的最小闭环；只有当某个 Source_Conditioner 的独立功能、端口责任、物料输入和初态均有明确证据时，才允许在一个受控边界内重新引入。默认不保留“官方供气 + 独立物种质量源”两套竞争真源。
 
@@ -83,11 +90,11 @@ plant 内只保留一个 `I_cmd`。用户侧 Current/Power/Voltage 仅是命令�
 
 允许继续的工作：只读审计、文献映射、参数来源清单、warning ledger、官方结构对照、最小端口修复设计和小规模验证。
 
-**更新（2026-07-27）：** S2/S3 验证已完成，当前允许继续以下工作：
-- 生成 v10 正式初态包（Current/Power/Voltage 三分支）并通过 Gate 4 动态验证；
-- 进入 S6 cEGR 研究扩展（回流比扫描、负载动态等）；
+**更新（2026-07-29）：** S2/S3 已完成，S4 cold-only 首轮回归和 S5 首轮验证已形成证据，当前允许继续以下工作：
+- 进入 S5 分层验证、正式 runner 的长时间 I/P/V 研究和 warning ledger 收口；
 - 将 22 列 profile 收缩为结构体 case 配置；
-- 收缩脚本入口为统一 runner 链。
+- 收缩脚本入口为统一 runner 链；
+- 仅在 S5 门槛和接口证据稳定后，进入 S6 cEGR 研究扩展。
 
 必须停止并重新裁决的情况：
 
