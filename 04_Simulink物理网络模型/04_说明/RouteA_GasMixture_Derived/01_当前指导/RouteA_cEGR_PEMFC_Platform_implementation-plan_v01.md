@@ -4,7 +4,9 @@
 日期：2026-07-24（初稿）；2026-07-29（更新：cold-start-only 回归）
 前置文档：[模型裁决与资产处置](RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)、[收敛实施路线图](RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)、[系统规格](RouteA_cEGR_PEMFC_Platform_system_v01.md)、[架构规格](RouteA_cEGR_PEMFC_Platform_architecture_v01.md)
 
-本文件是低层实施拆解；阶段顺序、模型版本裁决和停止条件以[收敛实施路线图](RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)为准。当前状态：S0/S1/S2/S3 已完成，S4 cold-start-only 与 Voltage purge 周期响应门已收口，S5 P0 3600 s 已完成，Hydrogen Source runtime warning 已关闭，77 条结构 warning 已逐条建账，仍待 600 s/面板矩阵和完整矩阵收口。
+本文件是平台架构和低层实施参考；阶段顺序、模型版本裁决、面板信息架构和停止条件以[收敛实施路线图](RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)、[面板-模型双向迭代规划](RouteA_cEGR_PEMFC_面板-模型双向迭代规划_v01.md)和当前阶段的具体实施计划为准。当前状态：S0/S1/S2/S3 已完成，S4 cold-start-only 与 Voltage purge 周期响应门已收口，S5 P0 3600 s 已完成，Hydrogen Source runtime warning 已关闭，77 条结构 warning 已逐条建账，P1 已形成面板直驱基础链，当前转入 P2 面板修复和操作性提升；研究矩阵后置。
+
+P1 的核心实施入口为[RouteA cEGR-PEMFC P1 完整燃料电池系统面板基础版实施计划](RouteA_cEGR_PEMFC_P1_完整燃料电池系统面板基础版实施计划_v01.md)。本文件中的通用平台拆解不能替代该阶段计划，也不能把 P0 的准备能力描述为 P1 面板功能已完成。
 
 ## 1. 实施总原则
 

@@ -102,6 +102,8 @@ registry.model = string(paths.modelName);
 registry.entries = entries;
 registry.count = numel(entries);
 registry.requiredCount = sum(arrayfun(@(x) x.required, entries));
+registry.panelResultCount = sum(arrayfun(@(x) x.panelExposure == "result", entries));
+registry.panelStatusOnlyCount = sum(arrayfun(@(x) x.panelExposure == "status_only", entries));
 registry.generatedAt = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 registry.notes = [ ...
     "logsout signal names are authoritative only after output read-back."; ...
@@ -122,8 +124,28 @@ registry.notes = [ ...
         entry.producerPath = string(producerPath);
         entry.auditUse = string(auditUse);
         entry.status = string(status);
+        entry = applyPanelMetadata(entry);
         entries(end + 1) = entry;
     end
+end
+
+function entry = applyPanelMetadata(entry)
+if any(entry.status == ["verified", "optional"])
+    entry.panelExposure = "result";
+    entry.resultField = entry.canonicalName;
+    entry.verificationGate = "observation_contract";
+    entry.unsupportedReason = "";
+elseif entry.status == "unresolved"
+    entry.panelExposure = "status_only";
+    entry.resultField = "";
+    entry.verificationGate = "not_observable";
+    entry.unsupportedReason = "Signal name or producer path is not resolved in the active model.";
+else
+    entry.panelExposure = "inventory";
+    entry.resultField = "";
+    entry.verificationGate = "not_opened";
+    entry.unsupportedReason = "Observation status is not active for P1 results.";
+end
 end
 
 function entry = entryTemplate()
@@ -139,5 +161,9 @@ entry = struct( ...
     'shape', "", ...
     'producerPath', "", ...
     'auditUse', "", ...
-    'status', "");
+    'status', "", ...
+    'panelExposure', "", ...
+    'resultField', "", ...
+    'verificationGate', "", ...
+    'unsupportedReason', "");
 end

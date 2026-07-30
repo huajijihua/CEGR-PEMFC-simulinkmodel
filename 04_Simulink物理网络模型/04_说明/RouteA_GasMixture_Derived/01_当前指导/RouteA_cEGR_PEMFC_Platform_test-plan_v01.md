@@ -4,13 +4,17 @@
 日期：2026-07-24（初稿）；2026-07-29（更新：cold-start-only 回归）
 前置文档：[模型裁决与资产处置](RouteA_cEGR_PEMFC_模型裁决与资产处置_v01.md)、[收敛实施路线图](RouteA_cEGR_PEMFC_收敛实施路线图_v01.md)、[系统规格](RouteA_cEGR_PEMFC_Platform_system_v01.md)、[架构规格](RouteA_cEGR_PEMFC_Platform_architecture_v01.md)、[CEGR 文献研究与模型映射](../03_审计与研究/RouteA_cEGR_PEMFC_literature-review-and-model-mapping_v01.md)
 
-本文件定义验证门槛。**当前状态：Gate 0/1/2/3 已有通过证据；Gate 4 历史代表性专项已通过；活动运行链已切换为 cold-start-only。** Cold Voltage 的 purge-enabled case 已完成控制链审计并按周期响应门通过；Current/Power 3600 s 也通过严格门。Hydrogen Source runtime warning 已关闭，600 s/面板/完整 cold 矩阵仍待推进。
+本文件定义平台级验证门槛。**当前状态：Gate 0/1/2/3 和历史专项保留为平台背景；P1/P2 当前不以重复这些历史工况为前置条件。** 活动运行链已切换为 cold-start-only，P1/P2 主线是面板输入能否经统一接口驱动当前模型并把实际结果反馈到窗口；P2 先处理面板布局、输入语义、帮助和结果图像历史，研究矩阵后置。
 
 ## 1. 验证原则
 
 验证分为三层：子系统开环、整机开环、闭环策略。结构、数值求解、物理 KPI 和结果审计分别记录，不能用一类证据替代另一类证据。
 
 每个测试记录：模型 hash、参数层、case 输入、solver、初态类型、MATLAB/Simulink 版本、结果文件、warning/error 分类和结论。
+
+### 1.1 P1/P2 使用口径
+
+平台测试计划中的历史 Gate、长时基线和研究矩阵用于平台审计，不是 P1/P2 面板用户的操作步骤。P1/P2 只在需要定位控件映射、非法输入或结果回写问题时调用最小开发期 smoke；不因未重复历史 case 而阻塞窗口迭代。面板运行失败时，优先修正实际错误栈和 UI 反馈，再决定是否补充脚本。
 
 ## 2. Gate 0：来源和资产
 
@@ -124,7 +128,7 @@ Gate 0.5 未通过时，只允许做只读盘点、文献精读、接口表和�
 
 ### 6.3 S5 尚未完成的收口项
 
-Hydrogen Source runtime dangling-line warning 已关闭；cold 600 s I/P/V 和面板 `cEGR=0/0.3` 矩阵仍未按稳态门收口。因此 Gate 4 历史代表性专项通过，不等于当前 cold-only S5 整体完成。77 条结构 warning 已形成逐条 ledger，见 [warning ledger](../03_审计与研究/RouteA_cEGR_PEMFC_model_check_warning_ledger_20260729_v01.md)；Voltage 控制链和 purge 周期诊断见 `outputs/RouteA_S5_20260728/S5_voltage_control_coupling_diagnostic_20260729.mat`。
+Hydrogen Source runtime dangling-line warning 已关闭；cold 600 s I/P/V 和面板 `cEGR=0/0.3` 历史样本均已留下审计结果，但当前 P1 收口采用独立单工况链路，不把它们作为研究矩阵验收。P1 本轮只用 `cEGR=0` 与 `cEGR=0.3` 做简单带通验证，重点检查面板设定是否进入统一 `SimulationInput` 并驱动当前模型。Gate 4 历史代表性专项通过，不等于当前 cold-only S5 整体完成。77 条结构 warning 已形成逐条 ledger，见 [warning ledger](../03_审计与研究/RouteA_cEGR_PEMFC_model_check_warning_ledger_20260729_v01.md)；Voltage 控制链和 purge 周期诊断见 `outputs/RouteA_S5_20260728/S5_voltage_control_coupling_diagnostic_20260729.mat`。
 
 ### 6.4 Cold-start-only 回归证据（2026-07-29）
 

@@ -43,6 +43,7 @@ boundaryProfile = routeA_normalize_electrical_profile( ...
     boundary.profile, type, boundaryOptions);
 
 cegrSpec = getCegrProfile(caseCfg, baseline);
+cegrControls = getCegrControls(caseCfg, baseline);
 cegrOptions = struct( ...
     'duration_s', study.researchDuration_s, ...
     'commandStartOffset_s', study.commandStartOffset_s, ...
@@ -56,6 +57,7 @@ air = getAirConfig(caseCfg, baseline);
 cathode = getCathodeControls(caseCfg, baseline);
 anode = getAnodeControls(caseCfg, baseline);
 thermal = getThermalControls(caseCfg, baseline);
+stack = getStackControls(caseCfg);
 
 % Build controls struct in simCase format, then assemble command profile
 controls = buildControlsStruct(air, cathode, anode, thermal, cegrSpec);
@@ -85,24 +87,45 @@ in = in.setModelParameter( ...
 
 in = in.setVariable('routeA_air_control_mode_id', air.modeId, ...
     'Workspace', char(model));
-in = in.setVariable('routeA_egr_control_mode_id', 1, ...
+in = in.setVariable('routeA_egr_control_mode_id', cegrControls.controlMode, ...
     'Workspace', char(model));
-in = in.setVariable('routeA_cegr_enabled', true, 'Workspace', char(model));
-in = in.setVariable('routeA_cegr_valve_mode_id', 1, ...
+in = in.setVariable('routeA_cegr_enabled', logical(cegrControls.enabled), ...
     'Workspace', char(model));
-in = in.setVariable('routeA_egr_target_input_mode_id', 1, ...
+in = in.setVariable('routeA_cegr_valve_mode_id', cegrControls.valveMode, ...
+    'Workspace', char(model));
+in = in.setVariable('routeA_egr_target_input_mode_id', ...
+    cegrControls.targetInputMode, ...
+    'Workspace', char(model));
+in = in.setVariable('routeA_egr_control_Kp_area', ...
+    cegrControls.controller.Kp_area, 'Workspace', char(model));
+in = in.setVariable('routeA_egr_control_Ki_area', ...
+    cegrControls.controller.Ki_area, 'Workspace', char(model));
+in = in.setVariable('routeA_egr_valve_actuator_tau', ...
+    cegrControls.controller.actuatorTau_s, 'Workspace', char(model));
+in = in.setVariable('stack_num_cells', stack.numCells, ...
+    'Workspace', char(model));
+in = in.setVariable('stack_area', stack.area_cm2, ...
+    'Workspace', char(model));
+in = in.setVariable('stack_iL', stack.iL_A_cm2, ...
+    'Workspace', char(model));
+in = in.setVariable('stack_io', stack.io_A_cm2, ...
     'Workspace', char(model));
 in = in.setVariable('routeA_command_profile', ...
     [commandModelTime, commandProfile.workspaceValue(:, 2:end)], 'Workspace', char(model));
 mw = get_param(char(model), 'ModelWorkspace');
 modelO2 = mw.getVariable('env_yO2');
 modelH2O = mw.getVariable('env_yH20');
+modelH2 = mw.getVariable('tank_yH2');
 if ~isequal(modelO2, cathode.freshAirO2MoleFraction)
     in = in.setVariable('env_yO2', cathode.freshAirO2MoleFraction, ...
         'Workspace', char(model));
 end
 if ~isequal(modelH2O, cathode.freshAirWaterMoleFraction)
     in = in.setVariable('env_yH20', cathode.freshAirWaterMoleFraction, ...
+        'Workspace', char(model));
+end
+if ~isequal(modelH2, anode.hydrogenMoleFraction)
+    in = in.setVariable('tank_yH2', anode.hydrogenMoleFraction, ...
         'Workspace', char(model));
 end
 
@@ -140,6 +163,7 @@ context.caseCfg = caseCfg;
 context.boundaryType = type;
 context.boundaryProfile = boundaryProfile;
 context.cegrProfile = cegrProfile;
+context.cegrControls = cegrControls;
 context.boundaryModelTime_s = boundaryModelTime;
 context.cegrModelTime_s = cegrModelTime;
 context.commandModelTime_s = commandModelTime;
@@ -174,7 +198,9 @@ context.air = air;
 context.cathode = cathode;
 context.anode = anode;
 context.thermal = thermal;
-context.stackCells = mw.getVariable('stack_num_cells');
+context.stack = stack;
+context.stackCells = stack.numCells;
+context.stackArea_cm2 = stack.area_cm2;
 context.cegrValveMaxArea_m2 = mw.getVariable('cegr_valve_max_area');
 context.compressorRpmLookupBounds = compressorBounds(mw);
 context.faradayConstant_C_mol = 96485.33212;
@@ -435,6 +461,7 @@ if ~isfield(caseCfg, 'cegr') || isempty(caseCfg.cegr)
     value = baseline.cegr_ratio;
     return;
 end
+
 cegr = caseCfg.cegr;
 if isnumeric(cegr)
     value = cegr;
@@ -448,6 +475,54 @@ elseif isstruct(cegr) && isfield(cegr, 'targetRatio')
 else
     value = cegr;
 end
+end
+
+function cegr = getCegrControls(caseCfg, ~)
+% Resolve compile-time cEGR controls without introducing a second input path.
+cegr = struct('enabled', true, 'valveMode', 1, 'controlMode', 1, ...
+    'targetInputMode', 1, 'controller', struct( ...
+    'Kp_area', routeA_platform_default_parameters().cegr.control.Kp_area.value, ...
+    'Ki_area', routeA_platform_default_parameters().cegr.control.Ki_area.value, ...
+    'actuatorTau_s', routeA_platform_default_parameters().cegr.actuator_tau_s.value));
+if ~isfield(caseCfg, 'cegr') || isempty(caseCfg.cegr) || ...
+        ~isstruct(caseCfg.cegr)
+    return;
+end
+user = caseCfg.cegr;
+names = fieldnames(cegr);
+for idx = 1:numel(names)
+    if isfield(user, names{idx})
+        cegr.(names{idx}) = user.(names{idx});
+    end
+end
+validateattributes(cegr.enabled, {'logical', 'numeric'}, ...
+    {'scalar', 'real', 'finite'});
+if ~ismember(double(cegr.enabled), [0, 1])
+    error('RouteA:CegREnabled', 'cEGR enabled must be logical or 0/1.');
+end
+validateattributes(cegr.valveMode, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'integer'});
+if cegr.valveMode < 1 || cegr.valveMode > 2
+    error('RouteA:CegRValveMode', 'cEGR valve mode must be 1 or 2.');
+end
+validateattributes(cegr.controlMode, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'integer'});
+if cegr.controlMode ~= 1
+    error('RouteA:CegRControlMode', 'cEGR control mode must be 1 in P1.');
+end
+validateattributes(cegr.targetInputMode, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'integer'});
+if cegr.targetInputMode ~= 1
+    error('RouteA:CegRTargetInputMode', ...
+        'cEGR target input mode must be 1 in P1.');
+end
+validateattributes(cegr.controller, {'struct'}, {'scalar'});
+validateattributes(cegr.controller.Kp_area, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'positive'});
+validateattributes(cegr.controller.Ki_area, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'positive'});
+validateattributes(cegr.controller.actuatorTau_s, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'positive'});
 end
 
 function air = getAirConfig(caseCfg, baseline)
@@ -496,6 +571,25 @@ thermal = struct('stackTemperatureSet_C', ...
     baseline.stack_temperature_set_C);
 user = getOptionalStruct(caseCfg, 'thermal');
 thermal = mergeKnownFields(thermal, user, 'RouteA:ThermalControlField');
+end
+
+function stack = getStackControls(caseCfg)
+pStack = routeA_platform_default_parameters().stack;
+stack = struct( ...
+    'numCells', pStack.num_cells.value, ...
+    'area_cm2', pStack.area_cm2.value, ...
+    'iL_A_cm2', pStack.iL_A_cm2.value, ...
+    'io_A_cm2', pStack.io_A_cm2.value);
+stack = mergeKnownFields(stack, getOptionalStruct(caseCfg, 'stack'), ...
+    'RouteA:StackControlField');
+validateattributes(stack.numCells, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'integer', '>=', 1, '<=', 1000});
+validateattributes(stack.area_cm2, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'positive'});
+validateattributes(stack.iL_A_cm2, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'positive'});
+validateattributes(stack.io_A_cm2, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'positive'});
 end
 
 function [baseline, values] = commandBaseline(model)

@@ -36,16 +36,16 @@
 
 | 控制量 | 变量名 | 单位 | 范围 | 默认值 | 实现方式 | 时序 | 备注 |
 |--------|--------|------|------|--------|----------|------|------|
-| 空气控制模式 | `routeA_air_control_mode_id` | — | 1/2/3 | 2 (OER) | workspace 变量 | 编译时 | 1=流量/2=OER/3=直接 |
+| 空气控制模式 | `routeA_air_control_mode_id` | — | 1/2/3 | 2 (OER) | workspace 变量 | 编译时 | 1=目标质量流量闭环/2=OER闭环/3=空压机执行命令 |
 | 目标 OER | `cathode_outlet_pressure_MPa_abs` → `air_target_oer` | — | [1.5, 5] | 3.0 | workspace 变量 | 时序 | 需 OER 模式 |
 | 目标质量流量 | `air_target_mdot_kg_s` | kg/s | (0, ∞) | 0.045 | workspace 变量 | 时序 | 需流量模式 |
-| 直接命令 | `air_direct_command` | — | 取决于模式 | 0.5 | workspace 变量 | 时序 | 需直接模式 |
+| 空压机执行命令 | `air_direct_command` | — | [0, 1] | 0.5 | workspace 变量 | 时序 | 模式 3；归一化空压机执行命令，跳过目标流量/OER换算和流量 PI，但仍经过空压机图谱，不是直接给电堆气体 |
 | 阴极源压力 | `cathode_source_pressure_MPa_abs` | MPa(abs) | [0.1, 0.5] | 0.15 | workspace 变量 | 时序 | 新鲜空气边界 |
 | 阴极源温度 | `cathode_source_temperature_C` | °C | [10, 60] | 20 | workspace 变量 | 时序 | 新鲜空气边界 |
 | 阴极 O2 分数 | `cathode_source_o2_mole_fraction` | — | [0.15, 0.21] | 0.21 | workspace 变量 | 编译时 | 通过 `env_yO2` 间接控制 |
 | 阴极 H2O 分数 | `cathode_source_h2o_mole_fraction` | — | [0.005, 0.04] | 0.0115 | workspace 变量 | 编译时 | 通过 `env_yH20` 间接控制 |
 | 阴极出口压力 | `cathode_outlet_pressure_MPa_abs` | MPa(abs) | [0.1, 0.3] | 0.1613 | workspace 变量 | 时序 | 背压设定 |
-| 加湿器 RH | `cathode_humidifier_rh` | — | [0, 1] | 0.9 | workspace 变量 | 时序 | 阴极入口 RH |
+| 加湿器 RH | `cathode_humidifier_rh` | — | [0, 1] | 0.9 | workspace 变量 | 时序 | 加湿器出口/阴极入口 RH；温度参考为模型现有 `T_stack`/加湿温度 |
 | 加湿器启用 | `cathode_humidifier_gain` | — | 0/1 | 1 | workspace 变量 | 时序 | 0=旁路/1=启用 |
 
 ### 2.3 cEGR 控制
@@ -64,9 +64,9 @@
 |--------|--------|------|------|--------|----------|------|------|
 | 阳极源压力 | `anode_source_pressure_MPa_abs` | MPa(abs) | [0.2, 0.5] | 0.3 | workspace 变量 | 时序 | 氢源压力设定 |
 | 阳极源温度 | `anode_source_temperature_C` | °C | [10, 60] | 20 | workspace 变量 | 时序 | 氢源温度设定 |
-| 阳极 H2 分数 | `anode_source_h2_mole_fraction` | — | [0.9, 1.0] | 0.9997 | workspace 变量 | 编译时 | 通过 `tank_yH2` 间接控制 |
-| 阳极入口压力 | `anode_inlet_pressure_MPa_abs` | MPa(abs) | [0.1, 0.3] | 0.15 | workspace 变量 | 时序 | 减压阀输出设定 |
-| 阳极加湿 RH | `anode_humidifier_rh` | — | [0, 1] | 0.5 | workspace 变量 | 时序 | 阳极入口 RH |
+| 阳极 H2 分数 | `tank_yH2`（profile: `anode_source_h2_mole_fraction`） | — | [0.9, 1.0] | 0.9997 | `SimulationInput.setVariable` + profile | 编译时 + profile | Fuel Tank 初始组分；面板输入在仿真前写入 |
+| 阳极入口压力 | `anode_inlet_pressure_MPa_abs` | MPa(abs) | [0.1, 0.3] | 0.1613 | `routeA_command_profile` | 时序 | 减压阀输出设定 |
+| 阳极加湿 RH | `anode_humidifier_rh` | — | [0, 1] | 1.0 | `routeA_command_profile` | 时序 | 阳极入口 RH；默认值以 `platform_default` 为准 |
 | 回流基础命令 | `anode_recirculation_base` | — | [0, 1] | 0.2 | workspace 变量 | 时序 | 回流泵基础命令 |
 | 回流电流增益 | `anode_recirculation_current_gain_A_inv` | 1/A | [0, 1] | 0.00204 | workspace 变量 | 时序 | 电流相关回流补偿 |
 | 吹扫启用 | `anode_purge_enable` | — | 0/1 | 1 | workspace 变量 | 时序 | 0=禁用/1=启用 |
@@ -77,7 +77,7 @@
 
 | 控制量 | 变量名 | 单位 | 范围 | 默认值 | 实现方式 | 时序 | 备注 |
 |--------|--------|------|------|--------|----------|------|------|
-| 堆温设定 | `stack_temperature_set_C` | °C | [60, 100] | 80 | workspace 变量 | 时序 | 冷却系统目标温度 |
+| 堆温设定 | `stack_temperature_set_C` | °C | [60, 100] | 80 | workspace 变量 | 时序 | 冷却系统目标温度；当前模型同一 `T_stack` 路径也作为阴极加湿器 TIn 温度参考 |
 
 ### 2.6 环境/边界条件
 

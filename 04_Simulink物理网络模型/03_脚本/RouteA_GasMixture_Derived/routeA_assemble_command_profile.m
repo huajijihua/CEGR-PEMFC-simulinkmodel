@@ -20,7 +20,7 @@ function profile = routeA_assemble_command_profile(controls, study)
 %               .cathode_source_h2o_mole_fraction    [Nx2, t, value]
 %               .air_target_mdot_kg_s                [Nx2, t, value]
 %               .air_target_oer                      [Nx2, t, value]
-%               .air_direct_command                  [Nx2, t, value]
+%               .air_direct_command                  [Nx2, t, normalized compressor command 0..1]
 %               .cathode_outlet_pressure_MPa_abs     [Nx2, t, value]
 %               .cathode_humidifier_rh               [Nx2, t, value]
 %               .cathode_humidifier_gain             [Nx2, t, value]
@@ -128,6 +128,11 @@ time = zeros(0, 1);
 for idx = 1:count
     thisLabel = schema.labels(idx);
     thisValue = defaults.(schema.names(idx));
+    if any(schema.names(idx) == ["cathode_humidifier_gain", "anode_purge_enable"])
+        % The model-facing profile is numeric even when the panel stores an
+        % enable flag as logical.
+        thisValue = double(thisValue);
+    end
     thisIsStep = schema.isStep(idx);
     thisInitialValue = initialProfileValue(thisValue);
     thisOptions = struct( ...

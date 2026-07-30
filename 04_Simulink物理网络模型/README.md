@@ -10,8 +10,8 @@
 - S2 最小 plant ✅ — 冷态 smoke 4 case 全部通过
 - S3 参数与控制收敛 ✅ — 恒电流/恒功率/恒电压 + cEGR 矩阵 + 入口组分控制全部完成
 - S4 初态与数值收敛 ✅ — 活动链固定 cold-start-only；Current/Power 严格通过，Voltage purge 周期响应已分类并通过专门门
-- S5 分层验证 ◐ — Gate 4 和 P0 I/P/V 3600 s 回归通过；Hydrogen Source runtime warning 已关闭，600 s/面板矩阵/完整矩阵仍未决
-- P1 面板基础版 ◐ — 已满足实施准入；先扩展现有面板和已注册接口，P1 验收仍受 600 s/面板矩阵/完整 cold 矩阵约束
+- S5 分层验证 ◐ — Gate 4 和 P0 I/P/V 3600 s 回归通过；Hydrogen Source runtime warning 已关闭，P1 600 s/面板独立代表性工况仍未收口
+- P1 面板基础版 ◐ — 已进入实施；单工况入口、结果契约和面板基础 smoke 已建立，研究矩阵后置
 - Phase A 设计基础 ✅ — 控制接口汇总表 + CR3 三要素 schema + simCase 模板
 - Phase B 模型优化 ✅ — 22 列 profile 结构体 + schema 单一真源 + 参数单入口
 - Phase C 脚本清理 ⏳ — 待推进

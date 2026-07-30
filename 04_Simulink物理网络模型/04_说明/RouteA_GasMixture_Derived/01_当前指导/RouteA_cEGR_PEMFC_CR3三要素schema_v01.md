@@ -111,7 +111,7 @@ simCase.controls.cathode = struct(...
     'airControlMode', 2, ...             % 1=流量/2=OER/3=直接
     'targetOer', 3.0, ...                % 目标 OER [-]
     'targetMdot_kg_s', 0.005, ...        % 目标质量流量 [kg/s]
-    'directCommand', 0, ...              % 直接命令 [-]
+    'directCommand', 0, ...              % 空压机归一化执行命令 [0,1]
     'sourcePressure_MPa_abs', 0.15, ...  % 阴极源压力 [MPa(abs)]
     'sourceTemperature_C', 20, ...       % 阴极源温度 [°C]
     'outletPressure_MPa_abs', 0.1613, ...% 阴极出口压力/背压 [MPa(abs)]

@@ -26,6 +26,7 @@ pCath = params.cathode;
 pAnode = params.anode;
 pTherm = params.thermal;
 pNum = params.numerics;
+pStack = params.stack;
 
 %% (a) 初始状态
 initialState = struct();
@@ -57,7 +58,7 @@ cathode = struct();
 cathode.airControlMode = pCtrl.air_control_mode.value;       % 1=流量/2=OER/3=直接
 cathode.targetOer = pCtrl.target_oer.value;                  % 目标 OER
 cathode.targetMdot_kg_s = pCtrl.target_mdot_kg_s.value;      % 目标质量流量 [kg/s]
-cathode.directCommand = pCtrl.air_direct_command.value;      % 直接命令
+cathode.directCommand = pCtrl.air_direct_command.value;      % 空压机归一化执行命令 [0,1]，仍经过压缩机图谱
 cathode.sourcePressure_MPa_abs = pCtrl.cathode_source_pressure_MPa_abs.value;  % 阴极源压力
 cathode.sourceTemperature_C = pCtrl.cathode_source_temperature_C.value;        % 阴极源温度
 cathode.o2MoleFraction = pEnv.o2_mole_fraction.value;        % 阴极 O2 分数 -> env_yO2
@@ -73,6 +74,10 @@ cegr.targetRatio = pCtrl.cegr_target_ratio.value;            % 目标 cEGR 比
 cegr.valveMode = pCtrl.cegr_valve_mode.value;                % 阀模式 [1=开度/2=压力]
 cegr.controlMode = pCtrl.cegr_control_mode.value;            % 控制模式
 cegr.targetInputMode = 1;                                    % 目标输入模式
+cegr.controller = struct( ...
+    'Kp_area', params.cegr.control.Kp_area.value, ...
+    'Ki_area', params.cegr.control.Ki_area.value, ...
+    'actuatorTau_s', params.cegr.actuator_tau_s.value);
 
 % 阳极控制
 anode = struct();
@@ -89,7 +94,7 @@ anode.purgeOffN2MoleFraction = pCtrl.anode_purge_off_n2.value;             % 吹
 
 % 热管理控制
 thermal = struct();
-thermal.stackTemperatureSet_C = pTherm.stack_temperature_set_C.value;  % 堆温设定 [degC]
+thermal.stackTemperatureSet_C = pTherm.stack_temperature_set_C.value;  % 堆温/加湿器TIn温度设定 [degC]
 
 % 环境/边界条件
 environment = struct();
@@ -107,6 +112,11 @@ controls.cegr = cegr;
 controls.anode = anode;
 controls.thermal = thermal;
 controls.environment = environment;
+controls.stack = struct( ...
+    'numCells', pStack.num_cells.value, ...
+    'area_cm2', pStack.area_cm2.value, ...
+    'iL_A_cm2', pStack.iL_A_cm2.value, ...
+    'io_A_cm2', pStack.io_A_cm2.value);
 
 %% (c) 求解器设置
 solver = struct();
