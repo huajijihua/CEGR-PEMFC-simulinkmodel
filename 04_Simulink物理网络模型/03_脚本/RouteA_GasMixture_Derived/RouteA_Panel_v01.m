@@ -100,6 +100,8 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         DeviceStackMembraneEditField        matlab.ui.control.NumericEditField
         DeviceIntercoolerMdotEditField     matlab.ui.control.NumericEditField
         DeviceIntercoolerDpEditField       matlab.ui.control.NumericEditField
+        DeviceIntercoolerAreaEditField     matlab.ui.control.NumericEditField
+        DeviceIntercoolerLaminarEditField  matlab.ui.control.NumericEditField
         DeviceCathodeSeparatorMdotEditField matlab.ui.control.NumericEditField
         DeviceCathodeSeparatorDpEditField   matlab.ui.control.NumericEditField
         DeviceCathodeSeparatorAreaEditField matlab.ui.control.NumericEditField
@@ -110,11 +112,33 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         DeviceCegrPipeLengthEditField      matlab.ui.control.NumericEditField
         DeviceCegrPipeDEditField            matlab.ui.control.NumericEditField
         DeviceCegrPipeRoughnessEditField   matlab.ui.control.NumericEditField
+        DeviceCegrCondTauEditField         matlab.ui.control.NumericEditField
+        DeviceCegrInletMixerP0EditField    matlab.ui.control.NumericEditField
+        DeviceCegrOutletP0EditField        matlab.ui.control.NumericEditField
+        DeviceCegrPipeExtraLengthEditField matlab.ui.control.NumericEditField
+        DeviceCegrPipeP0EditField          matlab.ui.control.NumericEditField
+        DeviceCegrValveMinAreaEditField    matlab.ui.control.NumericEditField
         DeviceAnodeTankPressureEditField   matlab.ui.control.NumericEditField
         DeviceAnodeTankVolumeEditField     matlab.ui.control.NumericEditField
         DeviceAnodeTankTemperatureEditField matlab.ui.control.NumericEditField
         DeviceAnodeSeparatorAreaEditField   matlab.ui.control.NumericEditField
         DeviceAnodeSeparatorLaminarEditField matlab.ui.control.NumericEditField
+        DeviceAnodeSeparatorMdotEditField   matlab.ui.control.NumericEditField
+        DeviceAnodeSeparatorDpEditField     matlab.ui.control.NumericEditField
+        DeviceCoolantChannelWidthEditField  matlab.ui.control.NumericEditField
+        DeviceCoolantNumLayersEditField     matlab.ui.control.NumericEditField
+        DeviceCoolantNumPassesEditField     matlab.ui.control.NumericEditField
+        DeviceCoolantTubeDEditField         matlab.ui.control.NumericEditField
+        DeviceRadiatorLengthEditField       matlab.ui.control.NumericEditField
+        DeviceRadiatorWidthEditField        matlab.ui.control.NumericEditField
+        DeviceRadiatorHeightEditField       matlab.ui.control.NumericEditField
+        DeviceRadiatorTubeCountEditField    matlab.ui.control.NumericEditField
+        DeviceRadiatorTubeHeightEditField   matlab.ui.control.NumericEditField
+        DeviceRadiatorFinSpacingEditField   matlab.ui.control.NumericEditField
+        DeviceRadiatorFinEfficiencyEditField matlab.ui.control.NumericEditField
+        DeviceRadiatorWallThicknessEditField matlab.ui.control.NumericEditField
+        DeviceRadiatorDensityEditField      matlab.ui.control.NumericEditField
+        DeviceRadiatorSpecificHeatEditField matlab.ui.control.NumericEditField
         CompressorMapEditorButton           matlab.ui.control.Button
         CompressorMapStatusLabel            matlab.ui.control.Label
         RestoreDeviceDefaultsButton         matlab.ui.control.Button
@@ -168,6 +192,12 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         AdvancedO2EditField                 matlab.ui.control.NumericEditField
         AdvancedH2OLabel                    matlab.ui.control.Label
         AdvancedH2OEditField                matlab.ui.control.NumericEditField
+        AdvancedAmbientTemperatureEditField  matlab.ui.control.NumericEditField
+        AdvancedAmbientPressureEditField     matlab.ui.control.NumericEditField
+        AdvancedAirPidKpEditField            matlab.ui.control.NumericEditField
+        AdvancedAirPidKiEditField            matlab.ui.control.NumericEditField
+        AdvancedCegrDirectAreaEditField      matlab.ui.control.NumericEditField
+        AdvancedCegrDirectTargetEditField    matlab.ui.control.NumericEditField
         AdvancedKpLabel                     matlab.ui.control.Label
         AdvancedKpEditField                 matlab.ui.control.NumericEditField
         AdvancedKiLabel                     matlab.ui.control.Label
@@ -655,12 +685,15 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.AdvancedRelTolEditField, ...
                 app.AdvancedAbsTolEditField, app.AdvancedMaxStepEditField, ...
                 app.AdvancedO2EditField, app.AdvancedH2OEditField, ...
+                app.AdvancedAmbientTemperatureEditField, app.AdvancedAmbientPressureEditField, ...
+                app.AdvancedAirPidKpEditField, app.AdvancedAirPidKiEditField, ...
                 app.AdvancedKpEditField, app.AdvancedKiEditField, ...
                 app.AdvancedCurrentMinEditField, ...
                 app.AdvancedCurrentMaxEditField, ...
                 app.AdvancedCegrValveModeDropDown, ...
                 app.AdvancedCegrControlModeDropDown, ...
                 app.AdvancedCegrTargetInputModeDropDown, ...
+                app.AdvancedCegrDirectAreaEditField, app.AdvancedCegrDirectTargetEditField, ...
                 app.AdvancedStackTemperatureEditField, ...
                 app.AdvancedCegrKpEditField, app.AdvancedCegrKiEditField, ...
                 app.AdvancedCegrActuatorTauEditField, ...
@@ -673,6 +706,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.DeviceStackMrhoEditField, app.DeviceStackGdlEditField, ...
                 app.DeviceStackMembraneEditField, ...
                 app.DeviceIntercoolerMdotEditField, app.DeviceIntercoolerDpEditField, ...
+                app.DeviceIntercoolerAreaEditField, app.DeviceIntercoolerLaminarEditField, ...
                 app.DeviceCathodeSeparatorMdotEditField, ...
                 app.DeviceCathodeSeparatorDpEditField, ...
                 app.DeviceCathodeSeparatorAreaEditField, ...
@@ -681,10 +715,22 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.DeviceCathodeOutletVolumeEditField, ...
                 app.DeviceCegrValveMaxAreaEditField, app.DeviceCegrPipeLengthEditField, ...
                 app.DeviceCegrPipeDEditField, app.DeviceCegrPipeRoughnessEditField, ...
+                app.DeviceCegrCondTauEditField, app.DeviceCegrInletMixerP0EditField, ...
+                app.DeviceCegrOutletP0EditField, app.DeviceCegrPipeExtraLengthEditField, ...
+                app.DeviceCegrPipeP0EditField, app.DeviceCegrValveMinAreaEditField, ...
                 app.DeviceAnodeTankPressureEditField, app.DeviceAnodeTankVolumeEditField, ...
                 app.DeviceAnodeTankTemperatureEditField, ...
                 app.DeviceAnodeSeparatorAreaEditField, ...
                 app.DeviceAnodeSeparatorLaminarEditField, ...
+                app.DeviceAnodeSeparatorMdotEditField, app.DeviceAnodeSeparatorDpEditField, ...
+                app.DeviceCoolantChannelWidthEditField, ...
+                app.DeviceCoolantNumLayersEditField, app.DeviceCoolantNumPassesEditField, ...
+                app.DeviceCoolantTubeDEditField, app.DeviceRadiatorLengthEditField, ...
+                app.DeviceRadiatorWidthEditField, app.DeviceRadiatorHeightEditField, ...
+                app.DeviceRadiatorTubeCountEditField, app.DeviceRadiatorTubeHeightEditField, ...
+                app.DeviceRadiatorFinSpacingEditField, app.DeviceRadiatorFinEfficiencyEditField, ...
+                app.DeviceRadiatorWallThicknessEditField, app.DeviceRadiatorDensityEditField, ...
+                app.DeviceRadiatorSpecificHeatEditField, ...
                 app.CompressorMapEditorButton, ...
                 app.AnodeSourcePressureEditField, ...
                 app.AnodeSourceTemperatureEditField, app.AnodeH2EditField, ...
@@ -1014,7 +1060,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 '一、基本操作'; ...
                 '1. 基础页用于常用工况：电边界、空气控制、背压/加湿、cEGR、温度和运行时长。'; ...
                 '2. 高级页用于控制器、入口边界、组分、求解器和阳极输入；不放设备固有性能。'; ...
-                '3. 系统设备参数设置页编辑 26 项已接入的电堆与 BOP 标量性能；“目录只读”项不可提交。'; ...
+                '3. 系统设备参数设置页编辑当前已闭合及后续补齐的电堆、BOP 标量和热管理成组输入；源目录项不可单独提交。'; ...
                 '4. 系统模型参数页提供完整目录、当前草稿和最近运行快照；帮助页不改变当前草稿。'; ...
                 ''; ...
                 '二、电边界控制原理'; ...
@@ -1697,10 +1743,11 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceSettingsPanel.Position = [10 100 450 2050];
             app.DeviceSettingsPanel.BackgroundColor = [1 1 1];
             app.DeviceSettingsIntroLabel = uilabel(app.DeviceSettingsPanel);
-            app.DeviceSettingsIntroLabel.Position = [10 1985 430 34];
+            app.DeviceSettingsIntroLabel.Position = [10 1975 430 54];
             app.DeviceSettingsIntroLabel.Text = { ...
-                '可编辑项已验证可写入 SimulationInput；目录只读项尚未闭合模型接口。'; ...
-                '恢复默认值仅作用于本页设备性能，不覆盖基础/高级工况。'};
+                '本页是设备输入页，不是模型变量总表；可编辑字段会写入统一 SimulationInput。'; ...
+                '目录中同时保留 platform_default 源目录和未接入审查项；它们不能单独提交。'; ...
+                '空压机三数组由一个图谱编辑器组原子提交；恢复默认值仅作用于本页设备输入。'};
             app.DeviceSettingsIntroLabel.FontColor = [0.20 0.25 0.30];
             app.DeviceSettingsIntroLabel.FontSize = 10;
             uilabel(app.DeviceSettingsPanel, 'Text', '电堆 / MEA 性能', ...
@@ -1824,22 +1871,112 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceAnodeSeparatorLaminarEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '分离器层流分数 (-):', [10 1165 135 22], ...
                 [145 1165 80 22], params.anode.separator.laminar_fraction.value, [0 1]);
+            uilabel(app.DeviceSettingsPanel, 'Text', '冷却通道几何（成组提交）', ...
+                'Position', [10 1128 250 22], 'FontWeight', 'bold');
+            app.DeviceCoolantChannelWidthEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '通道宽度 (cm):', [10 1095 135 22], ...
+                [145 1095 80 22], params.thermal.coolant.w_channels_cm.value, [0.2 2]);
+            app.DeviceCoolantNumLayersEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '通道层数 (-):', [240 1095 135 22], ...
+                [380 1095 60 22], params.thermal.coolant.num_layers.value, [1 100]);
+            app.DeviceCoolantNumPassesEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '通道走向数 (-):', [10 1060 135 22], ...
+                [145 1060 80 22], params.thermal.coolant.num_passes.value, [1 50]);
+            app.DeviceCoolantTubeDEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '冷却管径 (m):', [240 1060 135 22], ...
+                [380 1060 60 22], params.thermal.coolant.tube_D_m.value, [0.01 0.10]);
+            uilabel(app.DeviceSettingsPanel, 'Text', '散热器核心与热容量（成组提交）', ...
+                'Position', [10 1025 280 22], 'FontWeight', 'bold');
+            app.DeviceRadiatorLengthEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '核心长度 (m):', [10 990 135 22], ...
+                [145 990 80 22], params.thermal.radiator.L_m.value, [0.2 2]);
+            app.DeviceRadiatorWidthEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '管宽度 (m):', [240 990 135 22], ...
+                [380 990 60 22], params.thermal.radiator.W_m.value, [0.005 0.10]);
+            app.DeviceRadiatorHeightEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '核心高度 (m):', [10 955 135 22], ...
+                [145 955 80 22], params.thermal.radiator.H_m.value, [0.10 1.0]);
+            app.DeviceRadiatorTubeCountEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '管数 (-):', [240 955 135 22], ...
+                [380 955 60 22], params.thermal.radiator.N_tubes.value, [2 100]);
+            app.DeviceRadiatorTubeHeightEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '管高 (m):', [10 920 135 22], ...
+                [145 920 80 22], params.thermal.radiator.tube_H_m.value, [5e-4 1e-2]);
+            app.DeviceRadiatorFinSpacingEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '翅片间距 (m):', [240 920 135 22], ...
+                [380 920 60 22], params.thermal.radiator.fin_spacing_m.value, [5e-4 1e-2]);
+            app.DeviceRadiatorFinEfficiencyEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '翅片效率 (-):', [10 885 135 22], ...
+                [145 885 80 22], params.thermal.radiator.eta_fin.value, [0.3 1]);
+            app.DeviceRadiatorWallThicknessEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '壁厚 (m):', [240 885 135 22], ...
+                [380 885 60 22], params.thermal.radiator.t_wall_m.value, [1e-5 1e-3]);
+            app.DeviceRadiatorDensityEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '材料密度 (kg/m^3):', [10 850 135 22], ...
+                [145 850 80 22], params.thermal.radiator.rho_kg_m3.value, [500 5000]);
+            app.DeviceRadiatorSpecificHeatEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '材料比热 (J/(kg*K)):', [240 850 135 22], ...
+                [380 850 60 22], params.thermal.radiator.cp_J_kgK.value, [300 1500]);
+            uilabel(app.DeviceSettingsPanel, 'Text', '待开放 BOP 标量（已接入）', ...
+                'Position', [10 815 430 22], 'FontWeight', 'bold', ...
+                'FontColor', [0.05 0.25 0.50]);
+            app.DeviceIntercoolerAreaEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '中冷器面积 (m^2):', [10 780 135 22], ...
+                [145 780 80 22], params.cathode.intercooler.area_m2.value, [1e-8 0.1]);
+            app.DeviceIntercoolerLaminarEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '中冷器层流分数 (-):', [240 780 135 22], ...
+                [380 780 60 22], params.cathode.intercooler.laminar_fraction.value, [0 1]);
+            app.DeviceAnodeSeparatorMdotEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '阳极分离器流量 (kg/s):', [10 745 135 22], ...
+                [145 745 80 22], params.anode.separator.mdot_nominal_kg_s.value, [eps 1]);
+            app.DeviceAnodeSeparatorDpEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '阳极分离器压降 (MPa):', [240 745 135 22], ...
+                [380 745 60 22], params.anode.separator.dp_nominal_MPa.value, [0 0.1]);
+            app.DeviceCegrCondTauEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, 'cEGR 冷凝 tau (s):', [10 710 135 22], ...
+                [145 710 80 22], params.cegr.condensation_tau_s.value, [eps 1000]);
+            app.DeviceCegrValveMinAreaEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '阀最小面积 (m^2):', [240 710 135 22], ...
+                [380 710 60 22], params.cegr.valve_open_min_area_m2.value, [1e-12 1]);
+            app.DeviceCegrInletMixerP0EditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '入口混合器 p0 (MPa):', [10 675 135 22], ...
+                [145 675 80 22], params.cegr.inlet_mixer_p0_MPa_abs.value, [0.01 1]);
+            app.DeviceCegrOutletP0EditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '出口腔 p0 (MPa):', [240 675 135 22], ...
+                [380 675 60 22], params.cegr.outlet_chamber_p0_MPa_abs.value, [0.01 1]);
+            app.DeviceCegrPipeExtraLengthEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '管路附加长度 (m):', [10 640 135 22], ...
+                [145 640 80 22], params.cegr.pipe.extra_length_m.value, [0 100]);
+            app.DeviceCegrPipeP0EditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '管路 p0 (MPa):', [240 640 135 22], ...
+                [380 640 60 22], params.cegr.pipe.p0_MPa_abs.value, [0.01 1]);
             app.RestoreDeviceDefaultsButton = uibutton(app.DeviceSettingsPanel, 'push');
             app.RestoreDeviceDefaultsButton.Text = '恢复设备默认值';
-            app.RestoreDeviceDefaultsButton.Position = [250 1162 190 25];
+            app.RestoreDeviceDefaultsButton.Position = [250 600 190 25];
             app.RestoreDeviceDefaultsButton.ButtonPushedFcn = ...
                 createCallbackFcn(app, @RestoreDeviceDefaultsButtonPushed, true);
             app.DeviceCatalogStatusLabel = uilabel(app.DeviceSettingsPanel);
-            app.DeviceCatalogStatusLabel.Position = [10 1127 430 22];
+            app.DeviceCatalogStatusLabel.Position = [10 565 430 22];
             app.DeviceCatalogStatusLabel.FontColor = [0.35 0.35 0.35];
             registry = routeA_parameter_registry(app.platformPaths);
+            deviceCatalogMask = arrayfun(@(entry) app.isDeviceCatalogEntry(entry) || ...
+                entry.panelExposure == "device_settings", registry.entries);
+            deviceCatalogEntries = registry.entries(deviceCatalogMask);
+            deviceEntryStatus = string({deviceCatalogEntries.status});
+            deviceEntryExposure = string({deviceCatalogEntries.panelExposure});
+            deviceEditableCount = sum(deviceEntryExposure == "device_settings" & ...
+                deviceEntryStatus == "active");
+            deviceInventoryCount = sum(deviceEntryStatus == "inventory");
+            deviceUnresolvedCount = sum(deviceEntryStatus == "unresolved");
             app.DeviceCatalogStatusLabel.Text = sprintf( ...
-                '设备目录：%d 项已接入可编辑，其余为目录只读。', ...
-                sum(arrayfun(@(x) x.panelExposure == "device_settings", registry.entries)));
+                '设备目录：%d 项 = 可编辑 %d + platform_default 源目录 %d + 未接入审查 %d；可编辑项运行前经校验后写入。', ...
+                numel(deviceCatalogEntries), deviceEditableCount, ...
+                deviceInventoryCount, deviceUnresolvedCount);
             app.DeviceCatalogTable = uitable(app.DeviceSettingsPanel);
-            app.DeviceCatalogTable.Position = [10 10 430 1085];
+            app.DeviceCatalogTable.Position = [10 10 430 535];
             app.DeviceCatalogTable.ColumnName = { ...
-                '参数含义', '设备 / 域', '单位', '默认', '范围', '开放状态', '模型映射'};
+                '参数含义 / 作用', '设备 / 子系统', '单位', 'platform_default', ...
+                '允许范围', '面板权限', '模型写入与映射'};
             app.DeviceCatalogTable.ColumnWidth = {180, 110, 70, 80, 110, 105, 220};
             app.DeviceCatalogTable.RowName = {};
             app.DeviceCatalogTable.ColumnEditable = false(1, 7);
@@ -1853,42 +1990,48 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.FutureDomainsPanel.Position = [10 100 450 1200];
             app.FutureDomainsPanel.BackgroundColor = [0.97 0.97 0.97];
             app.ParameterCatalogIntroLabel = uilabel(app.FutureDomainsPanel);
-            app.ParameterCatalogIntroLabel.Position = [10 1155 430 34];
+            app.ParameterCatalogIntroLabel.Position = [10 1145 430 70];
             app.ParameterCatalogIntroLabel.Text = { ...
-                '模型工作区全量目录：物理角色、实际引用与面板承接状态。'; ...
-                '只有“模型引用 + 可写”项可在其他页编辑；本页始终只读。'};
+                '本页按模型工作区变量展示物理含义、引用状态、面板承接和所属子系统；本页始终只读。'; ...
+                '工作区变量按“实际引用”和“未引用/辅助”分组；实际引用再按“面板已承接”和“待开放”分组。'; ...
+                '下方状态栏显示当前审计数量；活动面板参数按输入契约条目计数，不能与工作区变量相加。'};
             app.ParameterCatalogIntroLabel.FontColor = [0.20 0.25 0.30];
             app.ParameterCatalogIntroLabel.FontSize = 10;
             app.ParameterCatalogStatusLabel = uilabel(app.FutureDomainsPanel);
-            app.ParameterCatalogStatusLabel.Position = [10 1125 430 20];
+            app.ParameterCatalogStatusLabel.Position = [10 1070 430 65];
             app.ParameterCatalogStatusLabel.FontColor = [0.35 0.35 0.35];
             registry = routeA_parameter_registry(app.platformPaths);
             audit = routeA_audit_parameter_inventory(false);
+            catalogCounts = routeA_panel_catalog_counts(audit, registry);
             app.ParameterCatalogStatusLabel.Text = sprintf( ...
-                '模型变量 %d；实际引用 %d；活动面板参数 %d；待开放模型参数 %d', ...
+                '工作区 %d | 实际引用 %d = 已承接 %d + 待开放 %d | 活动面板契约 %d（基础 %d / 高级 %d / 设备 %d） | 异常映射 %d', ...
                 audit.counts.workspaceVariableCount, ...
                 audit.counts.referencedWorkspaceVariableCount, ...
-                registry.activeCount, ...
-                audit.counts.referencedModelParametersWithoutActivePanelEntryCount);
+                audit.counts.panelMappedReferencedWorkspaceVariableCount, ...
+                audit.counts.referencedModelParametersWithoutActivePanelEntryCount, ...
+                catalogCounts.activePanelEntryCount, catalogCounts.activeBasicEntryCount, ...
+                catalogCounts.activeAdvancedEntryCount, catalogCounts.activeDeviceEntryCount, ...
+                audit.counts.panelEntryWithoutModelReferenceCount);
             app.ParameterCatalogTable = uitable(app.FutureDomainsPanel);
             app.RunSnapshotLabel = uilabel(app.FutureDomainsPanel);
-            app.RunSnapshotLabel.Position = [10 1090 430 22];
+            app.RunSnapshotLabel.Position = [10 1042 430 22];
             app.RunSnapshotLabel.Text = '当前草稿 / 最近运行：尚未运行';
             app.RunSnapshotLabel.FontWeight = 'bold';
             app.RunSnapshotTable = uitable(app.FutureDomainsPanel);
-            app.RunSnapshotTable.Position = [10 975 430 105];
+            app.RunSnapshotTable.Position = [10 925 430 105];
             app.RunSnapshotTable.ColumnName = {'项目', '当前草稿或最近结果'};
             app.RunSnapshotTable.ColumnWidth = {175, 235};
             app.RunSnapshotTable.RowName = {};
             app.RunSnapshotTable.ColumnEditable = false(1, 2);
-            app.ParameterCatalogTable.Position = [10 10 430 950];
+            app.ParameterCatalogTable.Position = [10 10 430 900];
             app.ParameterCatalogTable.ColumnName = { ...
-                '模型变量', '物理角色', '类型', '默认摘要', ...
-                '模型引用', '面板状态', '面板参数', '代表模块'};
+                '模型变量', '物理含义 / 功能', '类型 / 尺寸', '默认值', ...
+                '开放处置', '模型引用状态', '面板承接状态', '面板参数', ...
+                '所属子系统 / 块'};
             app.ParameterCatalogTable.ColumnWidth = ...
-                {185, 185, 90, 100, 120, 130, 195, 260};
+                {170, 170, 90, 90, 220, 120, 130, 180, 240};
             app.ParameterCatalogTable.RowName = {};
-            app.ParameterCatalogTable.ColumnEditable = false(1, 8);
+            app.ParameterCatalogTable.ColumnEditable = false(1, 9);
             app.ParameterCatalogTable.Data = app.buildParameterCatalogData(registry, audit);
             app.FutureDomainsPanel.Visible = 'off';
 
@@ -2141,6 +2284,25 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedH2OEditField.Position = [420 655 80 22];
             app.AdvancedH2OEditField.Value = params.environment.h2o_mole_fraction.value;
 
+            ambientTemperatureLabel = uilabel(app.AdvancedPanel);
+            ambientTemperatureLabel.Position = [10 620 120 22];
+            ambientTemperatureLabel.Text = '环境温度 (degC):';
+            app.AdvancedAmbientTemperatureEditField = uieditfield(app.AdvancedPanel, 'numeric');
+            app.AdvancedAmbientTemperatureEditField.Position = [130 620 85 22];
+            app.AdvancedAmbientTemperatureEditField.Value = params.environment.ambient_T_C.value;
+            app.AdvancedAmbientTemperatureEditField.Limits = [-50 100];
+            app.AdvancedAmbientTemperatureEditField.Tooltip = ...
+                '环境温度边界；写入模型变量 env_T，不替代阳极/阴极源温度命令。';
+            ambientPressureLabel = uilabel(app.AdvancedPanel);
+            ambientPressureLabel.Position = [240 620 120 22];
+            ambientPressureLabel.Text = '环境压力 (MPa):';
+            app.AdvancedAmbientPressureEditField = uieditfield(app.AdvancedPanel, 'numeric');
+            app.AdvancedAmbientPressureEditField.Position = [360 620 85 22];
+            app.AdvancedAmbientPressureEditField.Value = params.environment.ambient_p_MPa_abs.value;
+            app.AdvancedAmbientPressureEditField.Limits = [0.01 1];
+            app.AdvancedAmbientPressureEditField.Tooltip = ...
+                '环境绝对压力边界；写入模型变量 env_p。';
+
             app.AdvancedKpLabel = uilabel(app.AdvancedPanel);
             app.AdvancedKpLabel.Position = [10 915 90 22];
             app.AdvancedKpLabel.Text = 'Kp (A/V):';
@@ -2171,6 +2333,25 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedCurrentMaxEditField.Position = [420 880 80 22];
             app.AdvancedCurrentMaxEditField.Value = ...
                 params.controls.voltage_current_max_A.value;
+
+            airPidKpLabel = uilabel(app.AdvancedPanel);
+            airPidKpLabel.Position = [10 845 120 22];
+            airPidKpLabel.Text = '空压机 PID Kp:';
+            app.AdvancedAirPidKpEditField = uieditfield(app.AdvancedPanel, 'numeric');
+            app.AdvancedAirPidKpEditField.Position = [130 845 85 22];
+            app.AdvancedAirPidKpEditField.Value = params.controls.air_pid_Kp.value;
+            app.AdvancedAirPidKpEditField.Limits = [eps Inf];
+            app.AdvancedAirPidKpEditField.Tooltip = ...
+                '空气压缩机控制器比例增益；写入 routeA_air_pid_Kp。';
+            airPidKiLabel = uilabel(app.AdvancedPanel);
+            airPidKiLabel.Position = [240 845 120 22];
+            airPidKiLabel.Text = '空压机 PID Ki:';
+            app.AdvancedAirPidKiEditField = uieditfield(app.AdvancedPanel, 'numeric');
+            app.AdvancedAirPidKiEditField.Position = [360 845 85 22];
+            app.AdvancedAirPidKiEditField.Value = params.controls.air_pid_Ki.value;
+            app.AdvancedAirPidKiEditField.Limits = [eps Inf];
+            app.AdvancedAirPidKiEditField.Tooltip = ...
+                '空气压缩机控制器积分增益；写入 routeA_air_pid_Ki。';
 
             app.AdvancedStackTemperatureLabel = uilabel(app.AdvancedPanel);
             app.AdvancedStackTemperatureLabel.Position = [10 390 130 22];
@@ -2297,11 +2478,13 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedCegrControlModeLabel.Position = [300 505 70 22];
             app.AdvancedCegrControlModeLabel.Text = '控制模式:';
             app.AdvancedCegrControlModeDropDown = uidropdown(app.AdvancedPanel);
-            app.AdvancedCegrControlModeDropDown.Items = {'目标比例'};
-            app.AdvancedCegrControlModeDropDown.ItemsData = 1;
+            app.AdvancedCegrControlModeDropDown.Items = {'目标比例', '直接支路'};
+            app.AdvancedCegrControlModeDropDown.ItemsData = [1 2];
             app.AdvancedCegrControlModeDropDown.Value = ...
                 params.controls.cegr_control_mode.value;
             app.AdvancedCegrControlModeDropDown.Position = [375 505 80 22];
+            app.AdvancedCegrControlModeDropDown.ValueChangedFcn = ...
+                createCallbackFcn(app, @AdvancedCegrControlModeChanged, true);
 
             app.AdvancedCegrTargetInputModeLabel = uilabel(app.AdvancedPanel);
             app.AdvancedCegrTargetInputModeLabel.Position = [10 470 100 22];
@@ -2311,6 +2494,25 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedCegrTargetInputModeDropDown.ItemsData = 1;
             app.AdvancedCegrTargetInputModeDropDown.Value = 1;
             app.AdvancedCegrTargetInputModeDropDown.Position = [110 470 100 22];
+
+            directAreaLabel = uilabel(app.AdvancedPanel);
+            directAreaLabel.Position = [10 435 135 22];
+            directAreaLabel.Text = '直接阀面积 (m^2):';
+            app.AdvancedCegrDirectAreaEditField = uieditfield(app.AdvancedPanel, 'numeric');
+            app.AdvancedCegrDirectAreaEditField.Position = [145 435 85 22];
+            app.AdvancedCegrDirectAreaEditField.Value = params.controls.cegr_direct_area_m2.value;
+            app.AdvancedCegrDirectAreaEditField.Limits = [1e-12 1];
+            app.AdvancedCegrDirectAreaEditField.Tooltip = ...
+                '仅 cEGR 直接控制模式使用；写入 routeA_egr_valve_area_direct。';
+            directTargetLabel = uilabel(app.AdvancedPanel);
+            directTargetLabel.Position = [240 435 120 22];
+            directTargetLabel.Text = '直接目标比 (-):';
+            app.AdvancedCegrDirectTargetEditField = uieditfield(app.AdvancedPanel, 'numeric');
+            app.AdvancedCegrDirectTargetEditField.Position = [360 435 85 22];
+            app.AdvancedCegrDirectTargetEditField.Value = params.controls.target_egr_ratio_comp_in.value;
+            app.AdvancedCegrDirectTargetEditField.Limits = [0 0.5];
+            app.AdvancedCegrDirectTargetEditField.Tooltip = ...
+                '仅 cEGR 直接控制模式使用；写入 routeA_target_egr_ratio_comp_in。';
 
             % Anode controls are part of the current advanced interface.
             % They feed the same runtime profile assembled by the panel
@@ -2766,14 +2968,20 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             end
             if advanced
                 valve.Enable = state;
-                % P1 exposes only the target-ratio input and controller mode.
-                % Keep these selectors visible for traceability, but prevent
-                % an unsupported alternate source from being selected.
-                control.Enable = 'off';
+                direct = [app.AdvancedCegrDirectAreaEditField, ...
+                    app.AdvancedCegrDirectTargetEditField];
+                directState = app.enableState(logical(enabled) && control.Value == 2);
+                direct(1).Enable = directState;
+                direct(2).Enable = directState;
+                control.Enable = state;
                 targetInput.Enable = 'off';
-                control.Tooltip = 'P1 固定为目标比例控制';
+                control.Tooltip = '1=目标比例闭环；2=直接支路模式';
                 targetInput.Tooltip = 'P1 固定使用 cEGR 比例输入';
             end
+        end
+
+        function AdvancedCegrControlModeChanged(app, ~)
+            app.updateCegrControls(true);
         end
 
         function simCase = uiBaseCase(app)
@@ -2842,6 +3050,8 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             draft.controls.devices.cathode = struct( ...
                 'intercoolerMdotNominal_kg_s', app.DeviceIntercoolerMdotEditField.Value, ...
                 'intercoolerDpNominal_MPa', app.DeviceIntercoolerDpEditField.Value, ...
+                'intercoolerArea_m2', app.DeviceIntercoolerAreaEditField.Value, ...
+                'intercoolerLaminarFraction', app.DeviceIntercoolerLaminarEditField.Value, ...
                 'separatorMdotNominal_kg_s', app.DeviceCathodeSeparatorMdotEditField.Value, ...
                 'separatorDpNominal_MPa', app.DeviceCathodeSeparatorDpEditField.Value, ...
                 'separatorArea_m2', app.DeviceCathodeSeparatorAreaEditField.Value, ...
@@ -2853,13 +3063,37 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 'valveMaxArea_m2', app.DeviceCegrValveMaxAreaEditField.Value, ...
                 'pipeLength_m', app.DeviceCegrPipeLengthEditField.Value, ...
                 'pipeDiameter_m', app.DeviceCegrPipeDEditField.Value, ...
-                'pipeRoughness_m', app.DeviceCegrPipeRoughnessEditField.Value);
+                'pipeRoughness_m', app.DeviceCegrPipeRoughnessEditField.Value, ...
+                'condensationTau_s', app.DeviceCegrCondTauEditField.Value, ...
+                'inletMixerPressure_MPa_abs', app.DeviceCegrInletMixerP0EditField.Value, ...
+                'outletChamberPressure_MPa_abs', app.DeviceCegrOutletP0EditField.Value, ...
+                'pipeExtraLength_m', app.DeviceCegrPipeExtraLengthEditField.Value, ...
+                'pipePressure_MPa_abs', app.DeviceCegrPipeP0EditField.Value, ...
+                'valveOpenMinArea_m2', app.DeviceCegrValveMinAreaEditField.Value);
             draft.controls.devices.anode = struct( ...
                 'tankPressure_MPa', app.DeviceAnodeTankPressureEditField.Value, ...
                 'tankVolume_L', app.DeviceAnodeTankVolumeEditField.Value, ...
                 'tankTemperature_C', app.DeviceAnodeTankTemperatureEditField.Value, ...
+                'separatorMdotNominal_kg_s', app.DeviceAnodeSeparatorMdotEditField.Value, ...
+                'separatorDpNominal_MPa', app.DeviceAnodeSeparatorDpEditField.Value, ...
                 'separatorArea_m2', app.DeviceAnodeSeparatorAreaEditField.Value, ...
                 'separatorLaminarFraction', app.DeviceAnodeSeparatorLaminarEditField.Value);
+            draft.controls.devices.thermal.coolantGeometry = struct( ...
+                'channelWidth_cm', app.DeviceCoolantChannelWidthEditField.Value, ...
+                'numLayers', app.DeviceCoolantNumLayersEditField.Value, ...
+                'numPasses', app.DeviceCoolantNumPassesEditField.Value, ...
+                'tubeDiameter_m', app.DeviceCoolantTubeDEditField.Value);
+            draft.controls.devices.thermal.radiatorCore = struct( ...
+                'length_m', app.DeviceRadiatorLengthEditField.Value, ...
+                'width_m', app.DeviceRadiatorWidthEditField.Value, ...
+                'height_m', app.DeviceRadiatorHeightEditField.Value, ...
+                'tubeCount', app.DeviceRadiatorTubeCountEditField.Value, ...
+                'tubeHeight_m', app.DeviceRadiatorTubeHeightEditField.Value, ...
+                'finSpacing_m', app.DeviceRadiatorFinSpacingEditField.Value, ...
+                'finEfficiency', app.DeviceRadiatorFinEfficiencyEditField.Value, ...
+                'wallThickness_m', app.DeviceRadiatorWallThicknessEditField.Value, ...
+                'density_kg_m3', app.DeviceRadiatorDensityEditField.Value, ...
+                'specificHeat_J_kgK', app.DeviceRadiatorSpecificHeatEditField.Value);
             app.draftSimCase = draft;
             app.simCase = draft;
         end
@@ -2879,6 +3113,8 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceStackMembraneEditField.Value = defaults.controls.devices.stack.membraneThickness_um;
             app.DeviceIntercoolerMdotEditField.Value = defaults.controls.devices.cathode.intercoolerMdotNominal_kg_s;
             app.DeviceIntercoolerDpEditField.Value = defaults.controls.devices.cathode.intercoolerDpNominal_MPa;
+            app.DeviceIntercoolerAreaEditField.Value = defaults.controls.devices.cathode.intercoolerArea_m2;
+            app.DeviceIntercoolerLaminarEditField.Value = defaults.controls.devices.cathode.intercoolerLaminarFraction;
             app.DeviceCathodeSeparatorMdotEditField.Value = defaults.controls.devices.cathode.separatorMdotNominal_kg_s;
             app.DeviceCathodeSeparatorDpEditField.Value = defaults.controls.devices.cathode.separatorDpNominal_MPa;
             app.DeviceCathodeSeparatorAreaEditField.Value = defaults.controls.devices.cathode.separatorArea_m2;
@@ -2889,11 +3125,33 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceCegrPipeLengthEditField.Value = defaults.controls.devices.cegr.pipeLength_m;
             app.DeviceCegrPipeDEditField.Value = defaults.controls.devices.cegr.pipeDiameter_m;
             app.DeviceCegrPipeRoughnessEditField.Value = defaults.controls.devices.cegr.pipeRoughness_m;
+            app.DeviceCegrCondTauEditField.Value = defaults.controls.devices.cegr.condensationTau_s;
+            app.DeviceCegrInletMixerP0EditField.Value = defaults.controls.devices.cegr.inletMixerPressure_MPa_abs;
+            app.DeviceCegrOutletP0EditField.Value = defaults.controls.devices.cegr.outletChamberPressure_MPa_abs;
+            app.DeviceCegrPipeExtraLengthEditField.Value = defaults.controls.devices.cegr.pipeExtraLength_m;
+            app.DeviceCegrPipeP0EditField.Value = defaults.controls.devices.cegr.pipePressure_MPa_abs;
+            app.DeviceCegrValveMinAreaEditField.Value = defaults.controls.devices.cegr.valveOpenMinArea_m2;
             app.DeviceAnodeTankPressureEditField.Value = defaults.controls.devices.anode.tankPressure_MPa;
             app.DeviceAnodeTankVolumeEditField.Value = defaults.controls.devices.anode.tankVolume_L;
             app.DeviceAnodeTankTemperatureEditField.Value = defaults.controls.devices.anode.tankTemperature_C;
+            app.DeviceAnodeSeparatorMdotEditField.Value = defaults.controls.devices.anode.separatorMdotNominal_kg_s;
+            app.DeviceAnodeSeparatorDpEditField.Value = defaults.controls.devices.anode.separatorDpNominal_MPa;
             app.DeviceAnodeSeparatorAreaEditField.Value = defaults.controls.devices.anode.separatorArea_m2;
             app.DeviceAnodeSeparatorLaminarEditField.Value = defaults.controls.devices.anode.separatorLaminarFraction;
+            app.DeviceCoolantChannelWidthEditField.Value = defaults.controls.devices.thermal.coolantGeometry.channelWidth_cm;
+            app.DeviceCoolantNumLayersEditField.Value = defaults.controls.devices.thermal.coolantGeometry.numLayers;
+            app.DeviceCoolantNumPassesEditField.Value = defaults.controls.devices.thermal.coolantGeometry.numPasses;
+            app.DeviceCoolantTubeDEditField.Value = defaults.controls.devices.thermal.coolantGeometry.tubeDiameter_m;
+            app.DeviceRadiatorLengthEditField.Value = defaults.controls.devices.thermal.radiatorCore.length_m;
+            app.DeviceRadiatorWidthEditField.Value = defaults.controls.devices.thermal.radiatorCore.width_m;
+            app.DeviceRadiatorHeightEditField.Value = defaults.controls.devices.thermal.radiatorCore.height_m;
+            app.DeviceRadiatorTubeCountEditField.Value = defaults.controls.devices.thermal.radiatorCore.tubeCount;
+            app.DeviceRadiatorTubeHeightEditField.Value = defaults.controls.devices.thermal.radiatorCore.tubeHeight_m;
+            app.DeviceRadiatorFinSpacingEditField.Value = defaults.controls.devices.thermal.radiatorCore.finSpacing_m;
+            app.DeviceRadiatorFinEfficiencyEditField.Value = defaults.controls.devices.thermal.radiatorCore.finEfficiency;
+            app.DeviceRadiatorWallThicknessEditField.Value = defaults.controls.devices.thermal.radiatorCore.wallThickness_m;
+            app.DeviceRadiatorDensityEditField.Value = defaults.controls.devices.thermal.radiatorCore.density_kg_m3;
+            app.DeviceRadiatorSpecificHeatEditField.Value = defaults.controls.devices.thermal.radiatorCore.specificHeat_J_kgK;
             app.captureDeviceControls();
             app.draftSimCase.controls.devices.cathode.compressorMap = ...
                 defaults.controls.devices.cathode.compressorMap;
@@ -2940,6 +3198,8 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceStackMembraneEditField.Value = draft.controls.devices.stack.membraneThickness_um;
             app.DeviceIntercoolerMdotEditField.Value = draft.controls.devices.cathode.intercoolerMdotNominal_kg_s;
             app.DeviceIntercoolerDpEditField.Value = draft.controls.devices.cathode.intercoolerDpNominal_MPa;
+            app.DeviceIntercoolerAreaEditField.Value = draft.controls.devices.cathode.intercoolerArea_m2;
+            app.DeviceIntercoolerLaminarEditField.Value = draft.controls.devices.cathode.intercoolerLaminarFraction;
             app.DeviceCathodeSeparatorMdotEditField.Value = draft.controls.devices.cathode.separatorMdotNominal_kg_s;
             app.DeviceCathodeSeparatorDpEditField.Value = draft.controls.devices.cathode.separatorDpNominal_MPa;
             app.DeviceCathodeSeparatorAreaEditField.Value = draft.controls.devices.cathode.separatorArea_m2;
@@ -2950,11 +3210,33 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceCegrPipeLengthEditField.Value = draft.controls.devices.cegr.pipeLength_m;
             app.DeviceCegrPipeDEditField.Value = draft.controls.devices.cegr.pipeDiameter_m;
             app.DeviceCegrPipeRoughnessEditField.Value = draft.controls.devices.cegr.pipeRoughness_m;
+            app.DeviceCegrCondTauEditField.Value = draft.controls.devices.cegr.condensationTau_s;
+            app.DeviceCegrInletMixerP0EditField.Value = draft.controls.devices.cegr.inletMixerPressure_MPa_abs;
+            app.DeviceCegrOutletP0EditField.Value = draft.controls.devices.cegr.outletChamberPressure_MPa_abs;
+            app.DeviceCegrPipeExtraLengthEditField.Value = draft.controls.devices.cegr.pipeExtraLength_m;
+            app.DeviceCegrPipeP0EditField.Value = draft.controls.devices.cegr.pipePressure_MPa_abs;
+            app.DeviceCegrValveMinAreaEditField.Value = draft.controls.devices.cegr.valveOpenMinArea_m2;
             app.DeviceAnodeTankPressureEditField.Value = draft.controls.devices.anode.tankPressure_MPa;
             app.DeviceAnodeTankVolumeEditField.Value = draft.controls.devices.anode.tankVolume_L;
             app.DeviceAnodeTankTemperatureEditField.Value = draft.controls.devices.anode.tankTemperature_C;
+            app.DeviceAnodeSeparatorMdotEditField.Value = draft.controls.devices.anode.separatorMdotNominal_kg_s;
+            app.DeviceAnodeSeparatorDpEditField.Value = draft.controls.devices.anode.separatorDpNominal_MPa;
             app.DeviceAnodeSeparatorAreaEditField.Value = draft.controls.devices.anode.separatorArea_m2;
             app.DeviceAnodeSeparatorLaminarEditField.Value = draft.controls.devices.anode.separatorLaminarFraction;
+            app.DeviceCoolantChannelWidthEditField.Value = draft.controls.devices.thermal.coolantGeometry.channelWidth_cm;
+            app.DeviceCoolantNumLayersEditField.Value = draft.controls.devices.thermal.coolantGeometry.numLayers;
+            app.DeviceCoolantNumPassesEditField.Value = draft.controls.devices.thermal.coolantGeometry.numPasses;
+            app.DeviceCoolantTubeDEditField.Value = draft.controls.devices.thermal.coolantGeometry.tubeDiameter_m;
+            app.DeviceRadiatorLengthEditField.Value = draft.controls.devices.thermal.radiatorCore.length_m;
+            app.DeviceRadiatorWidthEditField.Value = draft.controls.devices.thermal.radiatorCore.width_m;
+            app.DeviceRadiatorHeightEditField.Value = draft.controls.devices.thermal.radiatorCore.height_m;
+            app.DeviceRadiatorTubeCountEditField.Value = draft.controls.devices.thermal.radiatorCore.tubeCount;
+            app.DeviceRadiatorTubeHeightEditField.Value = draft.controls.devices.thermal.radiatorCore.tubeHeight_m;
+            app.DeviceRadiatorFinSpacingEditField.Value = draft.controls.devices.thermal.radiatorCore.finSpacing_m;
+            app.DeviceRadiatorFinEfficiencyEditField.Value = draft.controls.devices.thermal.radiatorCore.finEfficiency;
+            app.DeviceRadiatorWallThicknessEditField.Value = draft.controls.devices.thermal.radiatorCore.wallThickness_m;
+            app.DeviceRadiatorDensityEditField.Value = draft.controls.devices.thermal.radiatorCore.density_kg_m3;
+            app.DeviceRadiatorSpecificHeatEditField.Value = draft.controls.devices.thermal.radiatorCore.specificHeat_J_kgK;
             app.refreshCompressorMapStatus();
         end
 
@@ -2991,6 +3273,13 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.AdvancedO2EditField.Value;
             app.simCase.controls.cathode.h2oMoleFraction = ...
                 app.AdvancedH2OEditField.Value;
+            app.simCase.controls.cathode.airController = struct( ...
+                'Kp', app.AdvancedAirPidKpEditField.Value, ...
+                'Ki', app.AdvancedAirPidKiEditField.Value);
+            app.simCase.controls.environment.ambientTemperature_C = ...
+                app.AdvancedAmbientTemperatureEditField.Value;
+            app.simCase.controls.environment.ambientPressure_MPa_abs = ...
+                app.AdvancedAmbientPressureEditField.Value;
             app.simCase.controls.cegr.enabled = ...
                 app.AdvancedCegrEnabledCheckBox.Value;
             app.simCase.controls.cegr.targetRatio = ...
@@ -3001,6 +3290,10 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.AdvancedCegrControlModeDropDown.Value;
             app.simCase.controls.cegr.targetInputMode = ...
                 app.AdvancedCegrTargetInputModeDropDown.Value;
+            app.simCase.controls.cegr.directValveArea_m2 = ...
+                app.AdvancedCegrDirectAreaEditField.Value;
+            app.simCase.controls.cegr.directTargetRatio = ...
+                app.AdvancedCegrDirectTargetEditField.Value;
             app.simCase.controls.thermal.stackTemperatureSet_C = ...
                 app.AdvancedStackTemperatureEditField.Value;
             app.simCase.controls.anode = app.collectAnodeControls();
@@ -3094,14 +3387,15 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
         function data = buildParameterCatalogData(~, ~, audit)
             rows = audit.workspace;
-            data = cell(height(rows), 8);
+            data = cell(height(rows), 9);
             for idx = 1:height(rows)
                 row = rows(idx, :);
                 data(idx, :) = {routeA_panel_audit_text(row.modelVariable), ...
-                    routeA_panel_audit_text(row.physicalRole), ...
+                    routeA_panel_model_meaning_text(row.modelVariable, row.physicalRole), ...
                     [routeA_panel_audit_text(row.valueClass) ' ' ...
                         routeA_panel_audit_text(row.size)], ...
                     routeA_panel_audit_text(row.valuePreview), ...
+                    routeA_panel_audit_text(row.openingDisposition), ...
                     routeA_panel_reference_state_text(row.referenceState), ...
                     routeA_panel_exposure_text(row.referenceState, row.panelExposure), ...
                     routeA_panel_audit_text(row.activePanelEntries), ...
@@ -3119,23 +3413,30 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 entry = entries(idx);
                 mapping = strings(0, 1);
                 if strlength(entry.modelWorkspaceVariable) > 0
-                    mapping(end + 1) = entry.modelWorkspaceVariable;
+                    mapping(end + 1) = "工作区: " + string(entry.modelWorkspaceVariable);
                 end
                 if strlength(entry.blockParameter) > 0
-                    mapping(end + 1) = entry.blockParameter;
+                    mapping(end + 1) = "块/边界: " + string(entry.blockParameter);
                 end
                 if strlength(entry.profileField) > 0
-                    mapping(end + 1) = entry.profileField;
+                    mapping(end + 1) = "profile: " + string(entry.profileField);
+                end
+                if entry.status == "inventory" && strlength(entry.source) > 0
+                    mapping(end + 1) = "来源: " + string(entry.source);
                 end
                 if isempty(mapping)
                     mappingText = '-';
                 else
                     mappingText = char(strjoin(mapping, ' | '));
                 end
-                if entry.panelExposure == "device_settings"
-                    stateText = '本页可编辑';
+                if entry.panelExposure == "device_settings" && entry.status == "active"
+                    stateText = '可编辑输入';
+                elseif entry.status == "inventory"
+                    stateText = 'platform_default 源目录 / 不单独编辑';
+                elseif entry.status == "unresolved"
+                    stateText = '未接入审查 / 暂不编辑';
                 else
-                    stateText = '目录只读';
+                    stateText = '目录只读 / 未分类';
                 end
                 data(idx, :) = {app.catalogMeaningZh(entry), ...
                     app.catalogDeviceZh(entry), char(entry.unit), ...
@@ -3439,6 +3740,36 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                     textValue = '阳极分离器流通面积';
                 case "device.anode.separatorLaminarFraction"
                     textValue = '阳极分离器层流分数';
+                case "device.thermal.coolantGeometry.channelWidth_cm"
+                    textValue = '冷却通道宽度，同时作为水力直径';
+                case "device.thermal.coolantGeometry.numLayers"
+                    textValue = '电堆冷却通道层数';
+                case "device.thermal.coolantGeometry.numPasses"
+                    textValue = '每层冷却通道走向数';
+                case "device.thermal.coolantGeometry.tubeDiameter_m"
+                    textValue = '冷却回路管径，写入泵和流阻支路';
+                case "device.thermal.radiatorCore.length_m"
+                    textValue = '散热器核心管内流动长度';
+                case "device.thermal.radiatorCore.width_m"
+                    textValue = '散热器管宽度';
+                case "device.thermal.radiatorCore.height_m"
+                    textValue = '散热器核心总高度，用于派生换热面积';
+                case "device.thermal.radiatorCore.tubeCount"
+                    textValue = '散热器管数量';
+                case "device.thermal.radiatorCore.tubeHeight_m"
+                    textValue = '单根散热器管高度';
+                case "device.thermal.radiatorCore.finSpacing_m"
+                    textValue = '散热器翅片间距，用于派生翅片面积';
+                case "device.thermal.radiatorCore.finEfficiency"
+                    textValue = '散热器翅片有效换热效率';
+                case "device.thermal.radiatorCore.wallThickness_m"
+                    textValue = '散热器管壁厚度，用于热容量';
+                case "device.thermal.radiatorCore.density_kg_m3"
+                    textValue = '散热器材料密度，用于热容量';
+                case "device.thermal.radiatorCore.specificHeat_J_kgK"
+                    textValue = '散热器材料比热，用于热容量';
+                case "device.cathode.intercoolerCondTau_s"
+                    textValue = '中冷器凝结动态时间常数（当前未接入）';
                 case "thermal.stackTemperatureSet_C"
                     textValue = '电堆冷却出口温度设定';
                 case "solver.stopTime_s"
@@ -3455,6 +3786,8 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                     if startsWith(key, "platform.")
                         textValue = app.catalogPlatformMeaningZh( ...
                             extractAfter(key, "platform."));
+                    elseif strlength(string(entry.description)) > 0
+                        textValue = char(string(entry.description));
                     else
                         textValue = '模型接口参数';
                     end
@@ -3870,6 +4203,20 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.HumidifierEnabledCheckBox.Value;
             app.AdvancedCegrRatioEditField.Value = app.CegrRatioEditField.Value;
             app.AdvancedCegrEnabledCheckBox.Value = app.CegrEnabledCheckBox.Value;
+            app.AdvancedAmbientTemperatureEditField.Value = ...
+                app.simCase.controls.environment.ambientTemperature_C;
+            app.AdvancedAmbientPressureEditField.Value = ...
+                app.simCase.controls.environment.ambientPressure_MPa_abs;
+            app.AdvancedAirPidKpEditField.Value = ...
+                app.simCase.controls.cathode.airController.Kp;
+            app.AdvancedAirPidKiEditField.Value = ...
+                app.simCase.controls.cathode.airController.Ki;
+            app.AdvancedCegrDirectAreaEditField.Value = ...
+                app.simCase.controls.cegr.directValveArea_m2;
+            app.AdvancedCegrDirectTargetEditField.Value = ...
+                app.simCase.controls.cegr.directTargetRatio;
+            app.AdvancedCegrControlModeDropDown.Value = ...
+                app.simCase.controls.cegr.controlMode;
             app.AdvancedStopTimeEditField.Value = app.StopTimeEditField.Value;
             app.AdvancedStackTemperatureEditField.Value = ...
                 app.StackTemperatureEditField.Value;
@@ -4002,26 +4349,94 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
     end
 end
 
+function counts = routeA_panel_catalog_counts(~, registry)
+entries = registry.entries;
+status = string({entries.status});
+exposure = string({entries.panelExposure});
+counts = struct( ...
+    'activePanelEntryCount', sum(status == "active"), ...
+    'activeBasicEntryCount', sum(status == "active" & exposure == "basic"), ...
+    'activeAdvancedEntryCount', sum(status == "active" & exposure == "advanced"), ...
+    'activeDeviceEntryCount', sum(status == "active" & exposure == "device_settings"));
+end
+
+function textValue = routeA_panel_model_meaning_text(modelVariable, fallback)
+name = string(modelVariable);
+if name == "stack_num_cells"
+    textValue = '电堆串联单体数量';
+elseif name == "stack_area"
+    textValue = '每个单体有效活性面积';
+elseif name == "stack_iL"
+    textValue = '电化学极限电流密度';
+elseif name == "stack_io"
+    textValue = '电化学交换电流密度';
+elseif startsWith(name, "stack_")
+    textValue = '电堆 / MEA 性能或几何参数';
+elseif startsWith(name, "coolant_")
+    textValue = '冷却回路几何、流阻或通道参数';
+elseif startsWith(name, "radiator_")
+    textValue = '散热器换热几何、材料或热容量参数';
+elseif startsWith(name, "comp_")
+    textValue = '阴极空压机入口容积或特性图谱参数';
+elseif startsWith(name, "intercooler_")
+    textValue = '阴极中冷器几何、流阻或换热参数';
+elseif startsWith(name, "cathode_separator_")
+    textValue = '阴极分离器流阻与初始状态参数';
+elseif startsWith(name, "anode_separator_")
+    textValue = '阳极分离器流阻与初始状态参数';
+elseif startsWith(name, "cegr_")
+    textValue = 'cEGR 回流管、阀或支路控制参数';
+elseif startsWith(name, "routeA_")
+    textValue = 'Route A 运行、控制或接口配置';
+elseif startsWith(name, "drive_cycle_")
+    textValue = '电边界命令时序或其辅助字段';
+elseif startsWith(name, "env_")
+    textValue = '环境压力、温度、湿度或气体组分边界';
+elseif startsWith(name, "tank_")
+    textValue = '阳极储氢罐状态或气体组分';
+elseif startsWith(name, "pSat_") || name == "T_TLU"
+    textValue = '水蒸气饱和性质查表数据';
+elseif startsWith(name, "Gas_properties")
+    textValue = '气体混合物属性配置或候选列表';
+elseif startsWith(name, "humidifier_")
+    textValue = '加湿器工作状态或旁路配置';
+elseif startsWith(name, "separator_")
+    textValue = 'L2 冷凝/分离能力配置';
+else
+    textValue = char(string(fallback));
+end
+end
+
 function textValue = routeA_panel_reference_state_text(state)
 switch string(state)
     case "model_referenced_panel_contract"
-        textValue = '已被模型引用';
+        textValue = '模型已引用 / 面板已承接';
     case "model_referenced_no_active_panel_entry"
-        textValue = '已被模型引用';
+        textValue = '模型已引用 / 待开放';
+    case "library_boundary_verified"
+        textValue = '库边界已验证 / 面板已承接';
     case "workspace_only"
-        textValue = '工作区闲置/辅助';
+        textValue = '未引用 / 工作区辅助';
+    case "panel_entry_without_model_reference"
+        textValue = '异常：面板映射但模型未引用';
     otherwise
-        textValue = '写入目标未引用';
+        textValue = '未分类 / 待审计';
 end
 end
 
 function textValue = routeA_panel_exposure_text(state, exposure)
 if string(state) == "model_referenced_panel_contract"
-    textValue = ['模型引用 + 可写 (' char(string(exposure)) ')'];
+    textValue = ['可编辑输入 (' char(string(exposure)) ')'];
+elseif string(state) == "library_boundary_verified"
+    textValue = '可编辑输入 / 库边界';
 elseif string(state) == "model_referenced_no_active_panel_entry"
-    textValue = '模型引用 / 目录只读';
+    textValue = '目录只读 / 待开放';
+elseif string(state) == "workspace_only"
+    textValue = '目录只读 / 未引用辅助';
+elseif string(state) == "panel_entry_without_model_reference"
+    textValue = '需修复 / 写入目标未引用';
 else
-    textValue = '禁止编辑';
+    textValue = '目录只读 / 未分类';
 end
 end
 

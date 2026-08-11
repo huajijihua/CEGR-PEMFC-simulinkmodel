@@ -20,7 +20,18 @@ end
 modelWorkspace = get_param(model, 'ModelWorkspace');
 workspaceInfo = modelWorkspace.whos;
 modelVars = string({workspaceInfo.name})';
-findVars = Simulink.findVars(model, 'SearchMethod', 'cached');
+% A first panel launch has no cached variable-usage result yet. Retain the
+% fast cached path for an updated model, then fall back to an official
+% compiled query so the read-only catalog can initialize on its own.
+try
+    findVars = Simulink.findVars(model, 'SearchMethod', 'cached');
+catch cachedSearchError
+    try
+        findVars = Simulink.findVars(model, 'SearchMethod', 'compiled');
+    catch compiledSearchError
+        throw(addCause(compiledSearchError, cachedSearchError));
+    end
+end
 registry = routeA_parameter_registry(paths);
 entries = registry.entries;
 activeEntries = entries(string({entries.status}) == "active");
@@ -30,8 +41,8 @@ for idx = 1:numel(workspaceInfo)
     name = modelVars(idx);
     value = modelWorkspace.getVariable(char(name));
     usedBy = modelUsersFor(findVars, name);
-    matchingEntries = activeEntries( ...
-        string({activeEntries.modelWorkspaceVariable}) == name);
+    matchingEntries = activeEntries(arrayfun(@(entry) ...
+        resolvedWriteVariable(entry) == name, activeEntries));
     derivedEntries = activeEntries(arrayfun(@(entry) ...
         any(derivedWriteVariables(entry) == name), activeEntries));
     matchingEntries = [matchingEntries, derivedEntries];
@@ -42,6 +53,7 @@ for idx = 1:numel(workspaceInfo)
         'valueClass', string(class(value)), ...
         'size', string(mat2str(size(value))), ...
         'physicalRole', physicalRole(name), ...
+        'openingDisposition', openingDisposition(name), ...
         'referenceState', referenceState(name, usedBy, matchingEntries), ...
         'blockUsers', compactUsers(usedBy, model), ...
         'activePanelEntries', canonicalNames, ...
@@ -83,6 +95,24 @@ mismatch = contractTable(contractTable.referenceState == ...
     "write_target_not_referenced", :);
 unrepresented = workspaceTable( ...
     workspaceTable.referenceState == "model_referenced_no_active_panel_entry", :);
+workspaceStates = string(workspaceTable.referenceState);
+entryExposure = string({entries.panelExposure});
+entryStatus = string({entries.status});
+entryNames = string({entries.canonicalName});
+entryDomains = string({entries.domain});
+deviceCatalogMask = entryExposure == "device_settings" | ...
+    ((startsWith(entryNames, "platform.") | startsWith(entryNames, "device.")) & ...
+    ismember(entryDomains, ["stack", "cathode", "cegr", "anode", "thermal"]));
+panelMappedReferencedCount = sum(ismember(workspaceStates, ...
+    ["model_referenced_panel_contract", "library_boundary_verified"]));
+workspaceOnlyCount = sum(workspaceStates == "workspace_only");
+panelEntryWithoutReferenceCount = sum(workspaceStates == ...
+    "panel_entry_without_model_reference");
+deviceCatalogCount = sum(deviceCatalogMask);
+deviceEditableCount = sum(deviceCatalogMask & entryExposure == "device_settings" & ...
+    entryStatus == "active");
+deviceInventoryCount = sum(deviceCatalogMask & entryStatus == "inventory");
+deviceUnresolvedCount = sum(deviceCatalogMask & entryStatus == "unresolved");
 
 report = struct( ...
     'schemaVersion', "RouteA_ModelPanelParameterAudit_v01", ...
@@ -99,10 +129,18 @@ report = struct( ...
         'referencedWorkspaceVariableCount', sum(startsWith( ...
             workspaceTable.referenceState, "model_referenced") | ...
             workspaceTable.referenceState == "library_boundary_verified"), ...
+        'panelMappedReferencedWorkspaceVariableCount', panelMappedReferencedCount, ...
+        'workspaceOnlyVariableCount', workspaceOnlyCount, ...
+        'panelEntryWithoutModelReferenceCount', panelEntryWithoutReferenceCount, ...
         'activePanelEntryCount', height(contractTable), ...
         'panelWriteTargetMismatchCount', height(mismatch), ...
         'referencedModelParametersWithoutActivePanelEntryCount', ...
-            height(unrepresented)));
+            height(unrepresented), ...
+        'deviceCatalogEntryCount', deviceCatalogCount, ...
+        'deviceEditableEntryCount', deviceEditableCount, ...
+        'deviceReadonlyCatalogEntryCount', deviceCatalogCount - deviceEditableCount, ...
+        'deviceInventoryEntryCount', deviceInventoryCount, ...
+        'deviceUnresolvedEntryCount', deviceUnresolvedCount));
 
 if writeReport
     reportPath = fullfile(paths.simulinkRoot, '04_说明', ...
@@ -117,7 +155,8 @@ end
 
 function row = workspaceRowTemplate()
 row = struct('modelVariable', "", 'valuePreview', "", 'valueClass', "", ...
-    'size', "", 'physicalRole', "", 'referenceState', "", ...
+    'size', "", 'physicalRole', "", 'openingDisposition', "", ...
+    'referenceState', "", ...
     'blockUsers', "", 'activePanelEntries', "", 'panelExposure', "");
 end
 
@@ -181,8 +220,16 @@ end
 
 function variables = derivedWriteVariables(entry)
 variables = strings(0, 1);
-if string(entry.canonicalName) == "device.cegr.pipeDiameter_m"
-    variables = "cegr_pipe_area";
+switch string(entry.canonicalName)
+    case "device.cegr.pipeDiameter_m"
+        variables = "cegr_pipe_area";
+    case {"electrical.current.profile", "electrical.power.profile", ...
+            "electrical.voltage.profile"}
+        variables = "drive_cycle_time";
+    case "anode.h2MoleFraction"
+        variables = "tank_yH2";
+    case "device.thermal.radiatorCore.length_m"
+        variables = "radiator_tube_Leq";
 end
 end
 
@@ -304,6 +351,21 @@ end
 textValue = string(textValue);
 end
 
+function textValue = openingDisposition(name)
+name = string(name);
+switch name
+    case {"anode_tube_D", "cathode_tube_D"}
+        textValue = "只读：多块共享的内部管路几何；需结构一致性验证后再考虑开放";
+    case {"stack_num_channels", "stack_w_channels"}
+        textValue = "只读：通道结构/拓扑参数；改变可能影响编译、初始化和几何一致性";
+    case "cegr_comp_map_t_denom_epsilon"
+        textValue = "只读：压缩机图谱数值保护量，不代表设备性能设定";
+    otherwise
+        textValue = "可进入开放审查；需完成写入、范围和响应验证";
+end
+textValue = string(textValue);
+end
+
 function textValue = limitText(minimum, maximum)
 if isempty(minimum) && isempty(maximum)
     textValue = "结构化数据/由专用校验器约束";
@@ -344,31 +406,48 @@ fprintf(fid, '| 面板活动参数 | %d | 通过统一 `simCase -> SimulationInp
 fprintf(fid, '| 面板写入目标未被模型引用 | %d | 必须移出可写面板或补齐模型接线 |\n', report.counts.panelWriteTargetMismatchCount);
 fprintf(fid, '| 模型已引用但尚未开放为面板活动参数 | %d | 保留目录并按验证准入决定是否开放 |\n\n', report.counts.referencedModelParametersWithoutActivePanelEntryCount);
 
-fprintf(fid, '状态解释：`model_referenced_panel_contract` 为已闭环；`library_boundary_verified` 为库封装边界、通过实际仿真验证；`model_referenced_no_active_panel_entry` 为模型真实参数但目前只读；`workspace_only` 为工作区闲置/辅助变量；`panel_entry_without_model_reference` 或 `write_target_not_referenced` 为不允许保留的失配。\n\n');
+fprintf(fid, '## 数量口径与从属关系\n\n');
+fprintf(fid, '以下三组数字使用不同计数单位，不能直接相加：模型工作区按变量计数，面板按输入契约条目计数，设备目录按设备参数目录条目计数。\n\n');
+fprintf(fid, '- 模型工作区变量：`%d = %d 实际引用 + %d 未引用/辅助 + %d 面板映射但未被引用`。\n', ...
+    report.counts.workspaceVariableCount, report.counts.referencedWorkspaceVariableCount, ...
+    report.counts.workspaceOnlyVariableCount, report.counts.panelEntryWithoutModelReferenceCount);
+fprintf(fid, '- 实际引用变量：`%d = %d 已由面板承接 + %d 已引用但待开放`。\n', ...
+    report.counts.referencedWorkspaceVariableCount, ...
+    report.counts.panelMappedReferencedWorkspaceVariableCount, ...
+    report.counts.referencedModelParametersWithoutActivePanelEntryCount);
+fprintf(fid, '- 活动面板参数：`%d` 个契约条目，按页签拆分为基础/高级/设备页；其中可能包含非工作区输入、一个条目写入多个变量，以及图谱数组和几何派生写入，因此不与工作区变量数相加。\n', ...
+    report.counts.activePanelEntryCount);
+fprintf(fid, '- 设备页目录：`%d = %d 可编辑字段 + %d platform_default 源目录 + %d 未接入审查`；空压机三数组作为一个图谱编辑器组原子提交，但在参数契约中保留三条数组记录。\n\n', ...
+    report.counts.deviceCatalogEntryCount, report.counts.deviceEditableEntryCount, ...
+    report.counts.deviceInventoryEntryCount, report.counts.deviceUnresolvedEntryCount);
+
+fprintf(fid, '状态解释：模型已引用/面板已承接 = 已闭合输入链；库边界已验证/面板已承接 = 通过库封装边界生效；模型已引用/待开放 = 真实模型变量但当前只读；未引用/工作区辅助 = 当前不参与模型行为；platform_default 源目录 = 默认参数叶项，不是独立面板输入；未接入审查 = 已登记但尚未绑定活动块参数；异常 = 面板映射或写入目标未被模型引用，需要修复。\n\n');
 
 fprintf(fid, '## 面板输入与模型写入链\n\n');
 fprintf(fid, '| 面板参数 | 页签 | 单位 | 范围 | 工作区变量 | 时序字段 | 实际写入目标 | 派生写入目标 | 写入方式 | 引用状态 |\n|---|---|---|---|---|---|---|---|---|---|\n');
 for idx = 1:height(report.inputContract)
     row = report.inputContract(idx, :);
     fprintf(fid, '| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n', ...
-        markdownCell(row.canonicalName), markdownCell(row.panelExposure), ...
+        markdownCell(row.canonicalName), panelExposureText(row.panelExposure), ...
         markdownCell(row.unit), markdownCell(row.limits), ...
         markdownCell(row.modelWorkspaceVariable), markdownCell(row.profileField), ...
         markdownCell(row.resolvedWriteVariable), ...
         markdownCell(row.derivedWriteVariables), markdownCell(row.application), ...
-        markdownCell(row.referenceState));
+        referenceStateText(row.referenceState));
 end
 
 fprintf(fid, '\n## 模型工作区参数\n\n');
-fprintf(fid, '| 变量 | 默认值摘要 | 类型/尺寸 | 物理角色 | 模型引用状态 | 代表模块 | 面板活动参数 | 页签 |\n|---|---|---|---|---|---|---|---|\n');
+fprintf(fid, '| 变量 | 默认值摘要 | 类型/尺寸 | 物理含义/功能 | 开放处置 | 模型引用状态 | 所属子系统/块 | 面板承接参数 | 面板权限 |\n|---|---|---|---|---|---|---|---|---|\n');
 for idx = 1:height(report.workspace)
     row = report.workspace(idx, :);
-    fprintf(fid, '| %s | %s | %s %s | %s | %s | %s | %s | %s |\n', ...
+    fprintf(fid, '| %s | %s | %s %s | %s | %s | %s | %s | %s | %s |\n', ...
         markdownCell(row.modelVariable), markdownCell(row.valuePreview), ...
         markdownCell(row.valueClass), markdownCell(row.size), ...
-        markdownCell(row.physicalRole), markdownCell(row.referenceState), ...
+        physicalMeaning(row.modelVariable, row.physicalRole), ...
+        markdownCell(row.openingDisposition), ...
+        referenceStateText(row.referenceState), ...
         markdownCell(row.blockUsers), markdownCell(row.activePanelEntries), ...
-        markdownCell(row.panelExposure));
+        panelExposureText(row.panelExposure));
 end
 
 fprintf(fid, '\n## 命名与冗余审计\n\n');
@@ -384,9 +463,98 @@ end
 
 fprintf(fid, '\n## 维护规则\n\n');
 fprintf(fid, '1. 新增面板输入前，必须先在本表中确认其“实际写入目标”为 `write_target_referenced`。\n');
-fprintf(fid, '2. 模型引用但未开放的参数先在“系统模型参数”页保持只读目录状态；只有补足参数来源、范围、验证器和响应证据后才可转为可写。\n');
-fprintf(fid, '3. `workspace_only` 变量不得被称为当前设备性能，除非后续补齐块接线并重新审计。\n');
+fprintf(fid, '2. 模型引用但未开放的参数先在“系统模型参数”页保持只读目录状态，并进入开放审查；补足参数来源、范围、验证器和响应证据后转为可写，只有明确属于内部建模或初始化的变量继续只读。\n');
+fprintf(fid, '3. `workspace_only` 变量不得被称为当前设备性能，除非后续确认对活动模型/面板计算链有用途、补齐块接线并重新审计；无用途的历史变量移除或归档。\n');
 fprintf(fid, '4. 同一几何量若模型需同时使用直径与面积，只保留一个可编辑规范输入，其余变量必须在 `SimulationInput` 中由它推导。\n');
+fprintf(fid, '5. 面板最终闭环必须保持为“输入基础/高级/设备参数 -> 运行统一模型 -> 返回结果”；“系统模型参数”只承担完整参数的只读解释和追溯。\n');
+end
+
+function textValue = referenceStateText(state)
+switch string(state)
+    case "model_referenced_panel_contract"
+        textValue = "模型已引用 / 面板已承接";
+    case "model_referenced_no_active_panel_entry"
+        textValue = "模型已引用 / 待开放";
+    case "library_boundary_verified"
+        textValue = "库边界已验证 / 面板已承接";
+    case "workspace_only"
+        textValue = "未引用 / 工作区辅助";
+    case "panel_entry_without_model_reference"
+        textValue = "异常：面板映射但模型未引用";
+    case "non_workspace_input"
+        textValue = "非工作区输入 / 运行配置";
+    case "write_target_library_boundary_verified"
+        textValue = "库边界已验证 / 面板已承接";
+    case "write_target_referenced"
+        textValue = "模型写入目标已引用";
+    case "write_target_not_referenced"
+        textValue = "异常：写入目标未被模型引用";
+    otherwise
+        textValue = string(state);
+end
+textValue = markdownCell(textValue);
+end
+
+function textValue = panelExposureText(exposure)
+switch string(exposure)
+    case "basic"
+        textValue = "基础页可编辑";
+    case "advanced"
+        textValue = "高级页可编辑";
+    case "device_settings"
+        textValue = "设备页可编辑";
+    otherwise
+        textValue = markdownCell(exposure);
+end
+textValue = markdownCell(textValue);
+end
+
+function textValue = physicalMeaning(name, fallback)
+name = string(name);
+if name == "stack_num_cells"
+    textValue = "电堆串联单体数量";
+elseif name == "stack_area"
+    textValue = "每个单体有效活性面积";
+elseif name == "stack_iL"
+    textValue = "电化学极限电流密度";
+elseif name == "stack_io"
+    textValue = "电化学交换电流密度";
+elseif startsWith(name, "stack_")
+    textValue = "电堆 / MEA 性能或几何参数";
+elseif startsWith(name, "coolant_")
+    textValue = "冷却回路几何、流阻或通道参数";
+elseif startsWith(name, "radiator_")
+    textValue = "散热器换热几何、材料或热容量参数";
+elseif startsWith(name, "comp_")
+    textValue = "阴极空压机入口容积或特性图谱参数";
+elseif startsWith(name, "intercooler_")
+    textValue = "阴极中冷器几何、流阻或换热参数";
+elseif startsWith(name, "cathode_separator_")
+    textValue = "阴极分离器流阻与初始状态参数";
+elseif startsWith(name, "anode_separator_")
+    textValue = "阳极分离器流阻与初始状态参数";
+elseif startsWith(name, "cegr_")
+    textValue = "cEGR 回流管、阀或支路控制参数";
+elseif startsWith(name, "routeA_")
+    textValue = "Route A 运行、控制或接口配置";
+elseif startsWith(name, "drive_cycle_")
+    textValue = "电边界命令时序或其辅助字段";
+elseif startsWith(name, "env_")
+    textValue = "环境压力、温度、湿度或气体组分边界";
+elseif startsWith(name, "tank_")
+    textValue = "阳极储氢罐状态或气体组分";
+elseif startsWith(name, "pSat_") || name == "T_TLU"
+    textValue = "水蒸气饱和性质查表数据";
+elseif startsWith(name, "Gas_properties")
+    textValue = "气体混合物属性配置或候选列表";
+elseif startsWith(name, "humidifier_")
+    textValue = "加湿器工作状态或旁路配置";
+elseif startsWith(name, "separator_")
+    textValue = "L2 冷凝/分离能力配置";
+else
+    textValue = string(fallback);
+end
+textValue = markdownCell(textValue);
 end
 
 function textValue = markdownCell(value)
