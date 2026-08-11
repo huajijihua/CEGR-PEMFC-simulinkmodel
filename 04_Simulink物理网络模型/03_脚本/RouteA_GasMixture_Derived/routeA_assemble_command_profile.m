@@ -175,6 +175,11 @@ end
 function value = initialProfileValue(spec)
 % Keep profile specifications dynamic while supplying a scalar initial value.
 value = spec;
+if isnumeric(spec) && ismatrix(spec) && size(spec, 2) == 2 && ...
+        size(spec, 1) >= 1
+    value = spec(1, 2);
+    return;
+end
 if isa(spec, 'timeseries')
     value = spec.Data(1);
     return;

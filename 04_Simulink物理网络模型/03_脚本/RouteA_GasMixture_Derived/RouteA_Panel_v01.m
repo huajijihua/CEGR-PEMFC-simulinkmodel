@@ -10,6 +10,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         ConfigScrollPanel           matlab.ui.container.Panel
         ConfigCanvas                matlab.ui.container.Panel
         RightPanel                  matlab.ui.container.Panel
+        SplitHandle                 matlab.ui.container.Panel
         HeaderTitleLabel            matlab.ui.control.Label
         HeaderMetaLabel             matlab.ui.control.Label
         StatusLabel                 matlab.ui.control.Label
@@ -18,6 +19,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         ModeButtonGroup             matlab.ui.container.ButtonGroup
         BasicModeButton             matlab.ui.control.ToggleButton
         AdvancedModeButton          matlab.ui.control.ToggleButton
+        DeviceParameterModeButton   matlab.ui.control.ToggleButton
         ModelParameterModeButton    matlab.ui.control.ToggleButton
         HelpModeButton              matlab.ui.control.ToggleButton
         
@@ -80,6 +82,44 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         ParameterCatalogIntroLabel         matlab.ui.control.Label
         ParameterCatalogTable              matlab.ui.control.Table
         ParameterCatalogStatusLabel        matlab.ui.control.Label
+        RunSnapshotLabel                    matlab.ui.control.Label
+        RunSnapshotTable                    matlab.ui.control.Table
+
+        % Device settings
+        DeviceSettingsPanel                 matlab.ui.container.Panel
+        DeviceSettingsIntroLabel            matlab.ui.control.Label
+        DeviceStackNumCellsEditField        matlab.ui.control.NumericEditField
+        DeviceStackAreaEditField            matlab.ui.control.NumericEditField
+        DeviceStackIEditField               matlab.ui.control.NumericEditField
+        DeviceStackIoEditField              matlab.ui.control.NumericEditField
+        DeviceCegrActuatorTauEditField      matlab.ui.control.NumericEditField
+        DeviceStackAlphaEditField           matlab.ui.control.NumericEditField
+        DeviceStackMcpEditField             matlab.ui.control.NumericEditField
+        DeviceStackMrhoEditField            matlab.ui.control.NumericEditField
+        DeviceStackGdlEditField             matlab.ui.control.NumericEditField
+        DeviceStackMembraneEditField        matlab.ui.control.NumericEditField
+        DeviceIntercoolerMdotEditField     matlab.ui.control.NumericEditField
+        DeviceIntercoolerDpEditField       matlab.ui.control.NumericEditField
+        DeviceCathodeSeparatorMdotEditField matlab.ui.control.NumericEditField
+        DeviceCathodeSeparatorDpEditField   matlab.ui.control.NumericEditField
+        DeviceCathodeSeparatorAreaEditField matlab.ui.control.NumericEditField
+        DeviceCathodeSeparatorLaminarEditField matlab.ui.control.NumericEditField
+        DeviceCathodeMixerVolumeEditField  matlab.ui.control.NumericEditField
+        DeviceCathodeOutletVolumeEditField matlab.ui.control.NumericEditField
+        DeviceCegrValveMaxAreaEditField    matlab.ui.control.NumericEditField
+        DeviceCegrPipeLengthEditField      matlab.ui.control.NumericEditField
+        DeviceCegrPipeDEditField            matlab.ui.control.NumericEditField
+        DeviceCegrPipeRoughnessEditField   matlab.ui.control.NumericEditField
+        DeviceAnodeTankPressureEditField   matlab.ui.control.NumericEditField
+        DeviceAnodeTankVolumeEditField     matlab.ui.control.NumericEditField
+        DeviceAnodeTankTemperatureEditField matlab.ui.control.NumericEditField
+        DeviceAnodeSeparatorAreaEditField   matlab.ui.control.NumericEditField
+        DeviceAnodeSeparatorLaminarEditField matlab.ui.control.NumericEditField
+        CompressorMapEditorButton           matlab.ui.control.Button
+        CompressorMapStatusLabel            matlab.ui.control.Label
+        RestoreDeviceDefaultsButton         matlab.ui.control.Button
+        DeviceCatalogTable                  matlab.ui.control.Table
+        DeviceCatalogStatusLabel            matlab.ui.control.Label
 
         % Advanced controls
         AdvancedPanel                       matlab.ui.container.Panel
@@ -90,6 +130,8 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         AdvancedBoundaryCommandLabel       matlab.ui.control.Label
         AdvancedBoundaryCommandEditField   matlab.ui.control.NumericEditField
         AdvancedBoundaryUnitLabel           matlab.ui.control.Label
+        AdvancedCommandProfileLabel         matlab.ui.control.Label
+        AdvancedCommandProfileEditField     matlab.ui.control.EditField
         AdvancedRampDurationLabel           matlab.ui.control.Label
         AdvancedRampDurationEditField       matlab.ui.control.NumericEditField
         AdvancedAirControlModeLabel         matlab.ui.control.Label
@@ -200,6 +242,10 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         simCase  % Current simCase struct
         isRunning = false
         activeConfigMode = "basic"
+        draftSimCase
+        rampDuration_s = 60
+        splitRatio = 0.42
+        isDraggingSplit = false
         lastMatrixStudy = struct()
         lastResults = struct()
         plotHistory = struct('caseId', {}, 'voltage_ts', {}, ...
@@ -267,6 +313,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.addLog('> 提取结果...');
                 results = routeA_panel_extract_results(out, app.simCase, context);
                 app.lastResults = results;
+                app.refreshModelParameterSnapshot();
                 app.addLog(sprintf('  ✓ 尾窗电压: %.2f V, 电流: %.2f A, 功率: %.2f kW', ...
                     results.voltage_V, results.current_A, results.power_kW));
                 app.addLog(sprintf('  cEGR 目标/实际: %.4f / %.4f, 回流量: %.5f kg/s, 阀压差: %.5f MPa', ...
@@ -297,6 +344,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
             catch ME
                 app.lastResults = routeA_panel_failure_result(ME, app.simCase);
+                app.refreshModelParameterSnapshot();
                 app.renderFailureResult(app.lastResults);
                 app.addLog(sprintf('  ✗ 失败: %s', ME.message));
                 app.StatusLabel.Text = sprintf('状态: 失败 | %s', ME.message);
@@ -456,109 +504,19 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             elseif isequal(event.NewValue, app.VoltagePlotButton)
                 app.plotMetric = "voltage";
             end
+            app.updatePlotButtonAppearance(event.NewValue);
             app.renderPlotHistory();
         end
 
         function [simCase, rampDuration] = collectSimCaseFromUi(app)
-            % Keep advanced-only controls when the user temporarily switches
-            % to basic mode. The selected mode changes which controls are
-            % authoritative; it must not silently reset the other domain.
+            % Every page writes to the same draft.  The selected page only
+            % determines which controls are edited, never which values run.
+            app.commitVisibleControls();
             simCase = app.uiBaseCase();
-            simCase.controls.anode = app.collectAnodeControls();
             simCase.caseId = app.CaseIdEditField.Value;
-            % The model-parameter page is read-only, so the last basic or
-            % advanced configuration remains authoritative while it is open.
-            advanced = app.activeConfigMode == "advanced";
-            if advanced
-                mode = app.AdvancedBoundaryModeDropDown.Value;
-                command = app.AdvancedBoundaryCommandEditField.Value;
-                rampDuration = app.AdvancedRampDurationEditField.Value;
-                airControlMode = app.AdvancedAirControlModeDropDown.Value;
-                oer = app.AdvancedOerEditField.Value;
-                targetMdot = app.AdvancedTargetMdotEditField.Value;
-                directCommand = app.AdvancedDirectCommandEditField.Value;
-                sourcePressure = app.AdvancedSourcePressureEditField.Value;
-                sourceTemperature = app.AdvancedSourceTemperatureEditField.Value;
-                backpressure = app.AdvancedBackpressureEditField.Value;
-                humidifierRH = app.AdvancedHumidifierRHEditField.Value;
-                humidifierEnabled = app.AdvancedHumidifierEnabledCheckBox.Value;
-                cegrRatio = app.AdvancedCegrRatioEditField.Value;
-                cegrEnabled = app.AdvancedCegrEnabledCheckBox.Value;
-                cegrValveMode = app.AdvancedCegrValveModeDropDown.Value;
-                cegrControlMode = app.AdvancedCegrControlModeDropDown.Value;
-                cegrTargetInputMode = app.AdvancedCegrTargetInputModeDropDown.Value;
-                stopTime = app.AdvancedStopTimeEditField.Value;
-                solverName = app.AdvancedSolverDropDown.Value;
-                relTol = app.AdvancedRelTolEditField.Value;
-                absTol = app.AdvancedAbsTolEditField.Value;
-                maxStep = app.AdvancedMaxStepEditField.Value;
-                stackTemperature = app.AdvancedStackTemperatureEditField.Value;
-                o2Fraction = app.AdvancedO2EditField.Value;
-                h2oFraction = app.AdvancedH2OEditField.Value;
-                simCase.controls.electrical.voltageController = struct( ...
-                    'Kp_A_V', app.AdvancedKpEditField.Value, ...
-                    'Ki_A_V_s', app.AdvancedKiEditField.Value, ...
-                    'currentMin_A', app.AdvancedCurrentMinEditField.Value, ...
-                    'currentMax_A', app.AdvancedCurrentMaxEditField.Value);
-                performance = app.collectPerformanceControls();
-                simCase.controls.cegr.controller = performance.cegrController;
-                simCase.controls.stack = performance.stack;
-            else
-                mode = app.BoundaryModeDropDown.Value;
-                command = app.BoundaryCommandEditField.Value;
-                rampDuration = app.RampDurationEditField.Value;
-                airControlMode = app.AirControlModeDropDown.Value;
-                oer = app.OerEditField.Value;
-                targetMdot = app.TargetMdotEditField.Value;
-                directCommand = app.DirectCommandEditField.Value;
-                sourcePressure = simCase.controls.cathode.sourcePressure_MPa_abs;
-                sourceTemperature = simCase.controls.cathode.sourceTemperature_C;
-                backpressure = app.BackpressureEditField.Value;
-                humidifierRH = app.HumidifierRHEditField.Value;
-                humidifierEnabled = app.HumidifierEnabledCheckBox.Value;
-                cegrRatio = app.CegrRatioEditField.Value;
-                cegrEnabled = app.CegrEnabledCheckBox.Value;
-                cegrValveMode = simCase.controls.cegr.valveMode;
-                cegrControlMode = simCase.controls.cegr.controlMode;
-                cegrTargetInputMode = simCase.controls.cegr.targetInputMode;
-                stopTime = app.StopTimeEditField.Value;
-                solverName = simCase.solver.solver;
-                relTol = simCase.solver.relTol;
-                absTol = simCase.solver.absTol;
-                maxStep = simCase.solver.maxStep_s;
-                % Basic page shows the same T_stack setpoint twice: once in
-                % the cathode humidifier row (the RH temperature reference)
-                % and once in the thermal row.  StackTemperatureEditField is
-                % the canonical basic-page readback for this shared input.
-                stackTemperature = app.StackTemperatureEditField.Value;
-                o2Fraction = simCase.controls.cathode.o2MoleFraction;
-                h2oFraction = simCase.controls.cathode.h2oMoleFraction;
-            end
-            simCase.controls.electrical.mode = mode;
-            simCase.controls.electrical.profile = command;
-            simCase.controls.cathode.airControlMode = airControlMode;
-            simCase.controls.cathode.targetOer = oer;
-            simCase.controls.cathode.targetMdot_kg_s = targetMdot;
-            simCase.controls.cathode.directCommand = directCommand;
-            simCase.controls.cathode.sourcePressure_MPa_abs = sourcePressure;
-            simCase.controls.cathode.sourceTemperature_C = sourceTemperature;
-            simCase.controls.cathode.outletPressure_MPa_abs = backpressure;
-            simCase.controls.cathode.humidifierRH = humidifierRH;
-            simCase.controls.cathode.humidifierEnabled = humidifierEnabled;
-            simCase.controls.cathode.o2MoleFraction = o2Fraction;
-            simCase.controls.cathode.h2oMoleFraction = h2oFraction;
-            simCase.controls.cegr.enabled = cegrEnabled;
-            simCase.controls.cegr.targetRatio = cegrRatio;
-            simCase.controls.cegr.valveMode = cegrValveMode;
-            simCase.controls.cegr.controlMode = cegrControlMode;
-            simCase.controls.cegr.targetInputMode = cegrTargetInputMode;
-            simCase.controls.thermal.stackTemperatureSet_C = stackTemperature;
-            simCase.solver.stopTime_s = stopTime;
-            simCase.solver.solver = solverName;
-            simCase.solver.relTol = relTol;
-            simCase.solver.absTol = absTol;
-            simCase.solver.maxStep_s = maxStep;
+            app.draftSimCase = simCase;
             app.simCase = simCase;
+            rampDuration = app.rampDuration_s;
         end
 
         function [accepted, axes, executionMode] = openMatrixDialog(app)
@@ -667,7 +625,8 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             state = app.enableState(logical(enabled));
             controls = { ...
                 app.DomainNavigationListBox, app.BasicModeButton, ...
-                app.AdvancedModeButton, app.ModelParameterModeButton, ...
+                app.AdvancedModeButton, app.DeviceParameterModeButton, ...
+                app.ModelParameterModeButton, ...
                 app.HelpModeButton, ...
                 app.BoundaryModeDropDown, ...
                 app.BoundaryCommandEditField, app.RampDurationEditField, ...
@@ -680,6 +639,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.StackTemperatureEditField, app.CaseIdEditField, ...
                 app.AdvancedBoundaryModeDropDown, ...
                 app.AdvancedBoundaryCommandEditField, ...
+                app.AdvancedCommandProfileEditField, ...
                 app.AdvancedRampDurationEditField, ...
                 app.AdvancedAirControlModeDropDown, app.AdvancedOerEditField, ...
                 app.AdvancedTargetMdotEditField, ...
@@ -706,6 +666,26 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.AdvancedCegrActuatorTauEditField, ...
                 app.AdvancedStackNumCellsEditField, app.AdvancedStackAreaEditField, ...
                 app.AdvancedStackIEditField, app.AdvancedStackIoEditField, ...
+                app.DeviceStackNumCellsEditField, app.DeviceStackAreaEditField, ...
+                app.DeviceStackIEditField, app.DeviceStackIoEditField, ...
+                app.DeviceCegrActuatorTauEditField, app.RestoreDeviceDefaultsButton, ...
+                app.DeviceStackAlphaEditField, app.DeviceStackMcpEditField, ...
+                app.DeviceStackMrhoEditField, app.DeviceStackGdlEditField, ...
+                app.DeviceStackMembraneEditField, ...
+                app.DeviceIntercoolerMdotEditField, app.DeviceIntercoolerDpEditField, ...
+                app.DeviceCathodeSeparatorMdotEditField, ...
+                app.DeviceCathodeSeparatorDpEditField, ...
+                app.DeviceCathodeSeparatorAreaEditField, ...
+                app.DeviceCathodeSeparatorLaminarEditField, ...
+                app.DeviceCathodeMixerVolumeEditField, ...
+                app.DeviceCathodeOutletVolumeEditField, ...
+                app.DeviceCegrValveMaxAreaEditField, app.DeviceCegrPipeLengthEditField, ...
+                app.DeviceCegrPipeDEditField, app.DeviceCegrPipeRoughnessEditField, ...
+                app.DeviceAnodeTankPressureEditField, app.DeviceAnodeTankVolumeEditField, ...
+                app.DeviceAnodeTankTemperatureEditField, ...
+                app.DeviceAnodeSeparatorAreaEditField, ...
+                app.DeviceAnodeSeparatorLaminarEditField, ...
+                app.CompressorMapEditorButton, ...
                 app.AnodeSourcePressureEditField, ...
                 app.AnodeSourceTemperatureEditField, app.AnodeH2EditField, ...
                 app.AnodeInletPressureEditField, app.AnodeHumidifierRHEditField, ...
@@ -1032,16 +1012,17 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 '面板-模型操作说明'; ...
                 ''; ...
                 '一、基本操作'; ...
-                '1. 在基础页选择电边界、空气控制模式、加湿器/cEGR开关并填写数值。'; ...
-                '2. 高级页用于控制器、入口边界、组分、求解器、阳极输入和 P3 系统性能参数。'; ...
-                '3. 系统模型参数页是完整设备参数目录；P3 已开放的输入在高级页编辑，其余目录项仍只读。'; ...
-                '4. 帮助页只解释输入含义，不改变当前 simCase。'; ...
+                '1. 基础页用于常用工况：电边界、空气控制、背压/加湿、cEGR、温度和运行时长。'; ...
+                '2. 高级页用于控制器、入口边界、组分、求解器和阳极输入；不放设备固有性能。'; ...
+                '3. 系统设备参数设置页编辑 26 项已接入的电堆与 BOP 标量性能；“目录只读”项不可提交。'; ...
+                '4. 系统模型参数页提供完整目录、当前草稿和最近运行快照；帮助页不改变当前草稿。'; ...
                 ''; ...
                 '二、电边界控制原理'; ...
                 'Current：模型直接接收电流命令，输出电压和功率反馈。单位 A。'; ...
                 'Power：模型接收功率命令，统一装配层换算为电流边界，输出实际 V/I/P。单位 kW。'; ...
                 'Voltage：模型接收电压目标，由电压 PI 调整电流命令；Kp、Ki 和电流上下限只在 Voltage 下生效。单位 V。'; ...
                 '斜坡时间用于启动时平滑引入命令，不能替代求解器设置。'; ...
+                '高级页“时序 [t,v]”可填写 0,0; 60,100 格式；留空时使用标量命令。'; ...
                 ''; ...
                 '三、空气控制和湿度'; ...
                 '空气模式一次只能选一个主控制源：质量流量闭环、OER闭环或空压机执行命令。非当前源的输入框灰显且不作为本次控制输入。'; ...
@@ -1052,14 +1033,15 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 ''; ...
                 '四、cEGR 和结果'; ...
                 'P1/P2 当前主入口是目标 cEGR 比例；关闭 cEGR 时目标按 0 处理，阀状态仅作为结果诊断。'; ...
-                'P3 首轮开放 cEGR PI 增益、阀执行器时间常数和电堆单体参数；这些值会经过校验并写入 SimulationInput。'; ...
+                'cEGR PI 增益属于高级控制输入；电堆、阀/管路、中冷器、分离器、气路容积和储氢罐标量属于系统设备参数设置页。'; ...
+                '当前 Route A 为被动 cEGR、cold-start-only、L2 水管理平台；不要将目录只读项解释为已具备设备替换能力。'; ...
                 '阳极输入已接入统一 command profile；阳极压力、回流、吹扫等结果信号仍保持 status-only，待后续观测契约确认。'; ...
                 '运行按钮会依次执行校验、SimulationInput 装配、模型仿真和结果提取。失败也会进入追溯/诊断页。'; ...
                 '结果图像页可在电流-时间、功率-时间、电压-时间之间切换，并保留本次 MATLAB 会话中的 caseId 历史。'; ...
                 '清空结果只清除结果表；清空图像单独清除曲线历史；两者都不修改当前输入和模型。'; ...
                 ''; ...
                 '五、输入生效链'; ...
-                'UI -> simCase -> routeA_validate_case -> SimulationInput -> 当前正式模型 -> SimulationOutput -> 结果/诊断。'; ...
+                'UI -> draftSimCase -> routeA_validate_case -> SimulationInput -> 当前正式模型 -> SimulationOutput -> 结果/诊断。'; ...
                 '模型不收敛属于实际模型结果；面板负责显示状态、错误信息和失败栈，不预设必然收敛。'};
         end
 
@@ -1211,6 +1193,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                     isempty(app.NavigationPanel) || ~isvalid(app.NavigationPanel) || ...
                     isempty(app.LeftPanel) || ~isvalid(app.LeftPanel) || ...
                     isempty(app.RightPanel) || ~isvalid(app.RightPanel) || ...
+                    isempty(app.SplitHandle) || ~isvalid(app.SplitHandle) || ...
                     isempty(app.ModeButtonGroup) || ...
                     ~isvalid(app.ModeButtonGroup) || ...
                     isempty(app.ResultTabGroup) || ~isvalid(app.ResultTabGroup) || ...
@@ -1230,15 +1213,19 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             panelHeight = max(420, figHeight - panelY - headerHeight - margin);
             % P2 uses a stable two-column shell. The former domain navigator
             % remains only as an internal compatibility object and is hidden.
-            leftWidth = min(760, max(620, round(figWidth * 0.38)));
+            splitterWidth = 8;
+            splitGap = 10;
+            usableWidth = figWidth - 2 * margin - splitterWidth - splitGap;
+            leftMinWidth = 540;
+            rightMinWidth = 520;
+            leftMaxWidth = max(leftMinWidth, usableWidth - rightMinWidth);
+            leftWidth = min(leftMaxWidth, max(leftMinWidth, ...
+                round(usableWidth * app.splitRatio)));
             leftX = margin;
-            rightX = leftX + leftWidth + margin;
+            rightX = leftX + leftWidth + splitterWidth + splitGap;
             rightWidth = max(360, figWidth - rightX - margin);
             leftContentWidth = max(580, leftWidth - 30);
             rightContentWidth = max(320, rightWidth - 20);
-            % Keep enough content height for the advanced and catalog pages;
-            % the mode bar itself is outside this canvas.
-            configHeight = max(1480, panelHeight + 180);
 
             app.HeaderTitleLabel.Position = [margin figHeight - 32 500 24];
             app.HeaderMetaLabel.Position = [margin + 505 figHeight - 31 ...
@@ -1248,20 +1235,22 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.NavigationPanel.Position = [0 0 1 1];
             app.LeftPanel.Position = [leftX panelY leftWidth panelHeight];
             app.RightPanel.Position = [rightX panelY rightWidth panelHeight];
+            app.SplitHandle.Position = [leftX + leftWidth + floor(splitGap / 2) ...
+                panelY + 6 splitterWidth max(40, panelHeight - 12)];
 
             configViewportHeight = max(100, panelHeight - 68);
             app.ConfigScrollPanel.Position = ...
                 [0 0 leftContentWidth configViewportHeight];
-            app.ConfigCanvas.Position = [0 0 leftContentWidth configHeight];
+            app.ConfigCanvas.Position = [0 0 1 1];
             % The mode bar is a fixed child of LeftPanel.  The scrollable
             % content stops below it, so every configuration page shares one
             % stable switch surface.
-            app.ModeButtonGroup.Position = [leftContentWidth - 350, ...
-                panelHeight - 60, 330, 30];
+            app.ModeButtonGroup.Position = [max(10, leftContentWidth - 430), ...
+                panelHeight - 60, 410, 30];
             for panel = [app.ElectricalPanel, app.AirPathPanel, ...
                     app.CegrPanel, app.SolverPanel, app.ThermalPanel, ...
-                    app.FutureDomainsPanel, app.HelpPanel, ...
-                    app.AdvancedPanel]
+                    app.FutureDomainsPanel, app.DeviceSettingsPanel, ...
+                    app.HelpPanel, app.AdvancedPanel]
                 panelPosition = panel.Position;
                 panel.Position = [panelPosition(1:2) leftContentWidth - 20 panelPosition(4)];
             end
@@ -1269,6 +1258,11 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.ParameterCatalogIntroLabel.Position(3) = catalogWidth;
             app.ParameterCatalogStatusLabel.Position(3) = catalogWidth;
             app.ParameterCatalogTable.Position(3) = catalogWidth;
+            app.RunSnapshotLabel.Position(3) = catalogWidth;
+            app.RunSnapshotTable.Position(3) = catalogWidth;
+            app.DeviceSettingsIntroLabel.Position(3) = catalogWidth;
+            app.DeviceCatalogStatusLabel.Position(3) = catalogWidth;
+            app.DeviceCatalogTable.Position(3) = catalogWidth;
             app.CaseIdEditField.Position(3) = max(180, leftContentWidth - 260);
             app.RunButton.Position(3) = 170;
 
@@ -1309,6 +1303,56 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 max(180, tabContentHeight - 56)];
             app.LogLabel.Position = [10 100 120 22];
             app.LogTextArea.Position = [10 10 rightContentWidth 90];
+            app.alignActiveConfigPage();
+        end
+
+        function alignActiveConfigPage(app)
+            switch string(app.activeConfigMode)
+                case "advanced"
+                    target = app.AdvancedPanel;
+                case "device_settings"
+                    target = app.DeviceSettingsPanel;
+                case "model_parameters"
+                    target = app.FutureDomainsPanel;
+                case "help"
+                    target = app.HelpPanel;
+                otherwise
+                    target = app.ElectricalPanel;
+            end
+            if isempty(target) || ~isvalid(target)
+                return;
+            end
+            if isprop(app.ConfigScrollPanel, 'Scrollable')
+                scroll(app.ConfigScrollPanel, target);
+            end
+        end
+
+        function SplitHandleButtonDown(app, ~, ~)
+            app.isDraggingSplit = true;
+            app.SplitHandle.BackgroundColor = [0.10 0.45 0.75];
+        end
+
+        function FigureButtonMotion(app, ~, ~)
+            if ~app.isDraggingSplit
+                return;
+            end
+            point = app.UIFigure.CurrentPoint;
+            figWidth = app.UIFigure.Position(3);
+            margin = 14;
+            splitterWidth = 8;
+            splitGap = 10;
+            usableWidth = figWidth - 2 * margin - splitterWidth - splitGap;
+            leftWidth = min(usableWidth - 520, max(540, point(1) - margin));
+            app.splitRatio = leftWidth / usableWidth;
+            app.layoutFigure([]);
+        end
+
+        function FigureButtonUp(app, ~, ~)
+            if ~app.isDraggingSplit
+                return;
+            end
+            app.isDraggingSplit = false;
+            app.SplitHandle.BackgroundColor = [0.62 0.68 0.74];
         end
 
         function ensurePlatformContract(app)
@@ -1349,6 +1393,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 'cEGR 系统', ...
                 '电堆与电化学', ...
                 '阳极系统 / 当前扩展', ...
+                '系统设备参数设置', ...
                 '系统模型参数 / 设备目录', ...
                 '结果与诊断'};
             app.DomainNavigationListBox.Value = '工况与电边界';
@@ -1368,7 +1413,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.HeaderTitleLabel.FontColor = [0.12 0.20 0.28];
 
             app.HeaderMetaLabel = uilabel(app.UIFigure);
-            app.HeaderMetaLabel.Text = 'P3 首轮参数开放 | 当前模型直驱 | cold-start';
+            app.HeaderMetaLabel.Text = 'P5 五页签输入 | 当前模型直驱 | cold-start';
             app.HeaderMetaLabel.HorizontalAlignment = 'right';
             app.HeaderMetaLabel.FontSize = 11;
             app.HeaderMetaLabel.FontColor = [0.30 0.35 0.40];
@@ -1421,31 +1466,47 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             if isprop(app.RightPanel, 'Scrollable')
                 app.RightPanel.Scrollable = 'on';
             end
+
+            app.SplitHandle = uipanel(app.UIFigure);
+            app.SplitHandle.BorderType = 'none';
+            app.SplitHandle.BackgroundColor = [0.62 0.68 0.74];
+            app.SplitHandle.Tooltip = '拖动以调整配置区与结果区宽度';
+            app.SplitHandle.ButtonDownFcn = ...
+                createCallbackFcn(app, @SplitHandleButtonDown, true);
+            app.UIFigure.WindowButtonMotionFcn = ...
+                createCallbackFcn(app, @FigureButtonMotion, true);
+            app.UIFigure.WindowButtonUpFcn = ...
+                createCallbackFcn(app, @FigureButtonUp, true);
             
             % Mode toggle
-            % Keep the four mode buttons fixed in the left shell, above the
+            % Keep the five mode buttons fixed in the left shell, above the
             % single scrollable configuration viewport.
             app.ModeButtonGroup = uibuttongroup(app.LeftPanel);
-            app.ModeButtonGroup.Position = [140 560 330 30];
+            app.ModeButtonGroup.Position = [55 560 410 30];
             app.ModeButtonGroup.BorderType = 'none';
             app.ModeButtonGroup.BackgroundColor = [0.94 0.94 0.94];
             
             app.BasicModeButton = uitogglebutton(app.ModeButtonGroup);
             app.BasicModeButton.Text = '基础';
-            app.BasicModeButton.Position = [0 0 70 30];
+            app.BasicModeButton.Position = [0 0 55 30];
             app.BasicModeButton.Value = true;
             
             app.AdvancedModeButton = uitogglebutton(app.ModeButtonGroup);
             app.AdvancedModeButton.Text = '高级';
-            app.AdvancedModeButton.Position = [70 0 70 30];
+            app.AdvancedModeButton.Position = [55 0 55 30];
+
+            app.DeviceParameterModeButton = uitogglebutton(app.ModeButtonGroup);
+            app.DeviceParameterModeButton.Text = '系统设备参数设置';
+            app.DeviceParameterModeButton.Position = [110 0 125 30];
+            app.DeviceParameterModeButton.Value = false;
 
             app.ModelParameterModeButton = uitogglebutton(app.ModeButtonGroup);
             app.ModelParameterModeButton.Text = '系统模型参数';
-            app.ModelParameterModeButton.Position = [140 0 120 30];
+            app.ModelParameterModeButton.Position = [235 0 120 30];
             app.ModelParameterModeButton.Value = false;
             app.HelpModeButton = uitogglebutton(app.ModeButtonGroup);
             app.HelpModeButton.Text = '帮助';
-            app.HelpModeButton.Position = [260 0 70 30];
+            app.HelpModeButton.Position = [355 0 55 30];
             app.HelpModeButton.Value = false;
             app.ModeButtonGroup.SelectionChangedFcn = ...
                 createCallbackFcn(app, @ModeSelectionChanged, true);
@@ -1629,36 +1690,206 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.StackTemperatureEditField.ValueChangedFcn = ...
                 createCallbackFcn(app, @StackTemperatureChanged, true);
 
-            % The third configuration mode keeps the full platform inventory
-            % separate from condition and control inputs.
+            % Device settings only exposes inputs with a closed model-write
+            % path.  The complete device inventory remains visible below.
+            app.DeviceSettingsPanel = uipanel(app.ConfigCanvas);
+            app.DeviceSettingsPanel.Title = '系统设备参数设置';
+            app.DeviceSettingsPanel.Position = [10 100 450 2050];
+            app.DeviceSettingsPanel.BackgroundColor = [1 1 1];
+            app.DeviceSettingsIntroLabel = uilabel(app.DeviceSettingsPanel);
+            app.DeviceSettingsIntroLabel.Position = [10 1985 430 34];
+            app.DeviceSettingsIntroLabel.Text = { ...
+                '可编辑项已验证可写入 SimulationInput；目录只读项尚未闭合模型接口。'; ...
+                '恢复默认值仅作用于本页设备性能，不覆盖基础/高级工况。'};
+            app.DeviceSettingsIntroLabel.FontColor = [0.20 0.25 0.30];
+            app.DeviceSettingsIntroLabel.FontSize = 10;
+            uilabel(app.DeviceSettingsPanel, 'Text', '电堆 / MEA 性能', ...
+                'Position', [10 1940 430 22], 'FontWeight', 'bold', ...
+                'FontColor', [0.05 0.25 0.50]);
+            uilabel(app.DeviceSettingsPanel, 'Text', '电堆单体数量 (-):', ...
+                'Position', [10 1900 135 22]);
+            app.DeviceStackNumCellsEditField = uieditfield(app.DeviceSettingsPanel, 'numeric');
+            app.DeviceStackNumCellsEditField.Position = [145 1900 80 22];
+            app.DeviceStackNumCellsEditField.Limits = [1 1000];
+            app.DeviceStackNumCellsEditField.Value = params.stack.num_cells.value;
+            uilabel(app.DeviceSettingsPanel, 'Text', '单体活性面积 (cm^2):', ...
+                'Position', [240 1900 140 22]);
+            app.DeviceStackAreaEditField = uieditfield(app.DeviceSettingsPanel, 'numeric');
+            app.DeviceStackAreaEditField.Position = [380 1900 60 22];
+            app.DeviceStackAreaEditField.Limits = [1 1000];
+            app.DeviceStackAreaEditField.Value = params.stack.area_cm2.value;
+            uilabel(app.DeviceSettingsPanel, 'Text', '极限电流密度 (A/cm^2):', ...
+                'Position', [10 1865 145 22]);
+            app.DeviceStackIEditField = uieditfield(app.DeviceSettingsPanel, 'numeric');
+            app.DeviceStackIEditField.Position = [155 1865 70 22];
+            app.DeviceStackIEditField.Limits = [1e-3 5];
+            app.DeviceStackIEditField.Value = params.stack.iL_A_cm2.value;
+            uilabel(app.DeviceSettingsPanel, 'Text', '交换电流密度 (A/cm^2):', ...
+                'Position', [240 1865 140 22]);
+            app.DeviceStackIoEditField = uieditfield(app.DeviceSettingsPanel, 'numeric');
+            app.DeviceStackIoEditField.Position = [380 1865 60 22];
+            app.DeviceStackIoEditField.Limits = [1e-8 0.1];
+            app.DeviceStackIoEditField.Value = params.stack.io_A_cm2.value;
+            app.DeviceStackAlphaEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '电荷转移系数 (-):', [10 1830 135 22], ...
+                [145 1830 80 22], params.stack.alpha.value, [0.1 1.5]);
+            app.DeviceStackMcpEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, 'MEA 比热 (J/(kg*K)):', [240 1830 140 22], ...
+                [380 1830 60 22], params.stack.mea_cp.value, [100 5000]);
+            app.DeviceStackMrhoEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, 'MEA 密度 (kg/m^3):', [10 1795 135 22], ...
+                [145 1795 80 22], params.stack.mea_rho.value, [100 5000]);
+            app.DeviceStackGdlEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, 'GDL 厚度 (um):', [240 1795 140 22], ...
+                [380 1795 60 22], params.stack.t_gdl_um.value, [1 2000]);
+            app.DeviceStackMembraneEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '膜厚度 (um):', [10 1760 135 22], ...
+                [145 1760 80 22], params.stack.t_membrane_um.value, [1 1000]);
+            uilabel(app.DeviceSettingsPanel, 'Text', 'cEGR 阀与管路', ...
+                'Position', [10 1720 430 22], 'FontWeight', 'bold', ...
+                'FontColor', [0.05 0.25 0.50]);
+            uilabel(app.DeviceSettingsPanel, 'Text', 'cEGR 阀执行器 tau (s):', ...
+                'Position', [10 1680 145 22]);
+            app.DeviceCegrActuatorTauEditField = uieditfield(app.DeviceSettingsPanel, 'numeric');
+            app.DeviceCegrActuatorTauEditField.Position = [155 1680 70 22];
+            app.DeviceCegrActuatorTauEditField.Limits = [eps Inf];
+            app.DeviceCegrActuatorTauEditField.Value = params.cegr.actuator_tau_s.value;
+            app.DeviceCegrValveMaxAreaEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '阀最大面积 (m^2):', [240 1680 140 22], ...
+                [380 1680 60 22], params.cegr.valve_max_area_m2.value, [eps 1]);
+            app.DeviceCegrPipeLengthEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '管路长度 (m):', [10 1645 135 22], ...
+                [145 1645 80 22], params.cegr.pipe.length_m.value, [1e-4 100]);
+            app.DeviceCegrPipeDEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '管路直径 (m):', [240 1645 140 22], ...
+                [380 1645 60 22], params.cegr.pipe.D_m.value, [1e-4 1]);
+            app.DeviceCegrPipeRoughnessEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '管路粗糙度 (m):', [10 1610 135 22], ...
+                [145 1610 80 22], params.cegr.pipe.roughness_m.value, [0 0.01]);
+            uilabel(app.DeviceSettingsPanel, 'Text', '阴极 BOP 标量性能', ...
+                'Position', [10 1570 430 22], 'FontWeight', 'bold', ...
+                'FontColor', [0.05 0.25 0.50]);
+            app.DeviceIntercoolerMdotEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '中冷器额定流量 (kg/s):', [10 1530 135 22], ...
+                [145 1530 80 22], params.cathode.intercooler.mdot_nominal_kg_s.value, [eps 1]);
+            app.DeviceIntercoolerDpEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '中冷器额定压降 (MPa):', [240 1530 140 22], ...
+                [380 1530 60 22], params.cathode.intercooler.dp_nominal_MPa.value, [0 0.1]);
+            app.DeviceCathodeSeparatorMdotEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '分离器额定流量 (kg/s):', [10 1495 135 22], ...
+                [145 1495 80 22], params.cathode.separator.mdot_nominal_kg_s.value, [eps 1]);
+            app.DeviceCathodeSeparatorDpEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '分离器额定压降 (MPa):', [240 1495 140 22], ...
+                [380 1495 60 22], params.cathode.separator.dp_nominal_MPa.value, [0 0.1]);
+            app.DeviceCathodeSeparatorAreaEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '分离器流通面积 (m^2):', [10 1460 135 22], ...
+                [145 1460 80 22], params.cathode.separator.area_m2.value, [1e-8 0.1]);
+            app.DeviceCathodeSeparatorLaminarEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '分离器层流分数 (-):', [240 1460 140 22], ...
+                [380 1460 60 22], params.cathode.separator.laminar_fraction.value, [0 1]);
+            app.DeviceCathodeMixerVolumeEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '入口混合容积 (L):', [10 1425 135 22], ...
+                [145 1425 80 22], params.cathode.mixer.volume_L.value, [eps 1000]);
+            app.DeviceCathodeOutletVolumeEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '出口腔容积 (L):', [240 1425 140 22], ...
+                [380 1425 60 22], params.cathode.outlet_chamber.volume_L.value, [eps 1000]);
+            uilabel(app.DeviceSettingsPanel, 'Text', '空压机特性图谱', ...
+                'Position', [10 1350 430 22], 'FontWeight', 'bold', ...
+                'FontColor', [0.05 0.25 0.50]);
+            app.CompressorMapEditorButton = uibutton(app.DeviceSettingsPanel, 'push');
+            app.CompressorMapEditorButton.Text = '编辑空压机图谱...';
+            app.CompressorMapEditorButton.Position = [10 1315 160 25];
+            app.CompressorMapEditorButton.ButtonPushedFcn = ...
+                createCallbackFcn(app, @CompressorMapEditorButtonPushed, true);
+            app.CompressorMapStatusLabel = uilabel(app.DeviceSettingsPanel);
+            app.CompressorMapStatusLabel.Position = [180 1315 260 25];
+            app.CompressorMapStatusLabel.FontColor = [0.35 0.35 0.35];
+            app.CompressorMapStatusLabel.FontSize = 10;
+            app.CompressorMapStatusLabel.Text = '3 个转速点 x 5 个压比点; 官方默认';
+            uilabel(app.DeviceSettingsPanel, 'Text', '阳极储氢设备', ...
+                'Position', [10 1275 430 22], 'FontWeight', 'bold', ...
+                'FontColor', [0.05 0.25 0.50]);
+            app.DeviceAnodeTankPressureEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '储罐压力 (MPa):', [10 1235 135 22], ...
+                [145 1235 80 22], params.anode.tank.p_MPa.value, [0.1 100]);
+            app.DeviceAnodeTankVolumeEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '储罐容积 (L):', [240 1235 140 22], ...
+                [380 1235 60 22], params.anode.tank.V_L.value, [eps 1e5]);
+            app.DeviceAnodeTankTemperatureEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '储罐温度 (C):', [10 1200 135 22], ...
+                [145 1200 80 22], params.anode.tank.T_C.value, [-50 150]);
+            app.DeviceAnodeSeparatorAreaEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '分离器流通面积 (m^2):', [240 1200 140 22], ...
+                [380 1200 60 22], params.anode.separator.area_m2.value, [1e-8 0.1]);
+            app.DeviceAnodeSeparatorLaminarEditField = app.addDeviceNumericField( ...
+                app.DeviceSettingsPanel, '分离器层流分数 (-):', [10 1165 135 22], ...
+                [145 1165 80 22], params.anode.separator.laminar_fraction.value, [0 1]);
+            app.RestoreDeviceDefaultsButton = uibutton(app.DeviceSettingsPanel, 'push');
+            app.RestoreDeviceDefaultsButton.Text = '恢复设备默认值';
+            app.RestoreDeviceDefaultsButton.Position = [250 1162 190 25];
+            app.RestoreDeviceDefaultsButton.ButtonPushedFcn = ...
+                createCallbackFcn(app, @RestoreDeviceDefaultsButtonPushed, true);
+            app.DeviceCatalogStatusLabel = uilabel(app.DeviceSettingsPanel);
+            app.DeviceCatalogStatusLabel.Position = [10 1127 430 22];
+            app.DeviceCatalogStatusLabel.FontColor = [0.35 0.35 0.35];
+            registry = routeA_parameter_registry(app.platformPaths);
+            app.DeviceCatalogStatusLabel.Text = sprintf( ...
+                '设备目录：%d 项已接入可编辑，其余为目录只读。', ...
+                sum(arrayfun(@(x) x.panelExposure == "device_settings", registry.entries)));
+            app.DeviceCatalogTable = uitable(app.DeviceSettingsPanel);
+            app.DeviceCatalogTable.Position = [10 10 430 1085];
+            app.DeviceCatalogTable.ColumnName = { ...
+                '参数含义', '设备 / 域', '单位', '默认', '范围', '开放状态', '模型映射'};
+            app.DeviceCatalogTable.ColumnWidth = {180, 110, 70, 80, 110, 105, 220};
+            app.DeviceCatalogTable.RowName = {};
+            app.DeviceCatalogTable.ColumnEditable = false(1, 7);
+            app.DeviceCatalogTable.Data = app.buildDeviceCatalogData(registry);
+            app.DeviceSettingsPanel.Visible = 'off';
+
+            % The model page is a read-only total inventory plus a current
+            % draft / most-recent-run snapshot.
             app.FutureDomainsPanel = uipanel(app.ConfigCanvas);
-            app.FutureDomainsPanel.Title = '系统模型参数（设备参数目录）';
+            app.FutureDomainsPanel.Title = '系统模型参数';
             app.FutureDomainsPanel.Position = [10 100 450 1200];
             app.FutureDomainsPanel.BackgroundColor = [0.97 0.97 0.97];
             app.ParameterCatalogIntroLabel = uilabel(app.FutureDomainsPanel);
             app.ParameterCatalogIntroLabel.Position = [10 1155 430 34];
             app.ParameterCatalogIntroLabel.Text = { ...
-                '设备性能参数：电堆 / 空压机 / 加湿器 / 阀门 / 热管理'; ...
-                '工况与控制输入仍在基础、高级页设置；本页按接入状态展示'};
+                '模型工作区全量目录：物理角色、实际引用与面板承接状态。'; ...
+                '只有“模型引用 + 可写”项可在其他页编辑；本页始终只读。'};
             app.ParameterCatalogIntroLabel.FontColor = [0.20 0.25 0.30];
             app.ParameterCatalogIntroLabel.FontSize = 10;
             app.ParameterCatalogStatusLabel = uilabel(app.FutureDomainsPanel);
             app.ParameterCatalogStatusLabel.Position = [10 1125 430 20];
             app.ParameterCatalogStatusLabel.FontColor = [0.35 0.35 0.35];
             registry = routeA_parameter_registry(app.platformPaths);
+            audit = routeA_audit_parameter_inventory(false);
             app.ParameterCatalogStatusLabel.Text = sprintf( ...
-                '目录：active %d 可沿统一链应用；inventory %d 只读待设备接口接入', ...
-                registry.activeCount, registry.inventoryCount);
+                '模型变量 %d；实际引用 %d；活动面板参数 %d；待开放模型参数 %d', ...
+                audit.counts.workspaceVariableCount, ...
+                audit.counts.referencedWorkspaceVariableCount, ...
+                registry.activeCount, ...
+                audit.counts.referencedModelParametersWithoutActivePanelEntryCount);
             app.ParameterCatalogTable = uitable(app.FutureDomainsPanel);
-            app.ParameterCatalogTable.Position = [10 10 430 1095];
+            app.RunSnapshotLabel = uilabel(app.FutureDomainsPanel);
+            app.RunSnapshotLabel.Position = [10 1090 430 22];
+            app.RunSnapshotLabel.Text = '当前草稿 / 最近运行：尚未运行';
+            app.RunSnapshotLabel.FontWeight = 'bold';
+            app.RunSnapshotTable = uitable(app.FutureDomainsPanel);
+            app.RunSnapshotTable.Position = [10 975 430 105];
+            app.RunSnapshotTable.ColumnName = {'项目', '当前草稿或最近结果'};
+            app.RunSnapshotTable.ColumnWidth = {175, 235};
+            app.RunSnapshotTable.RowName = {};
+            app.RunSnapshotTable.ColumnEditable = false(1, 2);
+            app.ParameterCatalogTable.Position = [10 10 430 950];
             app.ParameterCatalogTable.ColumnName = { ...
-                'canonicalName', '参数含义（中文）', '设备 / 域', '单位', ...
-                '默认', '开放状态', '应用方式', '模型映射'};
+                '模型变量', '物理角色', '类型', '默认摘要', ...
+                '模型引用', '面板状态', '面板参数', '代表模块'};
             app.ParameterCatalogTable.ColumnWidth = ...
-                {195, 190, 105, 70, 85, 100, 110, 230};
+                {185, 185, 90, 100, 120, 130, 195, 260};
             app.ParameterCatalogTable.RowName = {};
             app.ParameterCatalogTable.ColumnEditable = false(1, 8);
-            app.ParameterCatalogTable.Data = app.buildParameterCatalogData(registry);
+            app.ParameterCatalogTable.Data = app.buildParameterCatalogData(registry, audit);
             app.FutureDomainsPanel.Visible = 'off';
 
             app.HelpPanel = uipanel(app.ConfigCanvas);
@@ -1688,7 +1919,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
             sectionLabel = uilabel(app.AdvancedPanel);
             sectionLabel.Position = [10 1285 420 22];
-            sectionLabel.Text = '0  系统性能参数（P3 首轮开放）';
+            sectionLabel.Text = '0  cEGR 控制器参数';
             sectionLabel.FontWeight = 'bold';
             sectionLabel.FontColor = [0.12 0.25 0.38];
 
@@ -1769,7 +2000,16 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedPerformanceStatusLabel.FontSize = 9;
             app.AdvancedPerformanceStatusLabel.FontColor = [0.35 0.35 0.35];
             app.AdvancedPerformanceStatusLabel.Text = ...
-                '系统性能：7 项输入已接入 SimulationInput；设备目录其余项保持只读。';
+                '设备性能参数已迁移到“系统设备参数设置”页；本页仅保留控制与研究输入。';
+            legacyDeviceControls = { ...
+                app.AdvancedCegrActuatorTauLabel, app.AdvancedCegrActuatorTauEditField, ...
+                app.AdvancedStackNumCellsLabel, app.AdvancedStackNumCellsEditField, ...
+                app.AdvancedStackAreaLabel, app.AdvancedStackAreaEditField, ...
+                app.AdvancedStackILabel, app.AdvancedStackIEditField, ...
+                app.AdvancedStackIoLabel, app.AdvancedStackIoEditField};
+            for legacyIdx = 1:numel(legacyDeviceControls)
+                legacyDeviceControls{legacyIdx}.Visible = 'off';
+            end
 
             sectionLabel = uilabel(app.AdvancedPanel);
             sectionLabel.Position = [10 1018 420 22];
@@ -1818,6 +2058,16 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedBoundaryUnitLabel = uilabel(app.AdvancedPanel);
             app.AdvancedBoundaryUnitLabel.Position = [345 985 45 22];
             app.AdvancedBoundaryUnitLabel.Text = 'A';
+
+            app.AdvancedCommandProfileLabel = uilabel(app.AdvancedPanel);
+            app.AdvancedCommandProfileLabel.Position = [195 950 85 22];
+            app.AdvancedCommandProfileLabel.Text = '时序 [t,v]:';
+            app.AdvancedCommandProfileEditField = uieditfield(app.AdvancedPanel, 'text');
+            app.AdvancedCommandProfileEditField.Position = [280 950 160 22];
+            app.AdvancedCommandProfileEditField.Value = ...
+                app.formatCommandProfileText(app.uiBaseCase().controls.electrical.profile);
+            app.AdvancedCommandProfileEditField.Tooltip = ...
+                '留空使用上方标量命令；时序格式：0,0; 60,100; 180,100。时间严格递增，单位与当前电边界一致。';
 
             app.AdvancedRampDurationLabel = uilabel(app.AdvancedPanel);
             app.AdvancedRampDurationLabel.Position = [10 950 70 22];
@@ -2320,14 +2570,18 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.LogTextArea.Value = {' > 面板已就绪，请设置参数并点击"运行单工况"'};
             app.LogTextArea.Editable = 'off';
             app.LogTextArea.FontName = 'Consolas';
+
+            app.promoteConfigChildren();
             
             % Show figure after all components are created
             app.BasicModeButton.Value = true;
             app.AdvancedModeButton.Value = false;
+            app.DeviceParameterModeButton.Value = false;
             app.ModelParameterModeButton.Value = false;
             app.HelpModeButton.Value = false;
             app.activeConfigMode = "basic";
             app.ModeSelectionChanged(struct('NewValue', app.BasicModeButton));
+            app.updatePlotButtonAppearance(app.CurrentPlotButton);
             app.UIFigure.WindowState = 'maximized';
             % Lay out the maximized frame before the first visible draw so
             % the mode bar and the active page cannot flash at stale sizes.
@@ -2343,10 +2597,26 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.updateAnodeControls();
             drawnow;
             app.layoutFigure([]);
-            if isprop(app.ConfigScrollPanel, 'Scrollable')
-                scroll(app.ConfigScrollPanel, 'top');
-            end
+            app.alignActiveConfigPage();
             app.renderPlotHistory();
+        end
+
+        function promoteConfigChildren(app)
+            children = app.ConfigCanvas.Children;
+            for idx = 1:numel(children)
+                children(idx).Parent = app.ConfigScrollPanel;
+            end
+            app.ConfigCanvas.Position = [0 0 1 1];
+            app.ConfigCanvas.Visible = 'off';
+        end
+
+        function field = addDeviceNumericField(~, parent, labelText, ...
+                labelPosition, fieldPosition, defaultValue, limits)
+            uilabel(parent, 'Text', labelText, 'Position', labelPosition);
+            field = uieditfield(parent, 'numeric');
+            field.Position = fieldPosition;
+            field.Limits = limits;
+            field.Value = defaultValue;
         end
 
         function BoundaryModeChanged(app, ~)
@@ -2507,7 +2777,10 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         end
 
         function simCase = uiBaseCase(app)
-            if isstruct(app.simCase) && isscalar(app.simCase) && ...
+            if isstruct(app.draftSimCase) && isscalar(app.draftSimCase) && ...
+                    isfield(app.draftSimCase, 'controls')
+                simCase = app.draftSimCase;
+            elseif isstruct(app.simCase) && isscalar(app.simCase) && ...
                     isfield(app.simCase, 'controls')
                 simCase = app.simCase;
             else
@@ -2515,12 +2788,183 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             end
         end
 
+        function commitVisibleControls(app)
+            switch string(app.activeConfigMode)
+                case "basic"
+                    app.captureBasicControls();
+                case "advanced"
+                    app.captureAdvancedControls();
+                case "device_settings"
+                    app.captureDeviceControls();
+            end
+        end
+
+        function captureBasicControls(app)
+            draft = app.uiBaseCase();
+            draft.controls.electrical.mode = app.BoundaryModeDropDown.Value;
+            if ~(isnumeric(draft.controls.electrical.profile) && ...
+                    ismatrix(draft.controls.electrical.profile) && ...
+                    size(draft.controls.electrical.profile, 2) == 2)
+                draft.controls.electrical.profile = app.BoundaryCommandEditField.Value;
+            end
+            draft.controls.cathode.airControlMode = app.AirControlModeDropDown.Value;
+            draft.controls.cathode.targetOer = app.OerEditField.Value;
+            draft.controls.cathode.targetMdot_kg_s = app.TargetMdotEditField.Value;
+            draft.controls.cathode.directCommand = app.DirectCommandEditField.Value;
+            draft.controls.cathode.outletPressure_MPa_abs = app.BackpressureEditField.Value;
+            draft.controls.cathode.humidifierRH = app.HumidifierRHEditField.Value;
+            draft.controls.cathode.humidifierEnabled = app.HumidifierEnabledCheckBox.Value;
+            draft.controls.cegr.enabled = app.CegrEnabledCheckBox.Value;
+            draft.controls.cegr.targetRatio = app.CegrRatioEditField.Value;
+            draft.controls.thermal.stackTemperatureSet_C = app.StackTemperatureEditField.Value;
+            draft.solver.stopTime_s = app.StopTimeEditField.Value;
+            app.rampDuration_s = app.RampDurationEditField.Value;
+            app.draftSimCase = draft;
+            app.simCase = draft;
+        end
+
+        function captureDeviceControls(app)
+            draft = app.uiBaseCase();
+            compressorMap = draft.controls.devices.cathode.compressorMap;
+            draft.controls.stack = struct( ...
+                'numCells', app.DeviceStackNumCellsEditField.Value, ...
+                'area_cm2', app.DeviceStackAreaEditField.Value, ...
+                'iL_A_cm2', app.DeviceStackIEditField.Value, ...
+                'io_A_cm2', app.DeviceStackIoEditField.Value);
+            draft.controls.cegr.controller.actuatorTau_s = ...
+                app.DeviceCegrActuatorTauEditField.Value;
+            draft.controls.devices.stack = struct( ...
+                'alpha', app.DeviceStackAlphaEditField.Value, ...
+                'meaCp_J_kgK', app.DeviceStackMcpEditField.Value, ...
+                'meaRho_kg_m3', app.DeviceStackMrhoEditField.Value, ...
+                'gdlThickness_um', app.DeviceStackGdlEditField.Value, ...
+                'membraneThickness_um', app.DeviceStackMembraneEditField.Value);
+            draft.controls.devices.cathode = struct( ...
+                'intercoolerMdotNominal_kg_s', app.DeviceIntercoolerMdotEditField.Value, ...
+                'intercoolerDpNominal_MPa', app.DeviceIntercoolerDpEditField.Value, ...
+                'separatorMdotNominal_kg_s', app.DeviceCathodeSeparatorMdotEditField.Value, ...
+                'separatorDpNominal_MPa', app.DeviceCathodeSeparatorDpEditField.Value, ...
+                'separatorArea_m2', app.DeviceCathodeSeparatorAreaEditField.Value, ...
+                'separatorLaminarFraction', app.DeviceCathodeSeparatorLaminarEditField.Value, ...
+                'mixerVolume_L', app.DeviceCathodeMixerVolumeEditField.Value, ...
+                'outletChamberVolume_L', app.DeviceCathodeOutletVolumeEditField.Value, ...
+                'compressorMap', compressorMap);
+            draft.controls.devices.cegr = struct( ...
+                'valveMaxArea_m2', app.DeviceCegrValveMaxAreaEditField.Value, ...
+                'pipeLength_m', app.DeviceCegrPipeLengthEditField.Value, ...
+                'pipeDiameter_m', app.DeviceCegrPipeDEditField.Value, ...
+                'pipeRoughness_m', app.DeviceCegrPipeRoughnessEditField.Value);
+            draft.controls.devices.anode = struct( ...
+                'tankPressure_MPa', app.DeviceAnodeTankPressureEditField.Value, ...
+                'tankVolume_L', app.DeviceAnodeTankVolumeEditField.Value, ...
+                'tankTemperature_C', app.DeviceAnodeTankTemperatureEditField.Value, ...
+                'separatorArea_m2', app.DeviceAnodeSeparatorAreaEditField.Value, ...
+                'separatorLaminarFraction', app.DeviceAnodeSeparatorLaminarEditField.Value);
+            app.draftSimCase = draft;
+            app.simCase = draft;
+        end
+
+        function RestoreDeviceDefaultsButtonPushed(app, ~)
+            defaults = routeA_simCase_template();
+            app.DeviceStackNumCellsEditField.Value = defaults.controls.stack.numCells;
+            app.DeviceStackAreaEditField.Value = defaults.controls.stack.area_cm2;
+            app.DeviceStackIEditField.Value = defaults.controls.stack.iL_A_cm2;
+            app.DeviceStackIoEditField.Value = defaults.controls.stack.io_A_cm2;
+            app.DeviceCegrActuatorTauEditField.Value = ...
+                defaults.controls.cegr.controller.actuatorTau_s;
+            app.DeviceStackAlphaEditField.Value = defaults.controls.devices.stack.alpha;
+            app.DeviceStackMcpEditField.Value = defaults.controls.devices.stack.meaCp_J_kgK;
+            app.DeviceStackMrhoEditField.Value = defaults.controls.devices.stack.meaRho_kg_m3;
+            app.DeviceStackGdlEditField.Value = defaults.controls.devices.stack.gdlThickness_um;
+            app.DeviceStackMembraneEditField.Value = defaults.controls.devices.stack.membraneThickness_um;
+            app.DeviceIntercoolerMdotEditField.Value = defaults.controls.devices.cathode.intercoolerMdotNominal_kg_s;
+            app.DeviceIntercoolerDpEditField.Value = defaults.controls.devices.cathode.intercoolerDpNominal_MPa;
+            app.DeviceCathodeSeparatorMdotEditField.Value = defaults.controls.devices.cathode.separatorMdotNominal_kg_s;
+            app.DeviceCathodeSeparatorDpEditField.Value = defaults.controls.devices.cathode.separatorDpNominal_MPa;
+            app.DeviceCathodeSeparatorAreaEditField.Value = defaults.controls.devices.cathode.separatorArea_m2;
+            app.DeviceCathodeSeparatorLaminarEditField.Value = defaults.controls.devices.cathode.separatorLaminarFraction;
+            app.DeviceCathodeMixerVolumeEditField.Value = defaults.controls.devices.cathode.mixerVolume_L;
+            app.DeviceCathodeOutletVolumeEditField.Value = defaults.controls.devices.cathode.outletChamberVolume_L;
+            app.DeviceCegrValveMaxAreaEditField.Value = defaults.controls.devices.cegr.valveMaxArea_m2;
+            app.DeviceCegrPipeLengthEditField.Value = defaults.controls.devices.cegr.pipeLength_m;
+            app.DeviceCegrPipeDEditField.Value = defaults.controls.devices.cegr.pipeDiameter_m;
+            app.DeviceCegrPipeRoughnessEditField.Value = defaults.controls.devices.cegr.pipeRoughness_m;
+            app.DeviceAnodeTankPressureEditField.Value = defaults.controls.devices.anode.tankPressure_MPa;
+            app.DeviceAnodeTankVolumeEditField.Value = defaults.controls.devices.anode.tankVolume_L;
+            app.DeviceAnodeTankTemperatureEditField.Value = defaults.controls.devices.anode.tankTemperature_C;
+            app.DeviceAnodeSeparatorAreaEditField.Value = defaults.controls.devices.anode.separatorArea_m2;
+            app.DeviceAnodeSeparatorLaminarEditField.Value = defaults.controls.devices.anode.separatorLaminarFraction;
+            app.captureDeviceControls();
+            app.draftSimCase.controls.devices.cathode.compressorMap = ...
+                defaults.controls.devices.cathode.compressorMap;
+            app.simCase = app.draftSimCase;
+            app.refreshCompressorMapStatus();
+            app.refreshModelParameterSnapshot();
+        end
+
+        function CompressorMapEditorButtonPushed(app, ~)
+            app.captureDeviceControls();
+            currentMap = app.draftSimCase.controls.devices.cathode.compressorMap;
+            [updatedMap, accepted] = routeA_compressor_map_editor(currentMap);
+            if ~accepted
+                return;
+            end
+            app.draftSimCase.controls.devices.cathode.compressorMap = updatedMap;
+            app.simCase = app.draftSimCase;
+            app.refreshCompressorMapStatus();
+            app.refreshModelParameterSnapshot();
+        end
+
+        function refreshCompressorMapStatus(app)
+            if isempty(app.draftSimCase) || ...
+                    ~isfield(app.draftSimCase.controls.devices.cathode, 'compressorMap')
+                return;
+            end
+            map = app.draftSimCase.controls.devices.cathode.compressorMap;
+            app.CompressorMapStatusLabel.Text = sprintf('%d 个转速点 x %d 个压比点; %s', ...
+                numel(map.rpm_TLU), numel(map.p_ratio_TLU), string(map.source));
+        end
+
+        function syncDeviceControls(app)
+            draft = app.uiBaseCase();
+            app.DeviceStackNumCellsEditField.Value = draft.controls.stack.numCells;
+            app.DeviceStackAreaEditField.Value = draft.controls.stack.area_cm2;
+            app.DeviceStackIEditField.Value = draft.controls.stack.iL_A_cm2;
+            app.DeviceStackIoEditField.Value = draft.controls.stack.io_A_cm2;
+            app.DeviceCegrActuatorTauEditField.Value = ...
+                draft.controls.cegr.controller.actuatorTau_s;
+            app.DeviceStackAlphaEditField.Value = draft.controls.devices.stack.alpha;
+            app.DeviceStackMcpEditField.Value = draft.controls.devices.stack.meaCp_J_kgK;
+            app.DeviceStackMrhoEditField.Value = draft.controls.devices.stack.meaRho_kg_m3;
+            app.DeviceStackGdlEditField.Value = draft.controls.devices.stack.gdlThickness_um;
+            app.DeviceStackMembraneEditField.Value = draft.controls.devices.stack.membraneThickness_um;
+            app.DeviceIntercoolerMdotEditField.Value = draft.controls.devices.cathode.intercoolerMdotNominal_kg_s;
+            app.DeviceIntercoolerDpEditField.Value = draft.controls.devices.cathode.intercoolerDpNominal_MPa;
+            app.DeviceCathodeSeparatorMdotEditField.Value = draft.controls.devices.cathode.separatorMdotNominal_kg_s;
+            app.DeviceCathodeSeparatorDpEditField.Value = draft.controls.devices.cathode.separatorDpNominal_MPa;
+            app.DeviceCathodeSeparatorAreaEditField.Value = draft.controls.devices.cathode.separatorArea_m2;
+            app.DeviceCathodeSeparatorLaminarEditField.Value = draft.controls.devices.cathode.separatorLaminarFraction;
+            app.DeviceCathodeMixerVolumeEditField.Value = draft.controls.devices.cathode.mixerVolume_L;
+            app.DeviceCathodeOutletVolumeEditField.Value = draft.controls.devices.cathode.outletChamberVolume_L;
+            app.DeviceCegrValveMaxAreaEditField.Value = draft.controls.devices.cegr.valveMaxArea_m2;
+            app.DeviceCegrPipeLengthEditField.Value = draft.controls.devices.cegr.pipeLength_m;
+            app.DeviceCegrPipeDEditField.Value = draft.controls.devices.cegr.pipeDiameter_m;
+            app.DeviceCegrPipeRoughnessEditField.Value = draft.controls.devices.cegr.pipeRoughness_m;
+            app.DeviceAnodeTankPressureEditField.Value = draft.controls.devices.anode.tankPressure_MPa;
+            app.DeviceAnodeTankVolumeEditField.Value = draft.controls.devices.anode.tankVolume_L;
+            app.DeviceAnodeTankTemperatureEditField.Value = draft.controls.devices.anode.tankTemperature_C;
+            app.DeviceAnodeSeparatorAreaEditField.Value = draft.controls.devices.anode.separatorArea_m2;
+            app.DeviceAnodeSeparatorLaminarEditField.Value = draft.controls.devices.anode.separatorLaminarFraction;
+            app.refreshCompressorMapStatus();
+        end
+
         function captureAdvancedControls(app)
             app.simCase = app.uiBaseCase();
             app.simCase.controls.electrical.mode = ...
                 app.AdvancedBoundaryModeDropDown.Value;
-            app.simCase.controls.electrical.profile = ...
-                app.AdvancedBoundaryCommandEditField.Value;
+            app.simCase.controls.electrical.profile = app.parseCommandProfileText( ...
+                app.AdvancedCommandProfileEditField.Value, ...
+                app.AdvancedBoundaryCommandEditField.Value);
             app.simCase.controls.electrical.voltageController = struct( ...
                 'Kp_A_V', app.AdvancedKpEditField.Value, ...
                 'Ki_A_V_s', app.AdvancedKiEditField.Value, ...
@@ -2568,6 +3012,30 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.simCase.solver.relTol = app.AdvancedRelTolEditField.Value;
             app.simCase.solver.absTol = app.AdvancedAbsTolEditField.Value;
             app.simCase.solver.maxStep_s = app.AdvancedMaxStepEditField.Value;
+            app.rampDuration_s = app.AdvancedRampDurationEditField.Value;
+            app.draftSimCase = app.simCase;
+        end
+
+        function profile = parseCommandProfileText(~, value, fallback)
+            textValue = strtrim(string(value));
+            if strlength(textValue) == 0
+                profile = fallback;
+                return;
+            end
+            rows = split(textValue, ';');
+            profile = zeros(numel(rows), 2);
+            for idx = 1:numel(rows)
+                values = sscanf(strrep(char(rows(idx)), ',', ' '), '%f');
+                if numel(values) ~= 2 || any(~isfinite(values))
+                    error('RouteA:PanelCommandProfile', ...
+                        '时序命令第 %d 行必须为 t,value，例如 0,0; 60,100。', idx);
+                end
+                profile(idx, :) = values(:).';
+            end
+            if any(diff(profile(:, 1)) <= 0) || profile(1, 1) < 0
+                error('RouteA:PanelCommandProfile', ...
+                    '时序命令时间必须从非负值开始且严格递增。');
+            end
         end
 
         function updateVoltageControllerControls(app)
@@ -2616,22 +3084,37 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             performance.cegrController = struct( ...
                 'Kp_area', app.AdvancedCegrKpEditField.Value, ...
                 'Ki_area', app.AdvancedCegrKiEditField.Value, ...
-                'actuatorTau_s', app.AdvancedCegrActuatorTauEditField.Value);
+                'actuatorTau_s', app.DeviceCegrActuatorTauEditField.Value);
             performance.stack = struct( ...
-                'numCells', app.AdvancedStackNumCellsEditField.Value, ...
-                'area_cm2', app.AdvancedStackAreaEditField.Value, ...
-                'iL_A_cm2', app.AdvancedStackIEditField.Value, ...
-                'io_A_cm2', app.AdvancedStackIoEditField.Value);
+                'numCells', app.DeviceStackNumCellsEditField.Value, ...
+                'area_cm2', app.DeviceStackAreaEditField.Value, ...
+                'iL_A_cm2', app.DeviceStackIEditField.Value, ...
+                'io_A_cm2', app.DeviceStackIoEditField.Value);
         end
 
-        function data = buildParameterCatalogData(app, registry)
+        function data = buildParameterCatalogData(~, ~, audit)
+            rows = audit.workspace;
+            data = cell(height(rows), 8);
+            for idx = 1:height(rows)
+                row = rows(idx, :);
+                data(idx, :) = {routeA_panel_audit_text(row.modelVariable), ...
+                    routeA_panel_audit_text(row.physicalRole), ...
+                    [routeA_panel_audit_text(row.valueClass) ' ' ...
+                        routeA_panel_audit_text(row.size)], ...
+                    routeA_panel_audit_text(row.valuePreview), ...
+                    routeA_panel_reference_state_text(row.referenceState), ...
+                    routeA_panel_exposure_text(row.referenceState, row.panelExposure), ...
+                    routeA_panel_audit_text(row.activePanelEntries), ...
+                    routeA_panel_audit_text(row.blockUsers)};
+            end
+        end
+
+        function data = buildDeviceCatalogData(app, registry)
             entries = registry.entries;
-            % Put equipment-performance rows first. Control defaults and
-            % numerical/environment rows remain in the same complete catalog.
-            deviceMask = arrayfun(@(entry) ...
-                app.isDeviceCatalogEntry(entry), entries);
-            entries = [entries(deviceMask), entries(~deviceMask)];
-            data = cell(numel(entries), 8);
+            deviceMask = arrayfun(@(entry) app.isDeviceCatalogEntry(entry) || ...
+                entry.panelExposure == "device_settings", entries);
+            entries = entries(deviceMask);
+            data = cell(numel(entries), 7);
             for idx = 1:numel(entries)
                 entry = entries(idx);
                 mapping = strings(0, 1);
@@ -2649,21 +3132,74 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 else
                     mappingText = char(strjoin(mapping, ' | '));
                 end
-                if entry.status == "active"
-                    statusText = app.catalogPanelState(entry);
+                if entry.panelExposure == "device_settings"
+                    stateText = '本页可编辑';
                 else
-                    statusText = '目录只读';
+                    stateText = '目录只读';
                 end
-                data(idx, :) = {char(entry.canonicalName), ...
-                    app.catalogMeaningZh(entry), ...
+                data(idx, :) = {app.catalogMeaningZh(entry), ...
                     app.catalogDeviceZh(entry), char(entry.unit), ...
                     app.formatCatalogValue(entry.defaultValue), ...
-                    statusText, app.catalogApplyText(entry), mappingText};
+                    app.formatCatalogRange(entry.minimum, entry.maximum), ...
+                    stateText, mappingText};
             end
         end
 
+        function textValue = formatCatalogRange(~, minimum, maximum)
+            if isempty(minimum) || isempty(maximum)
+                textValue = '待闭合';
+            elseif isinf(maximum)
+                textValue = sprintf('[%.6g, Inf]', minimum);
+            else
+                textValue = sprintf('[%.6g, %.6g]', minimum, maximum);
+            end
+        end
+
+        function refreshModelParameterSnapshot(app)
+            if isempty(app.RunSnapshotTable) || ~isvalid(app.RunSnapshotTable)
+                return;
+            end
+            draft = app.uiBaseCase();
+            profile = draft.controls.electrical.profile;
+            if isnumeric(profile) && isscalar(profile)
+                profileText = sprintf('%s = %.6g', ...
+                    string(draft.controls.electrical.mode), profile);
+            else
+                profileText = sprintf('%s profile (%d points)', ...
+                    string(draft.controls.electrical.mode), size(profile, 1));
+            end
+            rows = { ...
+                '当前草稿电边界', char(profileText); ...
+                '当前草稿空气 / cEGR', sprintf('mode=%d, OER=%.4g, cEGR=%.4g', ...
+                    draft.controls.cathode.airControlMode, ...
+                    draft.controls.cathode.targetOer, ...
+                    draft.controls.cegr.targetRatio); ...
+                '当前草稿电堆', sprintf('N=%g, A=%.6g cm^2, iL=%.6g, i0=%.6g', ...
+                    draft.controls.stack.numCells, draft.controls.stack.area_cm2, ...
+                    draft.controls.stack.iL_A_cm2, draft.controls.stack.io_A_cm2); ...
+                '当前设备 BOP', sprintf('alpha=%.4g, intercooler dp=%.4g MPa, cEGR Amax=%.4g m^2, comp map=%dx%d', ...
+                    draft.controls.devices.stack.alpha, ...
+                    draft.controls.devices.cathode.intercoolerDpNominal_MPa, ...
+                    draft.controls.devices.cegr.valveMaxArea_m2, ...
+                    numel(draft.controls.devices.cathode.compressorMap.p_ratio_TLU), ...
+                    numel(draft.controls.devices.cathode.compressorMap.rpm_TLU)); ...
+                '最近运行', '尚未运行'};
+            if isstruct(app.lastResults) && isfield(app.lastResults, 'simCompleted') && ...
+                    logical(app.lastResults.simCompleted)
+                rows{5, 2} = sprintf('%s | V=%.3f V, I=%.3f A, P=%.3f kW, cEGR=%.4f', ...
+                    string(app.lastResults.status), app.lastResults.voltage_V, ...
+                    app.lastResults.current_A, app.lastResults.power_kW, ...
+                    app.lastResults.actual_cegr_ratio);
+                app.RunSnapshotLabel.Text = '当前草稿 / 最近运行：已更新';
+            else
+                app.RunSnapshotLabel.Text = '当前草稿 / 最近运行：尚未完成仿真';
+            end
+            app.RunSnapshotTable.Data = rows;
+        end
+
         function isDevice = isDeviceCatalogEntry(~, entry)
-            isDevice = startsWith(string(entry.canonicalName), "platform.") && ...
+            isDevice = (startsWith(string(entry.canonicalName), "platform.") || ...
+                startsWith(string(entry.canonicalName), "device.")) && ...
                 any(string(entry.domain) == ...
                 ["stack", "cathode", "cegr", "anode", "thermal"]);
         end
@@ -2693,7 +3229,8 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
         function textValue = catalogDeviceZh(app, entry)
             key = string(entry.canonicalName);
-            if contains(key, ".compressor.")
+            if contains(key, ".compressor.") || ...
+                    startsWith(key, "device.cathode.compressorMap.")
                 textValue = '阴极 / 空压机';
             elseif contains(key, ".intercooler.")
                 textValue = '阴极 / 中冷器';
@@ -2717,6 +3254,14 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 textValue = 'cEGR / 回流管路';
             elseif contains(key, ".valve") || contains(key, ".actuator")
                 textValue = 'cEGR / 阀与执行器';
+            elseif startsWith(key, "device.stack.")
+                textValue = '电堆 / MEA';
+            elseif startsWith(key, "device.cathode.")
+                textValue = '阴极 / BOP';
+            elseif startsWith(key, "device.cegr.")
+                textValue = 'cEGR / BOP';
+            elseif startsWith(key, "device.anode.")
+                textValue = '阳极 / 储氢';
             elseif startsWith(key, "platform.stack.")
                 textValue = '电堆 / MEA';
             elseif startsWith(key, "platform.cathode.")
@@ -2844,6 +3389,56 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                     textValue = '电化学极限电流密度';
                 case "stack.io_A_cm2"
                     textValue = '电化学交换电流密度';
+                case "device.stack.alpha"
+                    textValue = '电堆电荷转移系数';
+                case "device.stack.meaCp_J_kgK"
+                    textValue = 'MEA比热容';
+                case "device.stack.meaRho_kg_m3"
+                    textValue = 'MEA密度';
+                case "device.stack.gdlThickness_um"
+                    textValue = '气体扩散层厚度';
+                case "device.stack.membraneThickness_um"
+                    textValue = '质子交换膜厚度';
+                case "device.cathode.intercoolerMdotNominal_kg_s"
+                    textValue = '中冷器额定质量流量';
+                case "device.cathode.intercoolerDpNominal_MPa"
+                    textValue = '中冷器额定压降';
+                case "device.cathode.separatorMdotNominal_kg_s"
+                    textValue = '阴极分离器额定质量流量';
+                case "device.cathode.separatorDpNominal_MPa"
+                    textValue = '阴极分离器额定压降';
+                case "device.cathode.separatorArea_m2"
+                    textValue = '阴极分离器流通面积';
+                case "device.cathode.separatorLaminarFraction"
+                    textValue = '阴极分离器层流分数';
+                case "device.cathode.mixerVolume_L"
+                    textValue = '空压机入口混合腔体积';
+                case "device.cathode.outletChamberVolume_L"
+                    textValue = '阴极出口腔体积';
+                case "device.cathode.compressorMap.rpm_TLU"
+                    textValue = '空压机图谱转速断点轴';
+                case "device.cathode.compressorMap.p_ratio_TLU"
+                    textValue = '空压机图谱压比断点轴';
+                case "device.cathode.compressorMap.mdot_corr_TLU"
+                    textValue = '空压机图谱修正质量流量矩阵';
+                case "device.cegr.valveMaxArea_m2"
+                    textValue = 'cEGR阀最大开口面积';
+                case "device.cegr.pipeLength_m"
+                    textValue = 'cEGR回流管长度';
+                case "device.cegr.pipeDiameter_m"
+                    textValue = 'cEGR回流管直径';
+                case "device.cegr.pipeRoughness_m"
+                    textValue = 'cEGR回流管表面粗糙度';
+                case "device.anode.tankPressure_MPa"
+                    textValue = '阳极储氢罐压力';
+                case "device.anode.tankVolume_L"
+                    textValue = '阳极储氢罐容积';
+                case "device.anode.tankTemperature_C"
+                    textValue = '阳极储氢罐温度';
+                case "device.anode.separatorArea_m2"
+                    textValue = '阳极分离器流通面积';
+                case "device.anode.separatorLaminarFraction"
+                    textValue = '阳极分离器层流分数';
                 case "thermal.stackTemperatureSet_C"
                     textValue = '电堆冷却出口温度设定';
                 case "solver.stopTime_s"
@@ -3126,6 +3721,13 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                     app.ModeSelectionChanged(struct('NewValue', app.AdvancedModeButton));
                 end
                 target = app.AdvancedPanel;
+            elseif selected == "系统设备参数设置"
+                if strcmp(app.DeviceSettingsPanel.Visible, 'off')
+                    app.DeviceParameterModeButton.Value = true;
+                    app.ModeSelectionChanged(struct('NewValue', ...
+                        app.DeviceParameterModeButton));
+                end
+                target = app.DeviceSettingsPanel;
             elseif selected == "系统模型参数 / 设备目录"
                 if strcmp(app.FutureDomainsPanel.Visible, 'off')
                     app.BasicModeButton.Value = false;
@@ -3149,7 +3751,8 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                     app.AdvancedModeButton.Value = false;
                     app.ModelParameterModeButton.Value = false;
                     app.ModeSelectionChanged(struct('NewValue', app.BasicModeButton));
-                elseif strcmp(app.FutureDomainsPanel.Visible, 'on') && ...
+                elseif (strcmp(app.FutureDomainsPanel.Visible, 'on') || ...
+                        strcmp(app.DeviceSettingsPanel.Visible, 'on')) && ...
                         target ~= app.FutureDomainsPanel
                     app.BasicModeButton.Value = true;
                     app.AdvancedModeButton.Value = false;
@@ -3162,16 +3765,16 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         end
 
         function ModeSelectionChanged(app, event)
-            currentAdvanced = strcmp(app.AdvancedPanel.Visible, 'on');
+            % Commit the outgoing page before changing visibility.  This
+            % makes draftSimCase the sole authority across all five pages.
+            app.commitVisibleControls();
             advanced = isequal(event.NewValue, app.AdvancedModeButton);
+            deviceSettings = isequal(event.NewValue, app.DeviceParameterModeButton);
             modelParameters = isequal(event.NewValue, app.ModelParameterModeButton);
             helpMode = isequal(event.NewValue, app.HelpModeButton);
+            app.updateModeButtonAppearance(event.NewValue);
 
             if helpMode
-                if currentAdvanced
-                    app.captureAdvancedControls();
-                    app.syncAdvancedToBasic();
-                end
                 app.activeConfigMode = "help";
                 app.ElectricalPanel.Visible = 'off';
                 app.AirPathPanel.Visible = 'off';
@@ -3179,20 +3782,14 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.SolverPanel.Visible = 'off';
                 app.ThermalPanel.Visible = 'off';
                 app.AdvancedPanel.Visible = 'off';
+                app.DeviceSettingsPanel.Visible = 'off';
                 app.FutureDomainsPanel.Visible = 'off';
                 app.HelpPanel.Visible = 'on';
-                scroll(app.ConfigScrollPanel, 'top');
+                app.alignActiveConfigPage();
                 return;
             end
 
             if modelParameters
-                % Preserve the latest advanced values before opening the
-                % read-only model-parameter page. Basic controls are then the
-                % stable fallback for a run launched from this page.
-                if currentAdvanced
-                    app.captureAdvancedControls();
-                    app.syncAdvancedToBasic();
-                end
                 app.activeConfigMode = "model_parameters";
                 app.ElectricalPanel.Visible = 'off';
                 app.AirPathPanel.Visible = 'off';
@@ -3200,18 +3797,31 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.SolverPanel.Visible = 'off';
                 app.ThermalPanel.Visible = 'off';
                 app.AdvancedPanel.Visible = 'off';
+                app.DeviceSettingsPanel.Visible = 'off';
                 app.FutureDomainsPanel.Visible = 'on';
                 app.HelpPanel.Visible = 'off';
-                scroll(app.ConfigScrollPanel, 'top');
+                app.refreshModelParameterSnapshot();
+                app.alignActiveConfigPage();
+                return;
+            end
+
+            if deviceSettings
+                app.activeConfigMode = "device_settings";
+                app.syncDeviceControls();
+                app.ElectricalPanel.Visible = 'off';
+                app.AirPathPanel.Visible = 'off';
+                app.CegrPanel.Visible = 'off';
+                app.SolverPanel.Visible = 'off';
+                app.ThermalPanel.Visible = 'off';
+                app.AdvancedPanel.Visible = 'off';
+                app.DeviceSettingsPanel.Visible = 'on';
+                app.FutureDomainsPanel.Visible = 'off';
+                app.HelpPanel.Visible = 'off';
+                app.alignActiveConfigPage();
                 return;
             end
 
             if advanced
-                % Values are already synchronized when coming from the model
-                % parameter page; this also handles basic -> advanced.
-                if ~currentAdvanced
-                    app.syncBasicToAdvanced();
-                end
                 app.activeConfigMode = "advanced";
                 app.syncBasicToAdvanced();
                 app.ElectricalPanel.Visible = 'off';
@@ -3219,15 +3829,12 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.CegrPanel.Visible = 'off';
                 app.SolverPanel.Visible = 'off';
                 app.ThermalPanel.Visible = 'off';
+                app.DeviceSettingsPanel.Visible = 'off';
                 app.FutureDomainsPanel.Visible = 'off';
                 app.HelpPanel.Visible = 'off';
                 app.AdvancedPanel.Visible = 'on';
-                scroll(app.ConfigScrollPanel, 'top');
+                app.alignActiveConfigPage();
             else
-                if currentAdvanced
-                    app.captureAdvancedControls();
-                    app.syncAdvancedToBasic();
-                end
                 app.activeConfigMode = "basic";
                 app.AdvancedPanel.Visible = 'off';
                 app.ElectricalPanel.Visible = 'on';
@@ -3235,9 +3842,10 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.CegrPanel.Visible = 'on';
                 app.SolverPanel.Visible = 'on';
                 app.ThermalPanel.Visible = 'on';
+                app.DeviceSettingsPanel.Visible = 'off';
                 app.FutureDomainsPanel.Visible = 'off';
                 app.HelpPanel.Visible = 'off';
-                scroll(app.ConfigScrollPanel, 'top');
+                app.alignActiveConfigPage();
             end
         end
 
@@ -3245,6 +3853,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedBoundaryModeDropDown.Value = app.BoundaryModeDropDown.Value;
             app.AdvancedBoundaryCommandEditField.Value = ...
                 app.BoundaryCommandEditField.Value;
+            app.AdvancedCommandProfileEditField.Value = '';
             app.AdvancedRampDurationEditField.Value = ...
                 app.RampDurationEditField.Value;
             app.AdvancedOerEditField.Value = app.OerEditField.Value;
@@ -3289,6 +3898,18 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.BoundaryModeDropDown.Value = app.AdvancedBoundaryModeDropDown.Value;
             app.BoundaryCommandEditField.Value = ...
                 app.AdvancedBoundaryCommandEditField.Value;
+            draft = app.uiBaseCase();
+            if isnumeric(draft.controls.electrical.profile) && ...
+                    ismatrix(draft.controls.electrical.profile) && ...
+                    size(draft.controls.electrical.profile, 2) == 2
+                app.BoundaryCommandEditField.Value = ...
+                    draft.controls.electrical.profile(end, 2);
+                app.BoundaryCommandEditField.Enable = 'off';
+                app.BoundaryCommandEditField.Tooltip = ...
+                    '当前草稿保留高级页时序命令；请返回高级页修改或清空时序输入。';
+            else
+                app.BoundaryCommandEditField.Enable = 'on';
+            end
             app.RampDurationEditField.Value = app.AdvancedRampDurationEditField.Value;
             app.OerEditField.Value = app.AdvancedOerEditField.Value;
             app.AirControlModeDropDown.Value = app.AdvancedAirControlModeDropDown.Value;
@@ -3319,6 +3940,42 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 value = 'off';
             end
         end
+
+        function updateModeButtonAppearance(app, selected)
+            buttons = [app.BasicModeButton, app.AdvancedModeButton, ...
+                app.DeviceParameterModeButton, app.ModelParameterModeButton, ...
+                app.HelpModeButton];
+            for idx = 1:numel(buttons)
+                buttons(idx).BackgroundColor = [0.94 0.95 0.96];
+                buttons(idx).FontColor = [0.12 0.18 0.24];
+                buttons(idx).FontWeight = 'normal';
+            end
+            selected.BackgroundColor = [0.10 0.45 0.75];
+            selected.FontColor = [1 1 1];
+            selected.FontWeight = 'bold';
+        end
+
+        function updatePlotButtonAppearance(app, selected)
+            buttons = [app.CurrentPlotButton, app.PowerPlotButton, ...
+                app.VoltagePlotButton];
+            for idx = 1:numel(buttons)
+                buttons(idx).BackgroundColor = [0.94 0.95 0.96];
+                buttons(idx).FontColor = [0.12 0.18 0.24];
+                buttons(idx).FontWeight = 'normal';
+            end
+            selected.BackgroundColor = [0.10 0.45 0.75];
+            selected.FontColor = [1 1 1];
+            selected.FontWeight = 'bold';
+        end
+
+        function textValue = formatCommandProfileText(~, profile)
+            if ~(isnumeric(profile) && ismatrix(profile) && size(profile, 2) == 2)
+                textValue = '';
+                return;
+            end
+            textValue = char(strjoin(compose('%.12g,%.12g', ...
+                profile(:, 1), profile(:, 2)), '; '));
+        end
     end
     
     % App creation and deletion
@@ -3331,7 +3988,9 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             
             % Initialize simCase with template
             app.simCase = routeA_simCase_template();
+            app.draftSimCase = app.simCase;
             app.simCase.caseId = app.CaseIdEditField.Value;
+            app.draftSimCase.caseId = app.CaseIdEditField.Value;
             app.BoundaryCommandEditField.Value = ...
                 routeA_platform_default_parameters().controls.current_default_ref_A.value;
         end
@@ -3341,4 +4000,34 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             delete(app.UIFigure)
         end
     end
+end
+
+function textValue = routeA_panel_reference_state_text(state)
+switch string(state)
+    case "model_referenced_panel_contract"
+        textValue = '已被模型引用';
+    case "model_referenced_no_active_panel_entry"
+        textValue = '已被模型引用';
+    case "workspace_only"
+        textValue = '工作区闲置/辅助';
+    otherwise
+        textValue = '写入目标未引用';
+end
+end
+
+function textValue = routeA_panel_exposure_text(state, exposure)
+if string(state) == "model_referenced_panel_contract"
+    textValue = ['模型引用 + 可写 (' char(string(exposure)) ')'];
+elseif string(state) == "model_referenced_no_active_panel_entry"
+    textValue = '模型引用 / 目录只读';
+else
+    textValue = '禁止编辑';
+end
+end
+
+function textValue = routeA_panel_audit_text(value)
+if iscell(value)
+    value = value{1};
+end
+textValue = char(string(value));
 end

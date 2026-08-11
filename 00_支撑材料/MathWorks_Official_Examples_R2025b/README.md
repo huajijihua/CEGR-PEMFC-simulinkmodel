@@ -14,6 +14,10 @@
 | `02_MoistAir_PEMFuelCellSystem` | `simscape\PEMFuelCellSystemExample` | Moist Air PEMFC 系统示例，用于 BOP 架构、压缩机、加湿、冷却、背压阀参考 |
 | `03_FCEV_ReferenceApplication` | `autoblks\FCEVRefApplicationExample` | Fuel Cell Electric Vehicle reference application，用于整车控制、mapped fuel cell、系统接口参考 |
 
+## 配套气路复用资料
+
+- [Simscape Fluids 燃料电池气路组件复用调查与建模建议](04_SimscapeFluids_燃料电池气路组件复用调查_v01.md)：记录本机 `SimscapeFluids_lib.slx` 的 Gas/Moist Air 阀门、孔口、阻力、管路和容腔组件，以及官方 `FuelCell_lib.slx` 的 FC 域复用边界。
+
 ## 使用纪律
 
 - 本目录是官方示例材料归档，不是当前项目主模型。

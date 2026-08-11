@@ -83,6 +83,7 @@ caseCfg.anode = struct( ...
 caseCfg.thermal = struct('stackTemperatureSet_C', ...
     simCase.controls.thermal.stackTemperatureSet_C);
 caseCfg.stack = simCase.controls.stack;
+caseCfg.devices = simCase.controls.devices;
 caseCfg.controller = simCase.controls.electrical.voltageController;
 caseCfg.acceptance = struct();
 end

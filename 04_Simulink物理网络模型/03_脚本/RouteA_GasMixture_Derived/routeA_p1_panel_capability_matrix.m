@@ -135,7 +135,7 @@ switch string(name)
         contract.runtimeOrCompileTime = "compile-time block parameter";
     case {"electrical.current.profile", "electrical.power.profile", ...
             "electrical.voltage.profile"}
-        contract.uiProperty = "BoundaryCommandEditField|AdvancedBoundaryCommandEditField";
+        contract.uiProperty = "BoundaryCommandEditField|AdvancedBoundaryCommandEditField|AdvancedCommandProfileEditField";
         contract.simCasePath = "controls.electrical.profile";
         contract.writePath = "SimulationInput.setVariable(drive_cycle_*); routeA_command_profile";
         contract.runtimeOrCompileTime = "runtime profile";
@@ -249,6 +249,72 @@ switch string(name)
         contract.writePath = "SimulationInput.setVariable(routeA_egr_target_input_mode_id)";
         contract.runtimeOrCompileTime = "compile-time control variable";
         contract.observationLinks = "cegr.actualRatio";
+    case "cegr.controller.Kp_area"
+        contract.uiProperty = "AdvancedCegrKpEditField";
+        contract.simCasePath = "controls.cegr.controller.Kp_area";
+        contract.writePath = "SimulationInput.setVariable(routeA_egr_control_Kp_area)";
+        contract.runtimeOrCompileTime = "compile-time controller variable";
+        contract.observationLinks = ["cegr.actualRatio"; "cegr.controlError"; ...
+            "cegr.valveAreaCommand"];
+    case "cegr.controller.Ki_area"
+        contract.uiProperty = "AdvancedCegrKiEditField";
+        contract.simCasePath = "controls.cegr.controller.Ki_area";
+        contract.writePath = "SimulationInput.setVariable(routeA_egr_control_Ki_area)";
+        contract.runtimeOrCompileTime = "compile-time controller variable";
+        contract.observationLinks = ["cegr.actualRatio"; "cegr.controlError"; ...
+            "cegr.valveAreaCommand"];
+    case "cegr.actuatorTau_s"
+        contract.uiProperty = "DeviceCegrActuatorTauEditField";
+        contract.simCasePath = "controls.cegr.controller.actuatorTau_s";
+        contract.writePath = "SimulationInput.setVariable(routeA_egr_valve_actuator_tau)";
+        contract.runtimeOrCompileTime = "compile-time actuator variable";
+        contract.observationLinks = ["cegr.actualRatio"; "cegr.massFlow"; ...
+            "cegr.valveAreaCommand"];
+    case "stack.numCells"
+        contract.uiProperty = "DeviceStackNumCellsEditField";
+        contract.simCasePath = "controls.stack.numCells";
+        contract.writePath = "SimulationInput.setVariable(stack_num_cells)";
+        contract.runtimeOrCompileTime = "compile-time stack variable";
+        contract.observationLinks = ["stack.current"; "stack.voltage"; "stack.power"];
+    case "stack.area_cm2"
+        contract.uiProperty = "DeviceStackAreaEditField";
+        contract.simCasePath = "controls.stack.area_cm2";
+        contract.writePath = "SimulationInput.setVariable(stack_area)";
+        contract.runtimeOrCompileTime = "compile-time stack variable";
+        contract.observationLinks = ["stack.current"; "stack.voltage"; "stack.power"];
+    case "stack.iL_A_cm2"
+        contract.uiProperty = "DeviceStackIEditField";
+        contract.simCasePath = "controls.stack.iL_A_cm2";
+        contract.writePath = "SimulationInput.setVariable(stack_iL)";
+        contract.runtimeOrCompileTime = "compile-time stack variable";
+        contract.observationLinks = ["stack.current"; "stack.voltage"; "stack.power"];
+    case "stack.io_A_cm2"
+        contract.uiProperty = "DeviceStackIoEditField";
+        contract.simCasePath = "controls.stack.io_A_cm2";
+        contract.writePath = "SimulationInput.setVariable(stack_io)";
+        contract.runtimeOrCompileTime = "compile-time stack variable";
+        contract.observationLinks = ["stack.current"; "stack.voltage"; "stack.power"];
+    case {"device.stack.alpha", "device.stack.meaCp_J_kgK", ...
+            "device.stack.meaRho_kg_m3", "device.stack.gdlThickness_um", ...
+            "device.stack.membraneThickness_um", ...
+            "device.cathode.intercoolerMdotNominal_kg_s", ...
+            "device.cathode.intercoolerDpNominal_MPa", ...
+            "device.cathode.separatorMdotNominal_kg_s", ...
+            "device.cathode.separatorDpNominal_MPa", ...
+            "device.cathode.separatorArea_m2", ...
+            "device.cathode.separatorLaminarFraction", ...
+            "device.cathode.mixerVolume_L", ...
+            "device.cathode.outletChamberVolume_L", ...
+            "device.cathode.compressorMap.rpm_TLU", ...
+            "device.cathode.compressorMap.p_ratio_TLU", ...
+            "device.cathode.compressorMap.mdot_corr_TLU", ...
+            "device.cegr.valveMaxArea_m2", "device.cegr.pipeLength_m", ...
+            "device.cegr.pipeDiameter_m", "device.cegr.pipeRoughness_m", ...
+            "device.anode.tankPressure_MPa", "device.anode.tankVolume_L", ...
+            "device.anode.tankTemperature_C", ...
+            "device.anode.separatorArea_m2", ...
+            "device.anode.separatorLaminarFraction"}
+        contract = deviceParameterContract(name);
     case "anode.h2MoleFraction"
         contract.uiProperty = "AnodeH2EditField";
         contract.simCasePath = "controls.anode.h2MoleFraction";
@@ -303,6 +369,117 @@ switch string(name)
         contract.runtimeOrCompileTime = "study control";
     otherwise
         contract.unresolvedReason = "No P1 UI and SimulationInput mapping is registered for this active parameter.";
+end
+end
+
+function contract = deviceParameterContract(name)
+contract = struct('uiProperty', "", 'simCasePath', "", ...
+    'writePath', "", 'runtimeOrCompileTime', "compile-time device variable", ...
+    'observationLinks', strings(0, 1), 'unresolvedReason', "");
+contract.simCasePath = "controls." + strrep(string(name), "device.", "devices.");
+contract.uiProperty = deviceUiProperty(name);
+contract.writePath = "SimulationInput.setVariable(" + deviceWorkspaceVariable(name) + ")";
+switch string(name)
+    case {"device.stack.alpha", "device.stack.meaCp_J_kgK", ...
+            "device.stack.meaRho_kg_m3", "device.stack.gdlThickness_um", ...
+            "device.stack.membraneThickness_um"}
+        contract.observationLinks = ["stack.voltage"; "stack.power"; ...
+            "stack.temperature"];
+    case {"device.cathode.intercoolerMdotNominal_kg_s", ...
+            "device.cathode.intercoolerDpNominal_MPa", ...
+            "device.cathode.separatorMdotNominal_kg_s", ...
+            "device.cathode.separatorDpNominal_MPa", ...
+            "device.cathode.separatorArea_m2", ...
+            "device.cathode.separatorLaminarFraction", ...
+            "device.cathode.mixerVolume_L", ...
+            "device.cathode.outletChamberVolume_L"}
+        contract.observationLinks = ["cathode.compressorInletPressure"; ...
+            "cathode.compressorInletMassFlow"; "cathode.outletPressure"];
+    case {"device.cathode.compressorMap.rpm_TLU", ...
+            "device.cathode.compressorMap.p_ratio_TLU", ...
+            "device.cathode.compressorMap.mdot_corr_TLU"}
+        contract.writePath = "routeA_validate_compressor_map -> SimulationInput.setVariable(comp_rpm_TLU, comp_p_ratio_TLU, comp_mdot_corr_TLU)";
+        contract.runtimeOrCompileTime = "compile-time lookup table, atomic three-array apply";
+        contract.observationLinks = ["cathode.compressorInletMassFlow"; ...
+            "cathode.compressorInletPressure"; "stack.power"];
+    case {"device.cegr.valveMaxArea_m2", "device.cegr.pipeLength_m", ...
+            "device.cegr.pipeDiameter_m", "device.cegr.pipeRoughness_m"}
+        contract.observationLinks = ["cegr.actualRatio"; "cegr.massFlow"; ...
+            "cegr.valveAreaCommand"];
+        if string(name) == "device.cegr.pipeDiameter_m"
+            contract.writePath = ...
+                "SimulationInput.setVariable(cegr_pipe_D, cegr_pipe_area=pi*D^2/4)";
+        end
+    case {"device.anode.tankPressure_MPa", "device.anode.tankVolume_L", ...
+            "device.anode.tankTemperature_C", ...
+            "device.anode.separatorArea_m2", ...
+            "device.anode.separatorLaminarFraction"}
+        contract.observationLinks = ["stack.power"; "stack.temperature"];
+end
+end
+
+function propertyName = deviceUiProperty(name)
+switch string(name)
+    case "device.stack.alpha", propertyName = "DeviceStackAlphaEditField";
+    case "device.stack.meaCp_J_kgK", propertyName = "DeviceStackMcpEditField";
+    case "device.stack.meaRho_kg_m3", propertyName = "DeviceStackMrhoEditField";
+    case "device.stack.gdlThickness_um", propertyName = "DeviceStackGdlEditField";
+    case "device.stack.membraneThickness_um", propertyName = "DeviceStackMembraneEditField";
+    case "device.cathode.intercoolerMdotNominal_kg_s", propertyName = "DeviceIntercoolerMdotEditField";
+    case "device.cathode.intercoolerDpNominal_MPa", propertyName = "DeviceIntercoolerDpEditField";
+    case "device.cathode.separatorMdotNominal_kg_s", propertyName = "DeviceCathodeSeparatorMdotEditField";
+    case "device.cathode.separatorDpNominal_MPa", propertyName = "DeviceCathodeSeparatorDpEditField";
+    case "device.cathode.separatorArea_m2", propertyName = "DeviceCathodeSeparatorAreaEditField";
+    case "device.cathode.separatorLaminarFraction", propertyName = "DeviceCathodeSeparatorLaminarEditField";
+    case "device.cathode.mixerVolume_L", propertyName = "DeviceCathodeMixerVolumeEditField";
+    case "device.cathode.outletChamberVolume_L", propertyName = "DeviceCathodeOutletVolumeEditField";
+    case {"device.cathode.compressorMap.rpm_TLU", ...
+            "device.cathode.compressorMap.p_ratio_TLU", ...
+            "device.cathode.compressorMap.mdot_corr_TLU"}
+        propertyName = "CompressorMapEditorButton";
+    case "device.cegr.valveMaxArea_m2", propertyName = "DeviceCegrValveMaxAreaEditField";
+    case "device.cegr.pipeLength_m", propertyName = "DeviceCegrPipeLengthEditField";
+    case "device.cegr.pipeDiameter_m", propertyName = "DeviceCegrPipeDEditField";
+    case "device.cegr.pipeRoughness_m", propertyName = "DeviceCegrPipeRoughnessEditField";
+    case "device.anode.tankPressure_MPa", propertyName = "DeviceAnodeTankPressureEditField";
+    case "device.anode.tankVolume_L", propertyName = "DeviceAnodeTankVolumeEditField";
+    case "device.anode.tankTemperature_C", propertyName = "DeviceAnodeTankTemperatureEditField";
+    case "device.anode.separatorArea_m2", propertyName = "DeviceAnodeSeparatorAreaEditField";
+    case "device.anode.separatorLaminarFraction", propertyName = "DeviceAnodeSeparatorLaminarEditField";
+    otherwise
+        error('RouteA:DeviceUiProperty', 'Unknown device UI parameter %s.', name);
+end
+end
+
+function variable = deviceWorkspaceVariable(name)
+switch string(name)
+    case "device.stack.alpha", variable = "stack_alpha";
+    case "device.stack.meaCp_J_kgK", variable = "stack_mea_cp";
+    case "device.stack.meaRho_kg_m3", variable = "stack_mea_rho";
+    case "device.stack.gdlThickness_um", variable = "stack_t_gdl";
+    case "device.stack.membraneThickness_um", variable = "stack_t_membrane";
+    case "device.cathode.intercoolerMdotNominal_kg_s", variable = "intercooler_mdot_nominal";
+    case "device.cathode.intercoolerDpNominal_MPa", variable = "intercooler_dp_nominal";
+    case "device.cathode.separatorMdotNominal_kg_s", variable = "cathode_separator_mdot_nominal";
+    case "device.cathode.separatorDpNominal_MPa", variable = "cathode_separator_dp_nominal";
+    case "device.cathode.separatorArea_m2", variable = "cathode_separator_area";
+    case "device.cathode.separatorLaminarFraction", variable = "cathode_separator_laminar_fraction";
+    case "device.cathode.mixerVolume_L", variable = "comp_inlet_mixer_V";
+    case "device.cathode.outletChamberVolume_L", variable = "cathode_outlet_chamber_V";
+    case "device.cathode.compressorMap.rpm_TLU", variable = "comp_rpm_TLU";
+    case "device.cathode.compressorMap.p_ratio_TLU", variable = "comp_p_ratio_TLU";
+    case "device.cathode.compressorMap.mdot_corr_TLU", variable = "comp_mdot_corr_TLU";
+    case "device.cegr.valveMaxArea_m2", variable = "cegr_valve_max_area";
+    case "device.cegr.pipeLength_m", variable = "cegr_pipe_length";
+    case "device.cegr.pipeDiameter_m", variable = "cegr_pipe_D";
+    case "device.cegr.pipeRoughness_m", variable = "cegr_pipe_roughness";
+    case "device.anode.tankPressure_MPa", variable = "tank_p";
+    case "device.anode.tankVolume_L", variable = "tank_V";
+    case "device.anode.tankTemperature_C", variable = "tank_T";
+    case "device.anode.separatorArea_m2", variable = "anode_separator_area";
+    case "device.anode.separatorLaminarFraction", variable = "anode_separator_laminar_fraction";
+    otherwise
+        error('RouteA:DeviceContractName', 'Unknown device parameter %s.', name);
 end
 end
 
