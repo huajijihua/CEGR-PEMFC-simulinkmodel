@@ -1,0 +1,197 @@
+component EjectorFC
+% Ejector (FC): quasi-steady three-port ejector for the FuelCell domain.
+% The component preserves four-species mass, species, and energy balance.
+% It is a gas-phase L2 component and does not model entrained liquid water.
+
+nodes
+    A = FuelCell.FuelCell; % Primary motive-flow inlet
+    B = FuelCell.FuelCell; % Mixed diffuser outlet
+    S = FuelCell.FuelCell; % Secondary suction inlet
+end
+
+annotations
+    [A, S] : Side = left;
+    B      : Side = right;
+end
+
+parameters
+    ejector_enabled = false;            % Enable pressure-driven ejector equations
+    area_throat = {1e-4, 'm^2'};       % Primary nozzle throat area
+    area_ratio_nozzle = 3;             % Nozzle exit to throat area ratio
+    area_ratio_mixing = 8;             % Mixing chamber to throat area ratio
+    min_area_ratio_secondary = 0.1;    % Minimum secondary throat ratio
+    efficiency_primary = 0.95;         % Primary nozzle efficiency
+    efficiency_secondary = 0.85;       % Secondary suction efficiency
+    efficiency_expansion = 0.88;       % Primary jet expansion efficiency
+    efficiency_mixing = 0.84;          % Mixing efficiency
+    area_A = {0.01, 'm^2'};             % Port A area
+    area_B = {0.01, 'm^2'};             % Port B area
+    area_S = {0.01, 'm^2'};             % Port S area
+    pressure_recovery = 1.05;          % Nominal diffuser pressure recovery
+    pressure_smoothing = {1e-6, 'Pa'}; % Pressure smoothing near zero flow
+    mdot_smoothing = {1e-8, 'kg/s'};   % Flow guard for composition mixing
+end
+
+equations
+    assert(area_throat > 0);
+    assert(area_ratio_nozzle > 1);
+    assert(area_ratio_mixing > area_ratio_nozzle);
+    assert(min_area_ratio_secondary > 0);
+    assert(efficiency_primary > 0 && efficiency_primary <= 1);
+    assert(efficiency_secondary > 0 && efficiency_secondary <= 1);
+    assert(efficiency_expansion > 0 && efficiency_expansion <= 1);
+    assert(efficiency_mixing > 0 && efficiency_mixing <= 1);
+    assert(area_A > 0);
+    assert(area_B > 0);
+    assert(area_S > 0);
+    assert(pressure_recovery > 1);
+    assert(pressure_smoothing > 0);
+    assert(mdot_smoothing > 0);
+end
+
+variables
+    mdot_A   = {0, 'kg/s'};             % Flow into component at A
+    mdot_B   = {0, 'kg/s'};             % Flow into component at B
+    mdot_S   = {0, 'kg/s'};             % Flow into component at S
+    Phi_A    = {0, 'W'};
+    Phi_B    = {0, 'W'};
+    Phi_S    = {0, 'W'};
+    mdot_A_i = {[0;0;0;0], 'kg/s'};
+    mdot_B_i = {[0;0;0;0], 'kg/s'};
+    mdot_S_i = {[0;0;0;0], 'kg/s'};
+end
+
+branches
+    mdot_A   : A.mdot   -> *;
+    mdot_B   : B.mdot   -> *;
+    mdot_S   : S.mdot   -> *;
+    Phi_A    : A.Phi    -> *;
+    Phi_B    : B.Phi    -> *;
+    Phi_S    : S.Phi    -> *;
+    mdot_A_i : A.mdot_i -> *;
+    mdot_B_i : B.mdot_i -> *;
+    mdot_S_i : S.mdot_i -> *;
+end
+
+intermediates
+    T_A = if lt(A.T, A.T_min), A.T_min; else A.T; end;
+    T_S = if lt(S.T, S.T_min), S.T_min; else S.T; end;
+    recovery = if ejector_enabled, pressure_recovery; else 1; end;
+    p_mix = B.p/recovery;
+
+    x_A = A.x_i;
+    x_S = S.x_i;
+    R_A = dot(x_A, A.R);
+    R_S = dot(x_S, S.R);
+
+    cp_A_i = tablelookup([1;2;3;4], A.T_LUT, A.cp, [1;2;3;4], ...
+        T_A*[1;1;1;1], interpolation = linear, extrapolation = linear);
+    cp_S_i = tablelookup([1;2;3;4], S.T_LUT, S.cp, [1;2;3;4], ...
+        T_S*[1;1;1;1], interpolation = linear, extrapolation = linear);
+    cp_A = dot(x_A, cp_A_i);
+    cp_S = dot(x_S, cp_S_i);
+    gamma_A = cp_A/(cp_A - R_A);
+    gamma_S = cp_S/(cp_S - R_S);
+
+    rho_A = A.p/(R_A*T_A);
+    rho_S = S.p/(R_S*T_S);
+
+    h_A_i = tablelookup([1;2;3;4], A.T_LUT, A.h, [1;2;3;4], ...
+        T_A*[1;1;1;1], interpolation = linear, extrapolation = linear);
+    h_S_i = tablelookup([1;2;3;4], S.T_LUT, S.h, [1;2;3;4], ...
+        T_S*[1;1;1;1], interpolation = linear, extrapolation = linear);
+    h_A = dot(x_A, h_A_i);
+    h_S = dot(x_S, h_S_i);
+
+    secondary_area_ratio = if gt((area_ratio_mixing-area_ratio_nozzle) ...
+            * efficiency_expansion, min_area_ratio_secondary), ...
+        (area_ratio_mixing-area_ratio_nozzle)*efficiency_expansion; ...
+    else ...
+        min_area_ratio_secondary; ...
+    end;
+    area_secondary = area_throat*secondary_area_ratio;
+
+    area_primary_eff = efficiency_primary*area_throat;
+    area_secondary_eff = efficiency_secondary*area_secondary;
+    dp_A_model = mdot_A*sqrt(mdot_A*mdot_A + mdot_smoothing*mdot_smoothing) ...
+        /(2*rho_A*area_primary_eff*area_primary_eff);
+    dp_S_model = mdot_S*sqrt(mdot_S*mdot_S + mdot_smoothing*mdot_smoothing) ...
+        /(2*rho_S*area_secondary_eff*area_secondary_eff);
+
+end
+
+% Pressure-driven throat relations are disabled for the cold baseline.
+if ejector_enabled
+    equations
+        A.p - p_mix == dp_A_model;
+        S.p - p_mix == dp_S_model;
+    end
+else
+    equations
+        A.p - p_mix == 0;
+        mdot_S == 0;
+    end
+end
+
+equations
+    % Four-species mass and energy conservation.
+    mdot_A + mdot_B + mdot_S == 0;
+    mdot_A_i + mdot_B_i + mdot_S_i == {[0;0;0;0], 'kg/s'};
+    Phi_A + Phi_B + Phi_S == 0;
+
+    % Runtime domain checks.
+    assert(A.p >= A.p_min, 'Pressure at port A must be greater than Minimum pressure');
+    assert(B.p >= A.p_min, 'Pressure at port B must be greater than Minimum pressure');
+    assert(S.p >= A.p_min, 'Pressure at port S must be greater than Minimum pressure');
+    assert(A.T >= A.T_min, 'Temperature at port A must be greater than Minimum temperature');
+    assert(B.T >= A.T_min, 'Temperature at port B must be greater than Minimum temperature');
+    assert(S.T >= A.T_min, 'Temperature at port S must be greater than Minimum temperature');
+end
+
+components(ExternalAccess = observe)
+    convection_A = FuelCell.PortConvection(flow_area = area_A, ...
+        length_scale = sqrt(4*area_A/pi));
+    convection_B = FuelCell.PortConvection(flow_area = area_B, ...
+        length_scale = sqrt(4*area_B/pi));
+    convection_S = FuelCell.PortConvection(flow_area = area_S, ...
+        length_scale = sqrt(4*area_S/pi));
+end
+
+connections
+    connect(A, convection_A.A);
+    connect(B, convection_B.A);
+    connect(S, convection_S.A);
+end
+
+equations
+    convection_A.mdot   == mdot_A;
+    convection_A.Phi    == Phi_A;
+    convection_A.mdot_i == mdot_A_i;
+
+    convection_B.mdot   == mdot_B;
+    convection_B.Phi    == Phi_B;
+    convection_B.mdot_i == mdot_B_i;
+
+    convection_S.mdot   == mdot_S;
+    convection_S.Phi    == Phi_S;
+    convection_S.mdot_i == mdot_S_i;
+
+end
+
+if ejector_enabled
+    equations
+        convection_A.ht_i == convection_B.ht_i;
+        convection_S.ht_i == convection_B.ht_i;
+        convection_A.x_i == convection_B.x_i;
+        convection_S.x_i == convection_B.x_i;
+    end
+else
+    equations
+        convection_A.ht_i == convection_B.ht_i;
+        convection_A.x_i == convection_B.x_i;
+        convection_S.ht_i == h_S;
+        convection_S.x_i == x_S;
+    end
+end
+
+end

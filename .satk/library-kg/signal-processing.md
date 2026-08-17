@@ -131,3 +131,4 @@ sensor (fc) experiment.
 - [[control]]
 - [[plant-models]]
 - [[sensors]]
+- [[power]]

@@ -23,3 +23,4 @@ assembly experiment.
 - [[control]]
 - [[signal-processing]]
 - [[sensors]]
+- [[power]]

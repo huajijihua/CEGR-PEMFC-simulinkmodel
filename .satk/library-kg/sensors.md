@@ -23,3 +23,4 @@ humidity sensor (fc) experiment.
 - [[control]]
 - [[signal-processing]]
 - [[plant-models]]
+- [[power]]

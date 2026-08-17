@@ -59,3 +59,4 @@ source (fc) experiment.
 - [[signal-processing]]
 - [[plant-models]]
 - [[sensors]]
+- [[power]]

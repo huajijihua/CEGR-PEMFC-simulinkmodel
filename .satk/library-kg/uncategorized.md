@@ -59,3 +59,4 @@ properties (fc) experiment.
 - [[signal-processing]]
 - [[plant-models]]
 - [[sensors]]
+- [[power]]

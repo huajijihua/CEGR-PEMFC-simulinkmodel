@@ -17,6 +17,7 @@ The active policy mode is defined in `.satk/block-policy.json`.
 ## Libraries
 
 - FuelCell_lib: MathWorks FuelCell four-species Simscape example library for PEMFC-cEGR physical network construction
+- RouteAEjector_lib: Project FuelCell-domain three-port quasi-steady ejector component for post-intercooler passive cEGR
 
 ## Commonly Used Blocks
 
@@ -25,6 +26,7 @@ The active policy mode is defined in `.satk/block-policy.json`.
 - [[blocks/Pressure_Source__FC_]] — This block represents an ideal mechanical energy source in a fuel cell multi-species mixed gas network that can maint... from FuelCell_lib
 - [[blocks/Volumetric_Flow_Rate_Source__FC_]] — The block represents an ideal mechanical energy source in a fuel cell multi-species mixed gas network that can mainta... from FuelCell_lib
 - [[blocks/Membrane_Electrode_Assembly]] — This block models a stack of membrane electrode assemblies (MEA) for a proton exchange membrane (PEM) fuel cell. Hydr... from FuelCell_lib
+- [[blocks/Ejector__FC_]] — The component preserves four-species mass, species, and energy balance. It is a gas-phase L2 component and does not m... from RouteAEjector_lib
 - [[blocks/Composition_and_Humidity_Sensor__FC_]] — This block measures the species composition (mass and mole fraction) as well as the relative humidity for species tha... from FuelCell_lib
 - [[blocks/Flow_Resistance__FC_]] — This block represents a generic pressure loss in a fuel cell network. The drop in pressure is proportional to the squ... from FuelCell_lib
 - [[blocks/Local_Restriction__FC_]] — This block models the pressure loss due to a flow area restriction such as a valve or an orifice in a fuel cell netwo... from FuelCell_lib
@@ -43,3 +45,4 @@ The active policy mode is defined in `.satk/block-policy.json`.
 - [[signal-processing]] — filters, scaling, interpolation, signal conditioning
 - [[plant-models]] — physical dynamics, thermal, mechanical models
 - [[sensors]] — sensor interfaces, measurement blocks, transducers
+- [[power]] — inverters, converters, motors, power stage components

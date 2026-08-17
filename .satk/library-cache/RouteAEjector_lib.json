@@ -1,0 +1,21 @@
+{
+  "libraryName": "RouteAEjector_lib",
+  "slxPath": "E:\\agentwork_pemfc_cEGR_0519\\04_Simulink物理网络模型\\01_模型\\RouteA_Cathode_cEGR_Focused\\RouteAEjector_lib.slx",
+  "slxTimestamp": 740211.39631944441,
+  "extractedAt": "2026-08-17T09:31:21",
+  "description": "Project FuelCell-domain three-port quasi-steady ejector component for post-intercooler passive cEGR",
+  "rtwTimestamp": 7.08831042E+8,
+  "blocks": [
+    {
+      "name": "Ejector (FC)",
+      "blockType": "SimscapeBlock",
+      "referenceBlock": "RouteAEjector_lib/Ejector (FC)",
+      "maskType": "Ejector (FC)",
+      "maskDescription": "The component preserves four-species mass, species, and energy balance. It is a gas-phase L2 component and does not model entrained liquid water.",
+      "description": "",
+      "pathCategory": "",
+      "metadataQuality": "high",
+      "containerPath": "RouteAEjector_lib/Ejector (FC)"
+    }
+  ]
+}
