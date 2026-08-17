@@ -20,7 +20,9 @@ parameterTemplate = struct( ...
     'uiProperty', "", 'panelExposure', "", 'simCasePath', "", ...
     'writePath', "", 'runtimeOrCompileTime', "", 'applyAction', "", ...
     'unit', "", 'validationGate', "", 'observationLinks', strings(0, 1), ...
-    'status', "", 'owner', "", 'nextPhase', "", ...
+    'status', "", 'trustStatus', "pending_audit", ...
+    'modelWorkspaceVariable', "", 'blockParameter', "", ...
+    'owner', "", 'nextPhase', "", ...
     'unresolvedReason', "", 'defaultText', "");
 parameters = repmat(parameterTemplate, numel(activeEntries), 1);
 for idx = 1:numel(activeEntries)
@@ -39,6 +41,9 @@ for idx = 1:numel(activeEntries)
     parameters(idx).validationGate = entry.validationGate;
     parameters(idx).observationLinks = contract.observationLinks;
     parameters(idx).status = "mapped";
+    parameters(idx).trustStatus = "pending_audit";
+    parameters(idx).modelWorkspaceVariable = entry.modelWorkspaceVariable;
+    parameters(idx).blockParameter = entry.blockParameter;
     parameters(idx).owner = "RouteA_P1";
     parameters(idx).nextPhase = "P1";
     parameters(idx).unresolvedReason = contract.unresolvedReason;
@@ -49,8 +54,8 @@ observationTemplate = struct( ...
     'domain', "", 'canonicalName', "", 'displayName', "", ...
     'signalName', "", 'unit', "", 'sourceType', "", ...
     'producerPath', "", 'resultPath', "", 'timeRangeSource', "", ...
-    'acceptanceAllowed', false, 'status', "", 'owner', "", ...
-    'nextPhase', "", 'unresolvedReason', "");
+    'acceptanceAllowed', false, 'status', "", 'trustStatus', "pending_audit", ...
+    'owner', "", 'nextPhase', "", 'unresolvedReason', "");
 observations = repmat(observationTemplate, observationRegistry.count, 1);
 for idx = 1:observationRegistry.count
     entry = observationRegistry.entries(idx);
@@ -64,9 +69,9 @@ for idx = 1:observationRegistry.count
     observations(idx).producerPath = entry.producerPath;
     observations(idx).resultPath = contract.resultPath;
     observations(idx).timeRangeSource = contract.timeRangeSource;
-    observations(idx).acceptanceAllowed = entry.panelExposure == "result" && ...
-        entry.status ~= "unresolved";
+    observations(idx).acceptanceAllowed = false;
     observations(idx).status = entry.status;
+    observations(idx).trustStatus = entry.trustStatus;
     if entry.status == "unresolved"
         observations(idx).owner = "RouteA_P3";
         observations(idx).nextPhase = "P3";
@@ -133,6 +138,7 @@ switch string(name)
         contract.simCasePath = "controls.electrical.mode";
         contract.writePath = "routeA_panel_build_simulation_input -> boundary.type -> electricalLoad.input_type";
         contract.runtimeOrCompileTime = "compile-time block parameter";
+        contract.observationLinks = ["stack.current"; "stack.voltage"; "stack.power"];
     case {"electrical.current.profile", "electrical.power.profile", ...
             "electrical.voltage.profile"}
         contract.uiProperty = "BoundaryCommandEditField|AdvancedBoundaryCommandEditField|AdvancedCommandProfileEditField";
@@ -145,21 +151,25 @@ switch string(name)
         contract.simCasePath = "controls.electrical.voltageController.Kp_A_V";
         contract.writePath = "SimulationInput.setVariable(routeA_voltage_pi_Kp)";
         contract.runtimeOrCompileTime = "compile-time controller variable";
+        contract.observationLinks = ["stack.current"; "stack.voltage"; "stack.power"];
     case "electrical.voltageController.Ki_A_V_s"
         contract.uiProperty = "AdvancedKiEditField";
         contract.simCasePath = "controls.electrical.voltageController.Ki_A_V_s";
         contract.writePath = "SimulationInput.setVariable(routeA_voltage_pi_Ki)";
         contract.runtimeOrCompileTime = "compile-time controller variable";
+        contract.observationLinks = ["stack.current"; "stack.voltage"; "stack.power"];
     case "electrical.voltageController.currentMin_A"
         contract.uiProperty = "AdvancedCurrentMinEditField";
         contract.simCasePath = "controls.electrical.voltageController.currentMin_A";
         contract.writePath = "SimulationInput.setVariable(routeA_voltage_current_min_A)";
         contract.runtimeOrCompileTime = "compile-time controller variable";
+        contract.observationLinks = ["stack.current"; "stack.voltage"; "stack.power"];
     case "electrical.voltageController.currentMax_A"
         contract.uiProperty = "AdvancedCurrentMaxEditField";
         contract.simCasePath = "controls.electrical.voltageController.currentMax_A";
         contract.writePath = "SimulationInput.setVariable(routeA_voltage_current_max_A)";
         contract.runtimeOrCompileTime = "compile-time controller variable";
+        contract.observationLinks = ["stack.current"; "stack.voltage"; "stack.power"];
     case "cathode.airControlMode"
         contract.uiProperty = "AirControlModeDropDown|AdvancedAirControlModeDropDown";
         contract.simCasePath = "controls.cathode.airControlMode";
@@ -171,7 +181,10 @@ switch string(name)
         contract.simCasePath = "controls.cathode.targetOer";
         contract.writePath = "routeA_command_profile.air_target_oer";
         contract.runtimeOrCompileTime = "runtime profile";
-        contract.observationLinks = "cathode.inletRelativeHumidity";
+        % Validate OER at the cathode inlet. RH is a humidification
+        % consequence and cannot prove that the OER controller consumed this input.
+        contract.observationLinks = ["cathode.inletOxygenStoich"; ...
+            "cathode.compressorInletMassFlow"];
     case "cathode.targetMdot_kg_s"
         contract.uiProperty = "TargetMdotEditField|AdvancedTargetMdotEditField";
         contract.simCasePath = "controls.cathode.targetMdot_kg_s";
@@ -231,10 +244,10 @@ switch string(name)
         contract.runtimeOrCompileTime = "runtime profile";
         contract.observationLinks = ["cegr.actualRatio"; "cegr.controlError"; "cegr.massFlow"];
     case "cegr.valveMode"
-        contract.uiProperty = "AdvancedCegrValveModeDropDown";
-        contract.simCasePath = "controls.cegr.valveMode";
-        contract.writePath = "SimulationInput.setVariable(routeA_cegr_valve_mode_id)";
-        contract.runtimeOrCompileTime = "compile-time control variable";
+        contract.uiProperty = "ParameterCatalogTable (read-only)";
+        contract.simCasePath = "controls.cegr.valveMode (fixed=1)";
+        contract.writePath = "SimulationInput.setVariable(routeA_cegr_valve_mode_id=1)";
+        contract.runtimeOrCompileTime = "fixed compile-time model variant";
         contract.observationLinks = ["cegr.valveAreaCommand"; ...
             "cegr.valveUpstreamPressure"; "cegr.valveDownstreamPressure"];
     case "cegr.controlMode"
@@ -345,20 +358,43 @@ switch string(name)
         contract.writePath = ...
             "SimulationInput.setVariable(tank_yH2) + routeA_command_profile.anode_source_h2_mole_fraction";
         contract.runtimeOrCompileTime = "compile-time model workspace variable + runtime profile";
-        contract.unresolvedReason = ...
-            "Anode input is wired; anode response signals remain status-only until logsout names are confirmed.";
-    case {"anode.sourcePressure_MPa_abs", "anode.sourceTemperature_C", ...
-            "anode.inletPressure_MPa_abs", "anode.humidifierRH", ...
-            "anode.recirculationBaseCommand", ...
-            "anode.recirculationCurrentGain_A_inv", "anode.purgeEnabled", ...
-            "anode.purgeOnN2MoleFraction", "anode.purgeOffN2MoleFraction"}
+        contract.observationLinks = "anode.inletComposition";
+    case "anode.sourcePressure_MPa_abs"
         contract.uiProperty = anodeUiProperty(name);
-        contract.simCasePath = "controls.anode." + ...
-            strrep(string(name), "anode.", "");
-        contract.writePath = "routeA_command_profile.anode_*";
+        contract.simCasePath = "controls.anode.sourcePressure_MPa_abs";
+        contract.writePath = "SimulationInput.setVariable(tank_p) when source pressure differs from platform default";
+        contract.runtimeOrCompileTime = "pre-simulation Fuel Tank override";
+        contract.observationLinks = "anode.sourcePressure";
+    case "anode.inletPressure_MPa_abs"
+        contract.uiProperty = anodeUiProperty(name);
+        contract.simCasePath = "controls.anode.inletPressure_MPa_abs";
+        contract.writePath = "routeA_command_profile.anode_inlet_pressure_MPa_abs";
+        contract.runtimeOrCompileTime = "runtime pressure-reducer setpoint";
+        contract.observationLinks = "anode.inletPressure";
+    case "anode.sourceTemperature_C"
+        contract.uiProperty = anodeUiProperty(name);
+        contract.simCasePath = "controls.anode.sourceTemperature_C";
+        contract.writePath = "SimulationInput.setVariable(tank_T)";
+        contract.runtimeOrCompileTime = "pre-simulation tank override";
+        contract.observationLinks = "anode.sourceTemperature";
+    case "anode.humidifierRH"
+        contract.uiProperty = anodeUiProperty(name);
+        contract.simCasePath = "controls.anode.humidifierRH";
+        contract.writePath = "routeA_command_profile.anode_humidifier_rh";
         contract.runtimeOrCompileTime = "runtime profile";
-        contract.unresolvedReason = ...
-            "Anode input is wired; anode response signals remain status-only until logsout names are confirmed.";
+        contract.observationLinks = "anode.inletRelativeHumidity";
+    case {"anode.recirculationBaseCommand", "anode.recirculationCurrentGain_A_inv"}
+        contract.uiProperty = anodeUiProperty(name);
+        contract.simCasePath = "controls.anode." + strrep(string(name), "anode.", "");
+        contract.writePath = "routeA_command_profile.anode_recirculation_*";
+        contract.runtimeOrCompileTime = "runtime profile";
+        contract.observationLinks = "anode.inletPressure";
+    case {"anode.purgeEnabled", "anode.purgeOnN2MoleFraction", "anode.purgeOffN2MoleFraction"}
+        contract.uiProperty = anodeUiProperty(name);
+        contract.simCasePath = "controls.anode." + strrep(string(name), "anode.", "");
+        contract.writePath = "routeA_command_profile.anode_purge_*";
+        contract.runtimeOrCompileTime = "runtime profile";
+        contract.observationLinks = ["anode.purgeState"; "anode.outletComposition"];
     case "thermal.stackTemperatureSet_C"
         contract.uiProperty = ...
             "StackTemperatureEditField|SourceTemperatureEditField|AdvancedStackTemperatureEditField";
@@ -373,10 +409,10 @@ switch string(name)
         contract.runtimeOrCompileTime = "compile-time environment variable";
         contract.observationLinks = ["stack.temperature"; "cathode.outletTemperature"];
     case "environment.ambientPressure_MPa_abs"
-        contract.uiProperty = "AdvancedAmbientPressureEditField";
-        contract.simCasePath = "controls.environment.ambientPressure_MPa_abs";
-        contract.writePath = "SimulationInput.setVariable(env_p)";
-        contract.runtimeOrCompileTime = "compile-time environment variable";
+        contract.uiProperty = "ParameterCatalogTable (read-only)";
+        contract.simCasePath = "controls.environment.ambientPressure_MPa_abs (fixed)";
+        contract.writePath = "SimulationInput.setVariable(env_p=platform_default)";
+        contract.runtimeOrCompileTime = "fixed compile-time platform boundary";
         contract.observationLinks = ["cathode.compressorInletPressure"; "cathode.outletPressure"];
     case "cathode.airController.Kp"
         contract.uiProperty = "AdvancedAirPidKpEditField";
@@ -665,6 +701,24 @@ switch string(name)
         contract.resultPath = "results.domains.cathode.compressorInletTemperature_K";
     case "cathode.inletSpeciesMassFlow"
         contract.resultPath = "results.domains.cathode.inletSpeciesMassFlow_kg_s";
+    case "cathode.inletOxygenStoich"
+        contract.resultPath = "results.domains.cathode.inletOxygenStoich";
+    case "anode.inletPressure"
+        contract.resultPath = "results.domains.anode.inletPressure_MPa";
+    case "anode.sourcePressure"
+        contract.resultPath = "results.domains.anode.sourcePressure_MPa";
+    case "anode.inletTemperature"
+        contract.resultPath = "results.domains.anode.inletTemperature_C";
+    case "anode.sourceTemperature"
+        contract.resultPath = "results.domains.anode.sourceTemperature_C";
+    case "anode.inletComposition"
+        contract.resultPath = "results.domains.anode.inletCompositionMoleFraction";
+    case "anode.inletRelativeHumidity"
+        contract.resultPath = "results.domains.anode.inletRelativeHumidity";
+    case "anode.outletComposition"
+        contract.resultPath = "results.domains.anode.outletCompositionMoleFraction";
+    case "anode.purgeState"
+        contract.resultPath = "results.domains.anode.purgeState";
     case "cathode.inletComposition"
         contract.resultPath = "results.domains.cathode.inletCompositionMassFraction";
     case "cathode.outletComposition"

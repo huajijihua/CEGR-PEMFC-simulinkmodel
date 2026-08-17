@@ -1,6 +1,11 @@
 function [simIn, context] = routeA_panel_build_simulation_input(simCase, rampDuration_s)
 % Build a panel SimulationInput through the shared cold-start-only path.
 
+if nargin < 2 || isempty(rampDuration_s)
+    params = routeA_platform_default_parameters();
+    rampDuration_s = min(params.numerics.startupRampDuration_s.value, ...
+        0.1 * simCase.solver.stopTime_s);
+end
 validateattributes(rampDuration_s, {'numeric'}, ...
     {'scalar', 'real', 'nonnegative', 'finite'});
 simCase = routeA_validate_case(simCase);

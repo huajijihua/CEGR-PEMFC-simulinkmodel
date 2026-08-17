@@ -20,17 +20,33 @@ end
 modelWorkspace = get_param(model, 'ModelWorkspace');
 workspaceInfo = modelWorkspace.whos;
 modelVars = string({workspaceInfo.name})';
-% A first panel launch has no cached variable-usage result yet. Retain the
-% fast cached path for an updated model, then fall back to an official
-% compiled query so the read-only catalog can initialize on its own.
+% Cached usage can be incomplete after model updates or SimulationInput
+% execution. Merge it with the official compiled query so a stale cache
+% cannot turn valid panel write targets into false audit mismatches.
+cachedFindVars = [];
+cachedSearchError = [];
 try
-    findVars = Simulink.findVars(model, 'SearchMethod', 'cached');
-catch cachedSearchError
-    try
-        findVars = Simulink.findVars(model, 'SearchMethod', 'compiled');
-    catch compiledSearchError
+    cachedFindVars = Simulink.findVars(model, 'SearchMethod', 'cached');
+catch ME
+    cachedSearchError = ME;
+end
+try
+    compiledFindVars = Simulink.findVars(model, 'SearchMethod', 'compiled');
+catch compiledSearchError
+    if isempty(cachedFindVars)
+        if isempty(cachedSearchError)
+            throw(compiledSearchError);
+        end
         throw(addCause(compiledSearchError, cachedSearchError));
     end
+    compiledFindVars = [];
+end
+if isempty(cachedFindVars)
+    findVars = compiledFindVars;
+elseif isempty(compiledFindVars)
+    findVars = cachedFindVars;
+else
+    findVars = [cachedFindVars; compiledFindVars];
 end
 registry = routeA_parameter_registry(paths);
 entries = registry.entries;
@@ -211,6 +227,11 @@ tf = any(string(name) == ["drive_cycle_current", "drive_cycle_power"]);
 end
 
 function variable = resolvedWriteVariable(entry)
+if any(string(entry.canonicalName) == ["anode.sourcePressure_MPa_abs", ...
+        "anode.sourceTemperature_C"])
+    variable = string(entry.modelWorkspaceVariable);
+    return;
+end
 if strlength(string(entry.profileField)) > 0
     variable = "routeA_command_profile";
 else
@@ -503,6 +524,8 @@ switch string(exposure)
         textValue = "高级页可编辑";
     case "device_settings"
         textValue = "设备页可编辑";
+    case "read_only_catalog"
+        textValue = "固定平台边界 / 只读";
     otherwise
         textValue = markdownCell(exposure);
 end

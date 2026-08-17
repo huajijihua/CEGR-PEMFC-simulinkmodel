@@ -67,6 +67,7 @@ validateRange(simCase.controls.cegr.targetRatio, [0, 0.5], ...
     'controls.cegr.targetRatio');
 validateRange(simCase.controls.cegr.valveMode, [1, 2], ...
     'controls.cegr.valveMode');
+validateSupportedCegrValveMode(simCase.controls.cegr.valveMode);
 validateRange(simCase.controls.cegr.controlMode, [1, 2], ...
     'controls.cegr.controlMode');
 validateRange(simCase.controls.cegr.targetInputMode, [1, 1], ...
@@ -223,8 +224,7 @@ validateRange(simCase.controls.thermal.stackTemperatureSet_C, [60, 100], ...
     'controls.thermal.stackTemperatureSet_C');
 validateRange(simCase.controls.environment.ambientTemperature_C, [-50, 100], ...
     'controls.environment.ambientTemperature_C');
-validateRange(simCase.controls.environment.ambientPressure_MPa_abs, ...
-    [0.01, 1], 'controls.environment.ambientPressure_MPa_abs');
+validateFixedAmbientPressure(simCase.controls.environment.ambientPressure_MPa_abs);
 validateRange(simCase.solver.stopTime_s, [eps, Inf], 'solver.stopTime_s');
 validateRange(simCase.solver.relTol, [eps, 1], 'solver.relTol');
 validateRange(simCase.solver.absTol, [eps, Inf], 'solver.absTol');
@@ -299,6 +299,15 @@ end
 end
 
 %% -----------------------------------------------------------------------
+function validateSupportedCegrValveMode(modeId)
+if modeId ~= 1
+    error('RouteA:CegRValveMode', ...
+        ['The active Route A model implements only cEGR valve mode 1 ', ...
+        '(open-area restriction).']);
+end
+end
+
+%% -----------------------------------------------------------------------
 function validateRange(value, bounds, fieldName)
 validateattributes(value, {'numeric'}, {'scalar', 'real', 'finite'}, ...
     'routeA_validate_case', fieldName);
@@ -306,6 +315,19 @@ if value < bounds(1) || value > bounds(2)
     error('RouteA:ValidateRange', ...
         '%s = %g is out of range [%g, %g].', ...
         fieldName, value, bounds(1), bounds(2));
+end
+end
+
+%% -----------------------------------------------------------------------
+function validateFixedAmbientPressure(value)
+fieldName = 'controls.environment.ambientPressure_MPa_abs';
+validateattributes(value, {'numeric'}, {'scalar', 'real', 'finite'}, ...
+    'routeA_validate_case', fieldName);
+fixedPressure_MPa_abs = routeA_platform_default_parameters().environment.ambient_p_MPa_abs.value;
+if value ~= fixedPressure_MPa_abs
+    error('RouteA:FixedAmbientPressure', ...
+        '%s is fixed at %.6g MPa(abs) for the active Route A platform.', ...
+        fieldName, fixedPressure_MPa_abs);
 end
 end
 

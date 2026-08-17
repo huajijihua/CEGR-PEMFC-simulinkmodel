@@ -193,7 +193,6 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
         AdvancedH2OLabel                    matlab.ui.control.Label
         AdvancedH2OEditField                matlab.ui.control.NumericEditField
         AdvancedAmbientTemperatureEditField  matlab.ui.control.NumericEditField
-        AdvancedAmbientPressureEditField     matlab.ui.control.NumericEditField
         AdvancedAirPidKpEditField            matlab.ui.control.NumericEditField
         AdvancedAirPidKiEditField            matlab.ui.control.NumericEditField
         AdvancedCegrDirectAreaEditField      matlab.ui.control.NumericEditField
@@ -685,7 +684,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.AdvancedRelTolEditField, ...
                 app.AdvancedAbsTolEditField, app.AdvancedMaxStepEditField, ...
                 app.AdvancedO2EditField, app.AdvancedH2OEditField, ...
-                app.AdvancedAmbientTemperatureEditField, app.AdvancedAmbientPressureEditField, ...
+                app.AdvancedAmbientTemperatureEditField, ...
                 app.AdvancedAirPidKpEditField, app.AdvancedAirPidKiEditField, ...
                 app.AdvancedKpEditField, app.AdvancedKiEditField, ...
                 app.AdvancedCurrentMinEditField, ...
@@ -796,11 +795,11 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                        sprintf('%.3f', results.target_cegr_ratio), ...
                        sprintf('%.3f', results.actual_cegr_ratio), ...
                        sprintf('%.5f', results.domains.cegr.massFlow_kg_s.mean), ...
-                       sprintf('%.5f', cathode.compressorInletMassFlow_kg_s.mean), ...
+                      sprintf('%.5f', cathode.compressorInletMassFlow_kg_s.mean), ...
                       sprintf('%.5f', cathode.cathodeOutletPressure_MPa.mean), ...
                       sprintf('%.3f', cathode.inletRelativeHumidity.mean), ...
                       sprintf('%.3f', cathode.outletRelativeHumidity.mean), ...
-                      sprintf('%.5f', cathode.waterSeparationRate_kg_s.mean), ...
+                      'not validated (L2 estimate)', ...
                       char(cegr.abilityStatus), char(results.status)};
 
             % Append to table
@@ -880,7 +879,10 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                     char(results.waterCapability.status)); ...
                 sprintf('cEGR 能力: %s | 警告: %d | 失败分类: %s', ...
                     char(cegr.abilityStatus), numel(results.warnings), ...
-                    char(results.failureCategory))};
+                    char(results.failureCategory)); ...
+                sprintf('面板可信状态: %s | 工程解释允许: %s', ...
+                    char(results.panelTrust.status), ...
+                    app.passText(results.panelTrust.engineeringInterpretationAllowed))};
 
             app.CathodeResultTable.Data = { ...
                 '入口质量流量', 'kg/s', app.formatResultValue( ...
@@ -925,14 +927,16 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 '能力分类', '-', char(cegr.abilityStatus), 'diagnostic'; ...
                 '控制模式', '-', app.formatResultValue( ...
                     cegr.controlMode, '%.0f'), 'compile-time'; ...
-                '控制跟踪', '-', app.passText(results.cegrPassed), 'audit'; ...
+                '验收语义', '-', app.cegrAcceptanceText(results), 'audit'; ...
+                'cEGR 验收', '-', app.passText(results.cegrPassed), 'audit'; ...
                 '饱和状态', '-', app.passText(results.saturationPassed), 'audit'};
 
             app.ThermalWaterResultTable.Data = { ...
                 '堆温', 'degC', app.formatResultValue( ...
                     thermal.stackTemperature_C.mean, '%.6g'), 'tail mean'; ...
-                '水分离通量', 'kg/s', app.formatResultValue( ...
-                    cathode.waterSeparationRate_kg_s.mean, '%.6g'), 'tail mean'; ...
+                'L2 气相冷凝过量估算', 'kg/s', app.formatResultValue( ...
+                    cathode.waterSeparationRate_kg_s.mean, '%.6g'), ...
+                    'not_validated | L2 proxy, no liquid closure'; ...
                 '水能力状态', '-', char(water.status), 'capability'; ...
                 '水结论范围', '-', char(water.scope), 'capability'; ...
                 '阴极出口温度', 'K', app.formatResultValue( ...
@@ -945,10 +949,19 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 '失败分类', '-', char(results.failureCategory), 'result'; ...
                 '观测契约', '-', app.passText(results.observationReport.passed), 'contract'; ...
                 '稳定性', '-', app.passText(results.steadyPassed), 'audit'; ...
+                '阳极吹扫观测', '-', app.passText(results.purge.observed), ...
+                    char(results.purge.source); ...
+                '阳极吹扫事件数', '-', sprintf('%d', ...
+                    numel(results.purge.eventTimesModel_s)), 'whole run'; ...
+                '尾窗吹扫事件数', '-', sprintf('%d', ...
+                    results.purge.tailEventCount), 'tail window'; ...
                 '尾窗 purge-free', '-', app.passText(results.tailPurgeFree), 'audit'; ...
                 '拓扑 hash', '-', char(results.topologyHash), 'provenance'; ...
                 '模型版本', '-', app.formatModelVersion(results.modelVersion), 'provenance'; ...
                 '结果级别', '-', char(results.outputLevel), 'display'; ...
+                '面板可信状态', '-', char(results.panelTrust.status), 'trust gate'; ...
+                '工程解释', '-', app.passText(results.panelTrust.engineeringInterpretationAllowed), ...
+                    char(results.panelTrust.reason); ...
                 'signalManifest', '-', sprintf('%d signals', ...
                     numel(results.signalManifest)), 'contract'; ...
                 'warnings', '-', app.formatTextList(results.warnings), ...
@@ -982,6 +995,14 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 text = 'verified';
             else
                 text = 'not_verified';
+            end
+        end
+
+        function text = cegrAcceptanceText(~, results)
+            if results.cegrTrackingRequired
+                text = 'closed-loop tracking';
+            else
+                text = 'direct physical response';
             end
         end
 
@@ -1286,7 +1307,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
             configViewportHeight = max(100, panelHeight - 68);
             app.ConfigScrollPanel.Position = ...
-                [0 0 leftContentWidth configViewportHeight];
+                [0 54 leftContentWidth max(100, configViewportHeight - 54)];
             app.ConfigCanvas.Position = [0 0 1 1];
             % The mode bar is a fixed child of LeftPanel.  The scrollable
             % content stops below it, so every configuration page shares one
@@ -1309,8 +1330,10 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceSettingsIntroLabel.Position(3) = catalogWidth;
             app.DeviceCatalogStatusLabel.Position(3) = catalogWidth;
             app.DeviceCatalogTable.Position(3) = catalogWidth;
-            app.CaseIdEditField.Position(3) = max(180, leftContentWidth - 260);
-            app.RunButton.Position(3) = 170;
+            app.CaseIdLabel.Position = [10 17 55 22];
+            app.CaseIdEditField.Position = [70 17 ...
+                max(180, leftContentWidth - 260) 22];
+            app.RunButton.Position = [leftContentWidth - 180 13 170 30];
 
             rightContentHeight = max(620, panelHeight);
             app.OutputLevelLabel.Position = [10 rightContentHeight - 34 80 22];
@@ -1560,7 +1583,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % Electrical boundary panel
             app.ElectricalPanel = uipanel(app.ConfigCanvas);
             app.ElectricalPanel.Title = '电边界';
-            app.ElectricalPanel.Position = [10 990 450 100];
+            app.ElectricalPanel.Position = [10 700 500 115];
             app.ElectricalPanel.BackgroundColor = [1 1 1];
             
             app.BoundaryModeLabel = uilabel(app.ElectricalPanel);
@@ -1603,74 +1626,74 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % Air path panel
             app.AirPathPanel = uipanel(app.ConfigCanvas);
             app.AirPathPanel.Title = '阴极进气与空气控制';
-            app.AirPathPanel.Position = [10 750 450 225];
+            app.AirPathPanel.Position = [10 495 500 190];
             app.AirPathPanel.BackgroundColor = [1 1 1];
 
             app.AirControlModeLabel = uilabel(app.AirPathPanel);
-            app.AirControlModeLabel.Position = [10 180 100 22];
+            app.AirControlModeLabel.Position = [10 145 100 22];
             app.AirControlModeLabel.Text = '空气模式:';
             app.AirControlModeDropDown = uidropdown(app.AirPathPanel);
             app.AirControlModeDropDown.Items = {'质量流量', 'OER', '空压机命令'};
             app.AirControlModeDropDown.ItemsData = [1 2 3];
             app.AirControlModeDropDown.Value = params.controls.air_control_mode.value;
-            app.AirControlModeDropDown.Position = [110 180 130 22];
+            app.AirControlModeDropDown.Position = [110 145 130 22];
             app.AirControlModeDropDown.ValueChangedFcn = ...
                 createCallbackFcn(app, @AirControlModeChanged, true);
             
             app.OerLabel = uilabel(app.AirPathPanel);
-            app.OerLabel.Position = [300 180 70 22];
+            app.OerLabel.Position = [275 145 70 22];
             app.OerLabel.Text = 'OER (-):';
             
             app.OerEditField = uieditfield(app.AirPathPanel, 'numeric');
-            app.OerEditField.Position = [375 180 80 22];
+            app.OerEditField.Position = [360 145 85 22];
             app.OerEditField.Value = params.controls.target_oer.value;
             app.OerEditField.Tooltip = ...
                 '模式 2：OER 为无量纲氧过量比，模型按电流换算目标流量后驱动空压机';
 
             app.TargetMdotLabel = uilabel(app.AirPathPanel);
-            app.TargetMdotLabel.Position = [10 145 130 22];
+            app.TargetMdotLabel.Position = [10 110 130 22];
             app.TargetMdotLabel.Text = '目标流量 (kg/s):';
             app.TargetMdotEditField = uieditfield(app.AirPathPanel, 'numeric');
-            app.TargetMdotEditField.Position = [145 145 85 22];
+            app.TargetMdotEditField.Position = [145 110 85 22];
             app.TargetMdotEditField.Value = params.controls.target_mdot_kg_s.value;
             app.TargetMdotEditField.Tooltip = ...
                 '模式 1：空压机入口质量流量目标；模型再经流量控制环驱动空压机';
 
             app.DirectCommandLabel = uilabel(app.AirPathPanel);
-            app.DirectCommandLabel.Position = [300 145 115 22];
+            app.DirectCommandLabel.Position = [275 110 115 22];
             app.DirectCommandLabel.Text = '空压机命令 (0-1):';
             app.DirectCommandEditField = uieditfield(app.AirPathPanel, 'numeric');
-            app.DirectCommandEditField.Position = [420 145 80 22];
+            app.DirectCommandEditField.Position = [410 110 85 22];
             app.DirectCommandEditField.Value = params.controls.air_direct_command.value;
             app.DirectCommandEditField.Tooltip = ...
                 ['模式 3：直接给空压机归一化执行命令；仍经过压缩机图谱，', ...
                  '不是直接给电堆气体'];
             
             app.BackpressureLabel = uilabel(app.AirPathPanel);
-            app.BackpressureLabel.Position = [10 110 145 22];
+            app.BackpressureLabel.Position = [10 75 145 22];
             app.BackpressureLabel.Text = '背压 (MPa(abs)):';
             
             app.BackpressureEditField = uieditfield(app.AirPathPanel, 'numeric');
-            app.BackpressureEditField.Position = [155 110 85 22];
+            app.BackpressureEditField.Position = [155 75 85 22];
             app.BackpressureEditField.Value = ...
                 params.controls.backpressure_MPa_abs.value;
             
             app.HumidifierRHLabel = uilabel(app.AirPathPanel);
-            app.HumidifierRHLabel.Position = [300 110 115 22];
+            app.HumidifierRHLabel.Position = [275 75 125 22];
             app.HumidifierRHLabel.Text = '加湿器出口 RH (-):';
             
             app.HumidifierRHEditField = uieditfield(app.AirPathPanel, 'numeric');
-            app.HumidifierRHEditField.Position = [420 110 80 22];
+            app.HumidifierRHEditField.Position = [410 75 85 22];
             app.HumidifierRHEditField.Value = ...
                 params.cathode.humidifier.default_rh.value;
 
             app.HumidifierEnabledCheckBox = uicheckbox(app.AirPathPanel);
             app.HumidifierEnabledCheckBox.Text = '启用加湿器';
             app.SourceTemperatureLabel = uilabel(app.AirPathPanel);
-            app.SourceTemperatureLabel.Position = [300 75 115 22];
+            app.SourceTemperatureLabel.Position = [275 40 125 22];
             app.SourceTemperatureLabel.Text = '加湿温度 (C):';
             app.SourceTemperatureEditField = uieditfield(app.AirPathPanel, 'numeric');
-            app.SourceTemperatureEditField.Position = [420 75 80 22];
+            app.SourceTemperatureEditField.Position = [410 40 85 22];
             app.SourceTemperatureEditField.Value = ...
                 params.thermal.stack_temperature_set_C.value;
             app.SourceTemperatureEditField.Tooltip = ...
@@ -1679,7 +1702,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.SourceTemperatureEditField.ValueChangedFcn = ...
                 createCallbackFcn(app, @HumidifierTemperatureChanged, true);
 
-            app.HumidifierEnabledCheckBox.Position = [10 75 120 22];
+            app.HumidifierEnabledCheckBox.Position = [10 40 150 22];
             app.HumidifierEnabledCheckBox.Value = ...
                 logical(params.cathode.humidifier.enabled.value);
             app.HumidifierEnabledCheckBox.ValueChangedFcn = ...
@@ -1688,7 +1711,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % cEGR panel
             app.CegrPanel = uipanel(app.ConfigCanvas);
             app.CegrPanel.Title = 'cEGR';
-            app.CegrPanel.Position = [10 700 450 80];
+            app.CegrPanel.Position = [10 395 500 85];
             app.CegrPanel.BackgroundColor = [1 1 1];
             
             app.CegrRatioLabel = uilabel(app.CegrPanel);
@@ -1709,7 +1732,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % Solver panel
             app.SolverPanel = uipanel(app.ConfigCanvas);
             app.SolverPanel.Title = '求解器';
-            app.SolverPanel.Position = [10 630 450 60];
+            app.SolverPanel.Position = [10 315 500 65];
             app.SolverPanel.BackgroundColor = [1 1 1];
             
             app.StopTimeLabel = uilabel(app.SolverPanel);
@@ -1719,11 +1742,12 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.StopTimeEditField = uieditfield(app.SolverPanel, 'numeric');
             app.StopTimeEditField.Position = [110 15 100 22];
             app.StopTimeEditField.Value = params.numerics.stopTime_s.value;
+            app.StopTimeEditField.Limits = [eps Inf];
 
             % Thermal boundary panel
             app.ThermalPanel = uipanel(app.ConfigCanvas);
             app.ThermalPanel.Title = '温度边界';
-            app.ThermalPanel.Position = [10 550 450 65];
+            app.ThermalPanel.Position = [10 235 500 65];
             app.ThermalPanel.BackgroundColor = [1 1 1];
             app.StackTemperatureLabel = uilabel(app.ThermalPanel);
             app.StackTemperatureLabel.Position = [10 20 145 22];
@@ -1739,7 +1763,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % Device settings only exposes inputs with a closed model-write
             % path.  The complete device inventory remains visible below.
             app.DeviceSettingsPanel = uipanel(app.ConfigCanvas);
-            app.DeviceSettingsPanel.Title = '系统设备参数设置';
+            app.DeviceSettingsPanel.Title = '设备参数设置 | 按子系统分组';
             app.DeviceSettingsPanel.Position = [10 100 450 2050];
             app.DeviceSettingsPanel.BackgroundColor = [1 1 1];
             app.DeviceSettingsIntroLabel = uilabel(app.DeviceSettingsPanel);
@@ -1750,7 +1774,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 '空压机三数组由一个图谱编辑器组原子提交；恢复默认值仅作用于本页设备输入。'};
             app.DeviceSettingsIntroLabel.FontColor = [0.20 0.25 0.30];
             app.DeviceSettingsIntroLabel.FontSize = 10;
-            uilabel(app.DeviceSettingsPanel, 'Text', '电堆 / MEA 性能', ...
+            uilabel(app.DeviceSettingsPanel, 'Text', '电堆与 MEA', ...
                 'Position', [10 1940 430 22], 'FontWeight', 'bold', ...
                 'FontColor', [0.05 0.25 0.50]);
             uilabel(app.DeviceSettingsPanel, 'Text', '电堆单体数量 (-):', ...
@@ -1792,7 +1816,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceStackMembraneEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '膜厚度 (um):', [10 1760 135 22], ...
                 [145 1760 80 22], params.stack.t_membrane_um.value, [1 1000]);
-            uilabel(app.DeviceSettingsPanel, 'Text', 'cEGR 阀与管路', ...
+            uilabel(app.DeviceSettingsPanel, 'Text', 'cEGR 回流支路：阀与管路', ...
                 'Position', [10 1720 430 22], 'FontWeight', 'bold', ...
                 'FontColor', [0.05 0.25 0.50]);
             uilabel(app.DeviceSettingsPanel, 'Text', 'cEGR 阀执行器 tau (s):', ...
@@ -1813,7 +1837,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceCegrPipeRoughnessEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '管路粗糙度 (m):', [10 1610 135 22], ...
                 [145 1610 80 22], params.cegr.pipe.roughness_m.value, [0 0.01]);
-            uilabel(app.DeviceSettingsPanel, 'Text', '阴极 BOP 标量性能', ...
+            uilabel(app.DeviceSettingsPanel, 'Text', '阴极 BOP：中冷器、分离器与容积', ...
                 'Position', [10 1570 430 22], 'FontWeight', 'bold', ...
                 'FontColor', [0.05 0.25 0.50]);
             app.DeviceIntercoolerMdotEditField = app.addDeviceNumericField( ...
@@ -1840,7 +1864,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceCathodeOutletVolumeEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '出口腔容积 (L):', [240 1425 140 22], ...
                 [380 1425 60 22], params.cathode.outlet_chamber.volume_L.value, [eps 1000]);
-            uilabel(app.DeviceSettingsPanel, 'Text', '空压机特性图谱', ...
+            uilabel(app.DeviceSettingsPanel, 'Text', '阴极 BOP：空压机特性图谱', ...
                 'Position', [10 1350 430 22], 'FontWeight', 'bold', ...
                 'FontColor', [0.05 0.25 0.50]);
             app.CompressorMapEditorButton = uibutton(app.DeviceSettingsPanel, 'push');
@@ -1853,7 +1877,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.CompressorMapStatusLabel.FontColor = [0.35 0.35 0.35];
             app.CompressorMapStatusLabel.FontSize = 10;
             app.CompressorMapStatusLabel.Text = '3 个转速点 x 5 个压比点; 官方默认';
-            uilabel(app.DeviceSettingsPanel, 'Text', '阳极储氢设备', ...
+            uilabel(app.DeviceSettingsPanel, 'Text', '阳极 BOP：储氢、分离与回流', ...
                 'Position', [10 1275 430 22], 'FontWeight', 'bold', ...
                 'FontColor', [0.05 0.25 0.50]);
             app.DeviceAnodeTankPressureEditField = app.addDeviceNumericField( ...
@@ -1871,7 +1895,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceAnodeSeparatorLaminarEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '分离器层流分数 (-):', [10 1165 135 22], ...
                 [145 1165 80 22], params.anode.separator.laminar_fraction.value, [0 1]);
-            uilabel(app.DeviceSettingsPanel, 'Text', '冷却通道几何（成组提交）', ...
+            uilabel(app.DeviceSettingsPanel, 'Text', '热管理：堆内冷却通道（成组提交）', ...
                 'Position', [10 1128 250 22], 'FontWeight', 'bold');
             app.DeviceCoolantChannelWidthEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '通道宽度 (cm):', [10 1095 135 22], ...
@@ -1885,7 +1909,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceCoolantTubeDEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '冷却管径 (m):', [240 1060 135 22], ...
                 [380 1060 60 22], params.thermal.coolant.tube_D_m.value, [0.01 0.10]);
-            uilabel(app.DeviceSettingsPanel, 'Text', '散热器核心与热容量（成组提交）', ...
+            uilabel(app.DeviceSettingsPanel, 'Text', '热管理：散热器核心与热容量（成组提交）', ...
                 'Position', [10 1025 280 22], 'FontWeight', 'bold');
             app.DeviceRadiatorLengthEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '核心长度 (m):', [10 990 135 22], ...
@@ -1917,7 +1941,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceRadiatorSpecificHeatEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '材料比热 (J/(kg*K)):', [240 850 135 22], ...
                 [380 850 60 22], params.thermal.radiator.cp_J_kgK.value, [300 1500]);
-            uilabel(app.DeviceSettingsPanel, 'Text', '待开放 BOP 标量（已接入）', ...
+            uilabel(app.DeviceSettingsPanel, 'Text', '阴极 BOP 补充：中冷器', ...
                 'Position', [10 815 430 22], 'FontWeight', 'bold', ...
                 'FontColor', [0.05 0.25 0.50]);
             app.DeviceIntercoolerAreaEditField = app.addDeviceNumericField( ...
@@ -1926,37 +1950,43 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.DeviceIntercoolerLaminarEditField = app.addDeviceNumericField( ...
                 app.DeviceSettingsPanel, '中冷器层流分数 (-):', [240 780 135 22], ...
                 [380 780 60 22], params.cathode.intercooler.laminar_fraction.value, [0 1]);
+            uilabel(app.DeviceSettingsPanel, 'Text', '阳极 BOP 补充：分离器', ...
+                'Position', [10 750 430 22], 'FontWeight', 'bold', ...
+                'FontColor', [0.05 0.25 0.50]);
             app.DeviceAnodeSeparatorMdotEditField = app.addDeviceNumericField( ...
-                app.DeviceSettingsPanel, '阳极分离器流量 (kg/s):', [10 745 135 22], ...
-                [145 745 80 22], params.anode.separator.mdot_nominal_kg_s.value, [eps 1]);
+                app.DeviceSettingsPanel, '阳极分离器流量 (kg/s):', [10 715 135 22], ...
+                [145 715 80 22], params.anode.separator.mdot_nominal_kg_s.value, [eps 1]);
             app.DeviceAnodeSeparatorDpEditField = app.addDeviceNumericField( ...
-                app.DeviceSettingsPanel, '阳极分离器压降 (MPa):', [240 745 135 22], ...
-                [380 745 60 22], params.anode.separator.dp_nominal_MPa.value, [0 0.1]);
+                app.DeviceSettingsPanel, '阳极分离器压降 (MPa):', [240 715 140 22], ...
+                [390 715 85 22], params.anode.separator.dp_nominal_MPa.value, [0 0.1]);
+            uilabel(app.DeviceSettingsPanel, 'Text', 'cEGR 回流支路补充：冷凝与初始状态', ...
+                'Position', [10 680 430 22], 'FontWeight', 'bold', ...
+                'FontColor', [0.05 0.25 0.50]);
             app.DeviceCegrCondTauEditField = app.addDeviceNumericField( ...
-                app.DeviceSettingsPanel, 'cEGR 冷凝 tau (s):', [10 710 135 22], ...
-                [145 710 80 22], params.cegr.condensation_tau_s.value, [eps 1000]);
+                app.DeviceSettingsPanel, 'cEGR 冷凝 tau (s):', [10 645 135 22], ...
+                [145 645 80 22], params.cegr.condensation_tau_s.value, [eps 1000]);
             app.DeviceCegrValveMinAreaEditField = app.addDeviceNumericField( ...
-                app.DeviceSettingsPanel, '阀最小面积 (m^2):', [240 710 135 22], ...
-                [380 710 60 22], params.cegr.valve_open_min_area_m2.value, [1e-12 1]);
+                app.DeviceSettingsPanel, '阀最小面积 (m^2):', [255 645 120 22], ...
+                [390 645 85 22], params.cegr.valve_open_min_area_m2.value, [1e-12 1]);
             app.DeviceCegrInletMixerP0EditField = app.addDeviceNumericField( ...
-                app.DeviceSettingsPanel, '入口混合器 p0 (MPa):', [10 675 135 22], ...
-                [145 675 80 22], params.cegr.inlet_mixer_p0_MPa_abs.value, [0.01 1]);
+                app.DeviceSettingsPanel, '入口混合器 p0 (MPa):', [10 610 135 22], ...
+                [145 610 80 22], params.cegr.inlet_mixer_p0_MPa_abs.value, [0.01 1]);
             app.DeviceCegrOutletP0EditField = app.addDeviceNumericField( ...
-                app.DeviceSettingsPanel, '出口腔 p0 (MPa):', [240 675 135 22], ...
-                [380 675 60 22], params.cegr.outlet_chamber_p0_MPa_abs.value, [0.01 1]);
+                app.DeviceSettingsPanel, '出口腔 p0 (MPa):', [255 610 120 22], ...
+                [390 610 85 22], params.cegr.outlet_chamber_p0_MPa_abs.value, [0.01 1]);
             app.DeviceCegrPipeExtraLengthEditField = app.addDeviceNumericField( ...
-                app.DeviceSettingsPanel, '管路附加长度 (m):', [10 640 135 22], ...
-                [145 640 80 22], params.cegr.pipe.extra_length_m.value, [0 100]);
+                app.DeviceSettingsPanel, '管路附加长度 (m):', [10 575 135 22], ...
+                [145 575 80 22], params.cegr.pipe.extra_length_m.value, [0 100]);
             app.DeviceCegrPipeP0EditField = app.addDeviceNumericField( ...
-                app.DeviceSettingsPanel, '管路 p0 (MPa):', [240 640 135 22], ...
-                [380 640 60 22], params.cegr.pipe.p0_MPa_abs.value, [0.01 1]);
+                app.DeviceSettingsPanel, '管路 p0 (MPa):', [255 575 120 22], ...
+                [390 575 85 22], params.cegr.pipe.p0_MPa_abs.value, [0.01 1]);
             app.RestoreDeviceDefaultsButton = uibutton(app.DeviceSettingsPanel, 'push');
             app.RestoreDeviceDefaultsButton.Text = '恢复设备默认值';
-            app.RestoreDeviceDefaultsButton.Position = [250 600 190 25];
+            app.RestoreDeviceDefaultsButton.Position = [285 535 190 25];
             app.RestoreDeviceDefaultsButton.ButtonPushedFcn = ...
                 createCallbackFcn(app, @RestoreDeviceDefaultsButtonPushed, true);
             app.DeviceCatalogStatusLabel = uilabel(app.DeviceSettingsPanel);
-            app.DeviceCatalogStatusLabel.Position = [10 565 430 22];
+            app.DeviceCatalogStatusLabel.Position = [10 505 470 22];
             app.DeviceCatalogStatusLabel.FontColor = [0.35 0.35 0.35];
             registry = routeA_parameter_registry(app.platformPaths);
             deviceCatalogMask = arrayfun(@(entry) app.isDeviceCatalogEntry(entry) || ...
@@ -1973,7 +2003,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 numel(deviceCatalogEntries), deviceEditableCount, ...
                 deviceInventoryCount, deviceUnresolvedCount);
             app.DeviceCatalogTable = uitable(app.DeviceSettingsPanel);
-            app.DeviceCatalogTable.Position = [10 10 430 535];
+            app.DeviceCatalogTable.Position = [10 10 470 480];
             app.DeviceCatalogTable.ColumnName = { ...
                 '参数含义 / 作用', '设备 / 子系统', '单位', 'platform_default', ...
                 '允许范围', '面板权限', '模型写入与映射'};
@@ -1987,10 +2017,10 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % draft / most-recent-run snapshot.
             app.FutureDomainsPanel = uipanel(app.ConfigCanvas);
             app.FutureDomainsPanel.Title = '系统模型参数';
-            app.FutureDomainsPanel.Position = [10 100 450 1200];
+            app.FutureDomainsPanel.Position = [10 100 500 1350];
             app.FutureDomainsPanel.BackgroundColor = [0.97 0.97 0.97];
             app.ParameterCatalogIntroLabel = uilabel(app.FutureDomainsPanel);
-            app.ParameterCatalogIntroLabel.Position = [10 1145 430 70];
+            app.ParameterCatalogIntroLabel.Position = [10 1255 470 50];
             app.ParameterCatalogIntroLabel.Text = { ...
                 '本页按模型工作区变量展示物理含义、引用状态、面板承接和所属子系统；本页始终只读。'; ...
                 '工作区变量按“实际引用”和“未引用/辅助”分组；实际引用再按“面板已承接”和“待开放”分组。'; ...
@@ -1998,7 +2028,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.ParameterCatalogIntroLabel.FontColor = [0.20 0.25 0.30];
             app.ParameterCatalogIntroLabel.FontSize = 10;
             app.ParameterCatalogStatusLabel = uilabel(app.FutureDomainsPanel);
-            app.ParameterCatalogStatusLabel.Position = [10 1070 430 65];
+            app.ParameterCatalogStatusLabel.Position = [10 1185 470 50];
             app.ParameterCatalogStatusLabel.FontColor = [0.35 0.35 0.35];
             registry = routeA_parameter_registry(app.platformPaths);
             audit = routeA_audit_parameter_inventory(false);
@@ -2014,16 +2044,16 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 audit.counts.panelEntryWithoutModelReferenceCount);
             app.ParameterCatalogTable = uitable(app.FutureDomainsPanel);
             app.RunSnapshotLabel = uilabel(app.FutureDomainsPanel);
-            app.RunSnapshotLabel.Position = [10 1042 430 22];
+            app.RunSnapshotLabel.Position = [10 1155 470 22];
             app.RunSnapshotLabel.Text = '当前草稿 / 最近运行：尚未运行';
             app.RunSnapshotLabel.FontWeight = 'bold';
             app.RunSnapshotTable = uitable(app.FutureDomainsPanel);
-            app.RunSnapshotTable.Position = [10 925 430 105];
+            app.RunSnapshotTable.Position = [10 1025 470 115];
             app.RunSnapshotTable.ColumnName = {'项目', '当前草稿或最近结果'};
             app.RunSnapshotTable.ColumnWidth = {175, 235};
             app.RunSnapshotTable.RowName = {};
             app.RunSnapshotTable.ColumnEditable = false(1, 2);
-            app.ParameterCatalogTable.Position = [10 10 430 900];
+            app.ParameterCatalogTable.Position = [10 10 470 1000];
             app.ParameterCatalogTable.ColumnName = { ...
                 '模型变量', '物理含义 / 功能', '类型 / 尺寸', '默认值', ...
                 '开放处置', '模型引用状态', '面板承接状态', '面板参数', ...
@@ -2037,13 +2067,13 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
             app.HelpPanel = uipanel(app.ConfigCanvas);
             app.HelpPanel.Title = '帮助与输入说明';
-            app.HelpPanel.Position = [10 100 450 1200];
+            app.HelpPanel.Position = [10 100 500 1350];
             app.HelpPanel.BackgroundColor = [1 1 1];
             if isprop(app.HelpPanel, 'Scrollable')
                 app.HelpPanel.Scrollable = 'off';
             end
             app.HelpTextArea = uitextarea(app.HelpPanel);
-            app.HelpTextArea.Position = [10 10 430 1155];
+            app.HelpTextArea.Position = [10 10 470 1305];
             app.HelpTextArea.Editable = 'off';
             app.HelpTextArea.FontSize = 11;
             app.HelpTextArea.Value = app.defaultHelpText();
@@ -2053,7 +2083,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % keeping one active source for every field used by Run.
             app.AdvancedPanel = uipanel(app.ConfigCanvas);
             app.AdvancedPanel.Title = '高级参数（按域分组）';
-            app.AdvancedPanel.Position = [10 100 450 1320];
+            app.AdvancedPanel.Position = [10 100 500 1430];
             app.AdvancedPanel.BackgroundColor = [1 1 1];
             app.AdvancedPanel.Visible = 'off';
             if isprop(app.AdvancedPanel, 'Scrollable')
@@ -2061,30 +2091,27 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             end
 
             sectionLabel = uilabel(app.AdvancedPanel);
-            sectionLabel.Position = [10 1285 420 22];
-            sectionLabel.Text = '0  cEGR 控制器参数';
-            sectionLabel.FontWeight = 'bold';
-            sectionLabel.FontColor = [0.12 0.25 0.38];
+            sectionLabel.Visible = 'off';
 
             app.AdvancedCegrKpLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedCegrKpLabel.Position = [10 1250 135 22];
+            app.AdvancedCegrKpLabel.Position = [10 845 135 22];
             app.AdvancedCegrKpLabel.Text = 'cEGR PI Kp (m^2):';
             app.AdvancedCegrKpEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedCegrKpEditField.Position = [145 1250 80 22];
+            app.AdvancedCegrKpEditField.Position = [145 845 80 22];
             app.AdvancedCegrKpEditField.Value = params.cegr.control.Kp_area.value;
             app.AdvancedCegrKpEditField.Limits = [eps Inf];
             app.AdvancedCegrKpEditField.Tooltip = ...
-                'cEGR 目标比例 PI 比例增益；合法范围为正值；写入 routeA_egr_control_Kp_area。';
+                'cEGR 比例偏差的即时阀面积修正强度；过大可能使回流控制振荡。';
 
             app.AdvancedCegrKiLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedCegrKiLabel.Position = [240 1250 110 22];
+            app.AdvancedCegrKiLabel.Position = [255 845 120 22];
             app.AdvancedCegrKiLabel.Text = 'cEGR PI Ki (m^2/s):';
             app.AdvancedCegrKiEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedCegrKiEditField.Position = [350 1250 90 22];
+            app.AdvancedCegrKiEditField.Position = [390 845 85 22];
             app.AdvancedCegrKiEditField.Value = params.cegr.control.Ki_area.value;
             app.AdvancedCegrKiEditField.Limits = [eps Inf];
             app.AdvancedCegrKiEditField.Tooltip = ...
-                'cEGR 目标比例 PI 积分增益；合法范围为正值；写入 routeA_egr_control_Ki_area。';
+                'cEGR 比例偏差的累积阀面积修正强度；用于消除稳态回流比例误差。';
 
             app.AdvancedCegrActuatorTauLabel = uilabel(app.AdvancedPanel);
             app.AdvancedCegrActuatorTauLabel.Position = [10 1215 135 22];
@@ -2095,7 +2122,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedCegrActuatorTauEditField.Value = params.cegr.actuator_tau_s.value;
             app.AdvancedCegrActuatorTauEditField.Limits = [eps Inf];
             app.AdvancedCegrActuatorTauEditField.Tooltip = ...
-                'cEGR 阀一阶执行器时间常数；合法范围为正值；写入 routeA_egr_valve_actuator_tau。';
+                '阀门从命令面积变化到实际面积的响应时间；越大表示回流调节越滞后。';
 
             app.AdvancedStackNumCellsLabel = uilabel(app.AdvancedPanel);
             app.AdvancedStackNumCellsLabel.Position = [240 1215 110 22];
@@ -2106,7 +2133,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedStackNumCellsEditField.Value = params.stack.num_cells.value;
             app.AdvancedStackNumCellsEditField.Limits = [1 1000];
             app.AdvancedStackNumCellsEditField.Tooltip = ...
-                '电堆串联单体数量；合法范围为 1-1000 的整数；写入 stack_num_cells。';
+                '电堆串联单体数；决定额定电压的堆叠规模。';
 
             app.AdvancedStackAreaLabel = uilabel(app.AdvancedPanel);
             app.AdvancedStackAreaLabel.Position = [10 1180 135 22];
@@ -2116,7 +2143,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedStackAreaEditField.Value = params.stack.area_cm2.value;
             app.AdvancedStackAreaEditField.Limits = [1 1000];
             app.AdvancedStackAreaEditField.Tooltip = ...
-                '每个电堆单体的有效活性面积；合法范围为 1-1000 cm^2；写入 stack_area。';
+                '单体有效反应面积；决定同一电流密度下的电流和功率规模。';
 
             app.AdvancedStackILabel = uilabel(app.AdvancedPanel);
             app.AdvancedStackILabel.Position = [240 1180 110 22];
@@ -2126,7 +2153,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedStackIEditField.Value = params.stack.iL_A_cm2.value;
             app.AdvancedStackIEditField.Limits = [1e-3 5];
             app.AdvancedStackIEditField.Tooltip = ...
-                '电化学极限电流密度；合法范围为 0.001-5 A/cm^2；写入 stack_iL。';
+                '极限电流密度；表示电化学/传质模型允许的电流密度上限。';
 
             app.AdvancedStackIoLabel = uilabel(app.AdvancedPanel);
             app.AdvancedStackIoLabel.Position = [10 1145 135 22];
@@ -2136,7 +2163,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedStackIoEditField.Value = params.stack.io_A_cm2.value;
             app.AdvancedStackIoEditField.Limits = [1e-8 0.1];
             app.AdvancedStackIoEditField.Tooltip = ...
-                '电化学交换电流密度；合法范围为 1e-8-0.1 A/cm^2；写入 stack_io。';
+                '交换电流密度；表示电极反应动力学的基准快慢。';
 
             app.AdvancedPerformanceStatusLabel = uilabel(app.AdvancedPanel);
             app.AdvancedPerformanceStatusLabel.Position = [10 1105 430 30];
@@ -2150,215 +2177,207 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 app.AdvancedStackAreaLabel, app.AdvancedStackAreaEditField, ...
                 app.AdvancedStackILabel, app.AdvancedStackIEditField, ...
                 app.AdvancedStackIoLabel, app.AdvancedStackIoEditField};
+            app.AdvancedPerformanceStatusLabel.Visible = 'off';
             for legacyIdx = 1:numel(legacyDeviceControls)
                 legacyDeviceControls{legacyIdx}.Visible = 'off';
             end
 
             sectionLabel = uilabel(app.AdvancedPanel);
-            sectionLabel.Position = [10 1018 420 22];
+            sectionLabel.Position = [10 1380 470 22];
             sectionLabel.Text = '1  电边界与电压控制';
             sectionLabel.FontWeight = 'bold';
             sectionLabel.FontColor = [0.12 0.25 0.38];
             sectionLabel = uilabel(app.AdvancedPanel);
-            sectionLabel.Position = [10 830 420 22];
+            sectionLabel.Position = [10 1195 470 22];
             sectionLabel.Text = '2  阴极进气、组分与湿度';
             sectionLabel.FontWeight = 'bold';
             sectionLabel.FontColor = [0.12 0.25 0.38];
             sectionLabel = uilabel(app.AdvancedPanel);
-            sectionLabel.Position = [10 575 420 22];
+            sectionLabel.Position = [10 915 470 22];
             sectionLabel.Text = '3  cEGR 目标比例与阀控制';
             sectionLabel.FontWeight = 'bold';
             sectionLabel.FontColor = [0.12 0.25 0.38];
             sectionLabel = uilabel(app.AdvancedPanel);
-            sectionLabel.Position = [10 430 420 22];
+            sectionLabel.Position = [10 705 470 22];
             sectionLabel.Text = '4  热边界与数值求解';
             sectionLabel.FontWeight = 'bold';
             sectionLabel.FontColor = [0.12 0.25 0.38];
             sectionLabel = uilabel(app.AdvancedPanel);
-            sectionLabel.Position = [10 280 420 22];
+            sectionLabel.Position = [10 550 470 22];
             sectionLabel.Text = '5  阳极系统输入（10 项已接入）';
             sectionLabel.FontWeight = 'bold';
             sectionLabel.FontColor = [0.12 0.25 0.38];
 
             app.AdvancedBoundaryModeLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedBoundaryModeLabel.Position = [10 985 70 22];
+            app.AdvancedBoundaryModeLabel.Position = [10 1345 70 22];
             app.AdvancedBoundaryModeLabel.Text = '电边界:';
             app.AdvancedBoundaryModeDropDown = uidropdown(app.AdvancedPanel);
             app.AdvancedBoundaryModeDropDown.Items = {'Current', 'Power', 'Voltage'};
             app.AdvancedBoundaryModeDropDown.Value = 'Current';
-            app.AdvancedBoundaryModeDropDown.Position = [80 985 100 22];
+            app.AdvancedBoundaryModeDropDown.Position = [80 1345 110 22];
             app.AdvancedBoundaryModeDropDown.ValueChangedFcn = ...
                 createCallbackFcn(app, @AdvancedBoundaryModeChanged, true);
 
             app.AdvancedBoundaryCommandLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedBoundaryCommandLabel.Position = [195 985 65 22];
+            app.AdvancedBoundaryCommandLabel.Position = [230 1345 65 22];
             app.AdvancedBoundaryCommandLabel.Text = '命令:';
             app.AdvancedBoundaryCommandEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedBoundaryCommandEditField.Position = [260 985 80 22];
+            app.AdvancedBoundaryCommandEditField.Position = [295 1345 95 22];
             app.AdvancedBoundaryCommandEditField.Value = ...
                 params.controls.current_default_ref_A.value;
             app.AdvancedBoundaryUnitLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedBoundaryUnitLabel.Position = [345 985 45 22];
+            app.AdvancedBoundaryUnitLabel.Position = [400 1345 45 22];
             app.AdvancedBoundaryUnitLabel.Text = 'A';
 
             app.AdvancedCommandProfileLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedCommandProfileLabel.Position = [195 950 85 22];
+            app.AdvancedCommandProfileLabel.Position = [230 1310 85 22];
             app.AdvancedCommandProfileLabel.Text = '时序 [t,v]:';
             app.AdvancedCommandProfileEditField = uieditfield(app.AdvancedPanel, 'text');
-            app.AdvancedCommandProfileEditField.Position = [280 950 160 22];
+            app.AdvancedCommandProfileEditField.Position = [315 1310 160 22];
             app.AdvancedCommandProfileEditField.Value = ...
                 app.formatCommandProfileText(app.uiBaseCase().controls.electrical.profile);
             app.AdvancedCommandProfileEditField.Tooltip = ...
                 '留空使用上方标量命令；时序格式：0,0; 60,100; 180,100。时间严格递增，单位与当前电边界一致。';
 
             app.AdvancedRampDurationLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedRampDurationLabel.Position = [10 950 70 22];
+            app.AdvancedRampDurationLabel.Position = [10 1310 70 22];
             app.AdvancedRampDurationLabel.Text = '斜坡 (s):';
             app.AdvancedRampDurationEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedRampDurationEditField.Position = [80 950 100 22];
+            app.AdvancedRampDurationEditField.Position = [100 1310 90 22];
             app.AdvancedRampDurationEditField.Value = ...
                 params.numerics.startupRampDuration_s.value;
 
             app.AdvancedOerLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedOerLabel.Position = [300 795 70 22];
+            app.AdvancedOerLabel.Position = [275 1155 70 22];
             app.AdvancedOerLabel.Text = 'OER (-):';
             app.AdvancedOerEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedOerEditField.Position = [375 795 80 22];
+            app.AdvancedOerEditField.Position = [390 1155 85 22];
             app.AdvancedOerEditField.Value = params.controls.target_oer.value;
             app.AdvancedOerEditField.Tooltip = ...
                 '模式 2：OER 为无量纲氧过量比，模型按电流换算目标流量后驱动空压机';
 
             app.AdvancedBackpressureLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedBackpressureLabel.Position = [10 690 145 22];
+            app.AdvancedBackpressureLabel.Position = [10 1050 145 22];
             app.AdvancedBackpressureLabel.Text = '背压 (MPa(abs)):';
             app.AdvancedBackpressureEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedBackpressureEditField.Position = [155 690 85 22];
+            app.AdvancedBackpressureEditField.Position = [155 1050 85 22];
             app.AdvancedBackpressureEditField.Value = ...
                 params.controls.backpressure_MPa_abs.value;
             app.AdvancedHumidifierRHLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedHumidifierRHLabel.Position = [300 690 115 22];
+            app.AdvancedHumidifierRHLabel.Position = [275 1050 115 22];
             app.AdvancedHumidifierRHLabel.Text = '加湿器出口 RH (-):';
             app.AdvancedHumidifierRHEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedHumidifierRHEditField.Position = [420 690 80 22];
+            app.AdvancedHumidifierRHEditField.Position = [390 1050 85 22];
             app.AdvancedHumidifierRHEditField.Value = ...
                 params.cathode.humidifier.default_rh.value;
 
             app.AdvancedCegrRatioLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedCegrRatioLabel.Position = [10 540 100 22];
+            app.AdvancedCegrRatioLabel.Position = [10 880 100 22];
             app.AdvancedCegrRatioLabel.Text = 'cEGR 比 (-):';
             app.AdvancedCegrRatioEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedCegrRatioEditField.Position = [110 540 100 22];
+            app.AdvancedCegrRatioEditField.Position = [115 880 95 22];
             app.AdvancedCegrRatioEditField.Value = ...
                 params.controls.cegr_target_ratio.value;
             app.AdvancedCegrEnabledCheckBox = uicheckbox(app.AdvancedPanel);
             app.AdvancedCegrEnabledCheckBox.Text = '启用 cEGR';
-            app.AdvancedCegrEnabledCheckBox.Position = [300 540 120 22];
+            app.AdvancedCegrEnabledCheckBox.Position = [275 880 150 22];
             app.AdvancedCegrEnabledCheckBox.Value = ...
                 logical(params.controls.cegr_enabled.value);
             app.AdvancedCegrEnabledCheckBox.ValueChangedFcn = ...
                 createCallbackFcn(app, @AdvancedCegrEnabledChanged, true);
 
             app.AdvancedStopTimeLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedStopTimeLabel.Position = [300 390 70 22];
+            app.AdvancedStopTimeLabel.Position = [275 670 85 22];
             app.AdvancedStopTimeLabel.Text = '时长 (s):';
             app.AdvancedStopTimeEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedStopTimeEditField.Position = [375 390 80 22];
+            app.AdvancedStopTimeEditField.Position = [390 670 85 22];
             app.AdvancedStopTimeEditField.Value = params.numerics.stopTime_s.value;
+            app.AdvancedStopTimeEditField.Limits = [eps Inf];
             app.AdvancedO2Label = uilabel(app.AdvancedPanel);
-            app.AdvancedO2Label.Position = [10 655 100 22];
+            app.AdvancedO2Label.Position = [10 1015 100 22];
             app.AdvancedO2Label.Text = 'O2 分数 (-):';
             app.AdvancedO2EditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedO2EditField.Position = [115 655 85 22];
+            app.AdvancedO2EditField.Position = [115 1015 85 22];
             app.AdvancedO2EditField.Value = params.environment.o2_mole_fraction.value;
 
             app.AdvancedH2OLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedH2OLabel.Position = [300 655 115 22];
+            app.AdvancedH2OLabel.Position = [275 1015 115 22];
             app.AdvancedH2OLabel.Text = 'H2O 分数 (-):';
             app.AdvancedH2OEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedH2OEditField.Position = [420 655 80 22];
+            app.AdvancedH2OEditField.Position = [390 1015 85 22];
             app.AdvancedH2OEditField.Value = params.environment.h2o_mole_fraction.value;
 
             ambientTemperatureLabel = uilabel(app.AdvancedPanel);
-            ambientTemperatureLabel.Position = [10 620 120 22];
+            ambientTemperatureLabel.Position = [10 980 120 22];
             ambientTemperatureLabel.Text = '环境温度 (degC):';
             app.AdvancedAmbientTemperatureEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedAmbientTemperatureEditField.Position = [130 620 85 22];
+            app.AdvancedAmbientTemperatureEditField.Position = [145 980 85 22];
             app.AdvancedAmbientTemperatureEditField.Value = params.environment.ambient_T_C.value;
             app.AdvancedAmbientTemperatureEditField.Limits = [-50 100];
             app.AdvancedAmbientTemperatureEditField.Tooltip = ...
                 '环境温度边界；写入模型变量 env_T，不替代阳极/阴极源温度命令。';
-            ambientPressureLabel = uilabel(app.AdvancedPanel);
-            ambientPressureLabel.Position = [240 620 120 22];
-            ambientPressureLabel.Text = '环境压力 (MPa):';
-            app.AdvancedAmbientPressureEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedAmbientPressureEditField.Position = [360 620 85 22];
-            app.AdvancedAmbientPressureEditField.Value = params.environment.ambient_p_MPa_abs.value;
-            app.AdvancedAmbientPressureEditField.Limits = [0.01 1];
-            app.AdvancedAmbientPressureEditField.Tooltip = ...
-                '环境绝对压力边界；写入模型变量 env_p。';
-
             app.AdvancedKpLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedKpLabel.Position = [10 915 90 22];
+            app.AdvancedKpLabel.Position = [10 1275 90 22];
             app.AdvancedKpLabel.Text = 'Kp (A/V):';
             app.AdvancedKpEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedKpEditField.Position = [105 915 95 22];
+            app.AdvancedKpEditField.Position = [105 1275 95 22];
             app.AdvancedKpEditField.Value = params.controls.voltage_pi_Kp.value;
 
             app.AdvancedKiLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedKiLabel.Position = [300 915 115 22];
+            app.AdvancedKiLabel.Position = [255 1275 115 22];
             app.AdvancedKiLabel.Text = 'Ki (A/V/s):';
             app.AdvancedKiEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedKiEditField.Position = [420 915 80 22];
+            app.AdvancedKiEditField.Position = [390 1275 85 22];
             app.AdvancedKiEditField.Value = params.controls.voltage_pi_Ki.value;
             app.AdvancedCurrentMinLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedCurrentMinLabel.Position = [10 880 90 22];
+            app.AdvancedCurrentMinLabel.Position = [10 1240 90 22];
             app.AdvancedCurrentMinLabel.Text = 'I min (A):';
             app.AdvancedCurrentMinEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedCurrentMinEditField.Position = [105 880 95 22];
+            app.AdvancedCurrentMinEditField.Position = [105 1240 95 22];
             app.AdvancedCurrentMinEditField.Value = ...
                 params.controls.voltage_current_min_A.value;
 
             app.AdvancedCurrentMaxLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedCurrentMaxLabel.Position = [300 880 115 22];
+            app.AdvancedCurrentMaxLabel.Position = [255 1240 115 22];
             app.AdvancedCurrentMaxLabel.Text = 'I max (A):';
             app.AdvancedCurrentMaxEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedCurrentMaxEditField.Position = [420 880 80 22];
+            app.AdvancedCurrentMaxEditField.Position = [390 1240 85 22];
             app.AdvancedCurrentMaxEditField.Value = ...
                 params.controls.voltage_current_max_A.value;
 
             airPidKpLabel = uilabel(app.AdvancedPanel);
-            airPidKpLabel.Position = [10 845 120 22];
+            airPidKpLabel.Position = [10 945 120 22];
             airPidKpLabel.Text = '空压机 PID Kp:';
             app.AdvancedAirPidKpEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedAirPidKpEditField.Position = [130 845 85 22];
+            app.AdvancedAirPidKpEditField.Position = [140 945 85 22];
             app.AdvancedAirPidKpEditField.Value = params.controls.air_pid_Kp.value;
             app.AdvancedAirPidKpEditField.Limits = [eps Inf];
             app.AdvancedAirPidKpEditField.Tooltip = ...
                 '空气压缩机控制器比例增益；写入 routeA_air_pid_Kp。';
             airPidKiLabel = uilabel(app.AdvancedPanel);
-            airPidKiLabel.Position = [240 845 120 22];
+            airPidKiLabel.Position = [255 945 120 22];
             airPidKiLabel.Text = '空压机 PID Ki:';
             app.AdvancedAirPidKiEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedAirPidKiEditField.Position = [360 845 85 22];
+            app.AdvancedAirPidKiEditField.Position = [390 945 85 22];
             app.AdvancedAirPidKiEditField.Value = params.controls.air_pid_Ki.value;
             app.AdvancedAirPidKiEditField.Limits = [eps Inf];
             app.AdvancedAirPidKiEditField.Tooltip = ...
                 '空气压缩机控制器积分增益；写入 routeA_air_pid_Ki。';
 
             app.AdvancedStackTemperatureLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedStackTemperatureLabel.Position = [10 390 130 22];
+            app.AdvancedStackTemperatureLabel.Position = [10 670 145 22];
             app.AdvancedStackTemperatureLabel.Text = '堆温/加湿温度 (C):';
             app.AdvancedStackTemperatureEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedStackTemperatureEditField.Position = [145 390 85 22];
+            app.AdvancedStackTemperatureEditField.Position = [160 670 85 22];
             app.AdvancedStackTemperatureEditField.Value = ...
                 params.thermal.stack_temperature_set_C.value;
             app.AdvancedStackTemperatureEditField.Tooltip = ...
@@ -2368,7 +2387,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % Advanced air path controls. They remain in one scrollable domain
             % panel so adding future controls does not compress the run area.
             app.AdvancedAirControlModeLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedAirControlModeLabel.Position = [10 795 100 22];
+            app.AdvancedAirControlModeLabel.Position = [10 1155 100 22];
             app.AdvancedAirControlModeLabel.Text = '空气模式:';
             app.AdvancedAirControlModeDropDown = uidropdown(app.AdvancedPanel);
             app.AdvancedAirControlModeDropDown.Items = ...
@@ -2376,27 +2395,27 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedAirControlModeDropDown.ItemsData = [1 2 3];
             app.AdvancedAirControlModeDropDown.Value = ...
                 params.controls.air_control_mode.value;
-            app.AdvancedAirControlModeDropDown.Position = [110 795 130 22];
+            app.AdvancedAirControlModeDropDown.Position = [115 1155 130 22];
             app.AdvancedAirControlModeDropDown.ValueChangedFcn = ...
                 createCallbackFcn(app, @AdvancedAirControlModeChanged, true);
 
             app.AdvancedTargetMdotLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedTargetMdotLabel.Position = [10 760 130 22];
+            app.AdvancedTargetMdotLabel.Position = [10 1120 130 22];
             app.AdvancedTargetMdotLabel.Text = '目标流量 (kg/s):';
             app.AdvancedTargetMdotEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedTargetMdotEditField.Position = [145 760 85 22];
+            app.AdvancedTargetMdotEditField.Position = [145 1120 85 22];
             app.AdvancedTargetMdotEditField.Value = ...
                 params.controls.target_mdot_kg_s.value;
             app.AdvancedTargetMdotEditField.Tooltip = ...
                 '模式 1：空压机入口质量流量目标；模型再经流量控制环驱动空压机';
 
             app.AdvancedDirectCommandLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedDirectCommandLabel.Position = [10 725 130 22];
+            app.AdvancedDirectCommandLabel.Position = [10 1085 130 22];
             app.AdvancedDirectCommandLabel.Text = '空压机命令 (0-1):';
             app.AdvancedDirectCommandEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedDirectCommandEditField.Position = [145 725 85 22];
+            app.AdvancedDirectCommandEditField.Position = [145 1085 85 22];
             app.AdvancedDirectCommandEditField.Value = ...
                 params.controls.air_direct_command.value;
             app.AdvancedDirectCommandEditField.Tooltip = ...
@@ -2404,20 +2423,20 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                  '不是直接给电堆气体'];
 
             app.AdvancedSourcePressureLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedSourcePressureLabel.Position = [300 760 115 22];
+            app.AdvancedSourcePressureLabel.Position = [275 1120 115 22];
             app.AdvancedSourcePressureLabel.Text = '源压力 (MPa(abs)):';
             app.AdvancedSourcePressureEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedSourcePressureEditField.Position = [420 760 80 22];
+            app.AdvancedSourcePressureEditField.Position = [390 1120 85 22];
             app.AdvancedSourcePressureEditField.Value = ...
                 params.controls.cathode_source_pressure_MPa_abs.value;
 
             app.AdvancedSourceTemperatureLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedSourceTemperatureLabel.Position = [300 725 115 22];
+            app.AdvancedSourceTemperatureLabel.Position = [275 1085 115 22];
             app.AdvancedSourceTemperatureLabel.Text = '源温度 (C):';
             app.AdvancedSourceTemperatureEditField = ...
                 uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedSourceTemperatureEditField.Position = [420 725 80 22];
+            app.AdvancedSourceTemperatureEditField.Position = [390 1085 85 22];
             app.AdvancedSourceTemperatureEditField.Value = ...
                 params.controls.cathode_source_temperature_C.value;
             app.AdvancedSourceTemperatureEditField.Tooltip = ...
@@ -2425,7 +2444,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
             app.AdvancedHumidifierEnabledCheckBox = uicheckbox(app.AdvancedPanel);
             app.AdvancedHumidifierEnabledCheckBox.Text = '启用加湿器';
-            app.AdvancedHumidifierEnabledCheckBox.Position = [300 620 150 22];
+            app.AdvancedHumidifierEnabledCheckBox.Position = [275 980 150 22];
             app.AdvancedHumidifierEnabledCheckBox.Value = ...
                 logical(params.cathode.humidifier.enabled.value);
             app.AdvancedHumidifierEnabledCheckBox.ValueChangedFcn = ...
@@ -2434,81 +2453,84 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % Solver controls are explicit advanced inputs; the model remains
             % untouched and receives them only through SimulationInput.
             app.AdvancedSolverLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedSolverLabel.Position = [10 355 70 22];
+            app.AdvancedSolverLabel.Position = [10 635 70 22];
             app.AdvancedSolverLabel.Text = '求解器:';
             app.AdvancedSolverDropDown = uidropdown(app.AdvancedPanel);
             % The active Route A assembly validates and runs one solver
             % contract only. Do not expose solver choices that fail later.
             app.AdvancedSolverDropDown.Items = {'VariableStepAuto'};
             app.AdvancedSolverDropDown.Value = char(params.numerics.solver.value);
-            app.AdvancedSolverDropDown.Position = [80 355 130 22];
+            app.AdvancedSolverDropDown.Position = [90 635 155 22];
             app.AdvancedSolverDropDown.Enable = 'off';
             app.AdvancedSolverDropDown.Tooltip = ...
                 '当前模型固定使用 VariableStepAuto；后续扩展 runner 后再开放选择';
             app.AdvancedRelTolLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedRelTolLabel.Position = [300 355 70 22];
+            app.AdvancedRelTolLabel.Position = [275 635 70 22];
             app.AdvancedRelTolLabel.Text = 'RelTol:';
             app.AdvancedRelTolEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedRelTolEditField.Position = [375 355 80 22];
+            app.AdvancedRelTolEditField.Position = [390 635 85 22];
             app.AdvancedRelTolEditField.Value = params.numerics.relTol.value;
 
             app.AdvancedAbsTolLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedAbsTolLabel.Position = [10 320 70 22];
+            app.AdvancedAbsTolLabel.Position = [10 600 70 22];
             app.AdvancedAbsTolLabel.Text = 'AbsTol:';
             app.AdvancedAbsTolEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedAbsTolEditField.Position = [80 320 130 22];
+            app.AdvancedAbsTolEditField.Position = [90 600 155 22];
             app.AdvancedAbsTolEditField.Value = params.numerics.absTol.value;
             app.AdvancedMaxStepLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedMaxStepLabel.Position = [300 320 70 22];
+            app.AdvancedMaxStepLabel.Position = [275 600 85 22];
             app.AdvancedMaxStepLabel.Text = 'MaxStep:';
             app.AdvancedMaxStepEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedMaxStepEditField.Position = [375 320 80 22];
+            app.AdvancedMaxStepEditField.Position = [390 600 85 22];
             app.AdvancedMaxStepEditField.Value = params.numerics.maxStep_s.value;
 
             app.AdvancedCegrValveModeLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedCegrValveModeLabel.Position = [10 505 100 22];
+            app.AdvancedCegrValveModeLabel.Position = [10 810 100 22];
             app.AdvancedCegrValveModeLabel.Text = 'cEGR 阀模式:';
             app.AdvancedCegrValveModeDropDown = uidropdown(app.AdvancedPanel);
-            app.AdvancedCegrValveModeDropDown.Items = {'开度', '压力'};
-            app.AdvancedCegrValveModeDropDown.ItemsData = [1 2];
+            app.AdvancedCegrValveModeDropDown.Items = {'开度'};
+            app.AdvancedCegrValveModeDropDown.ItemsData = 1;
             app.AdvancedCegrValveModeDropDown.Value = ...
                 params.controls.cegr_valve_mode.value;
-            app.AdvancedCegrValveModeDropDown.Position = [110 505 100 22];
+            app.AdvancedCegrValveModeDropDown.Position = [115 810 95 22];
+            app.AdvancedCegrValveModeDropDown.Enable = 'off';
+            app.AdvancedCegrValveModeDropDown.Tooltip = ...
+                '当前正式模型只实现开度限制阀变体；压力模式尚未接入模型。';
             app.AdvancedCegrControlModeLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedCegrControlModeLabel.Position = [300 505 70 22];
+            app.AdvancedCegrControlModeLabel.Position = [275 810 95 22];
             app.AdvancedCegrControlModeLabel.Text = '控制模式:';
             app.AdvancedCegrControlModeDropDown = uidropdown(app.AdvancedPanel);
             app.AdvancedCegrControlModeDropDown.Items = {'目标比例', '直接支路'};
             app.AdvancedCegrControlModeDropDown.ItemsData = [1 2];
             app.AdvancedCegrControlModeDropDown.Value = ...
                 params.controls.cegr_control_mode.value;
-            app.AdvancedCegrControlModeDropDown.Position = [375 505 80 22];
+            app.AdvancedCegrControlModeDropDown.Position = [390 810 85 22];
             app.AdvancedCegrControlModeDropDown.ValueChangedFcn = ...
                 createCallbackFcn(app, @AdvancedCegrControlModeChanged, true);
 
             app.AdvancedCegrTargetInputModeLabel = uilabel(app.AdvancedPanel);
-            app.AdvancedCegrTargetInputModeLabel.Position = [10 470 100 22];
+            app.AdvancedCegrTargetInputModeLabel.Position = [10 775 100 22];
             app.AdvancedCegrTargetInputModeLabel.Text = '目标输入:';
             app.AdvancedCegrTargetInputModeDropDown = uidropdown(app.AdvancedPanel);
             app.AdvancedCegrTargetInputModeDropDown.Items = {'cEGR 比例'};
             app.AdvancedCegrTargetInputModeDropDown.ItemsData = 1;
             app.AdvancedCegrTargetInputModeDropDown.Value = 1;
-            app.AdvancedCegrTargetInputModeDropDown.Position = [110 470 100 22];
+            app.AdvancedCegrTargetInputModeDropDown.Position = [115 775 120 22];
 
             directAreaLabel = uilabel(app.AdvancedPanel);
-            directAreaLabel.Position = [10 435 135 22];
+            directAreaLabel.Position = [10 740 135 22];
             directAreaLabel.Text = '直接阀面积 (m^2):';
             app.AdvancedCegrDirectAreaEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedCegrDirectAreaEditField.Position = [145 435 85 22];
+            app.AdvancedCegrDirectAreaEditField.Position = [145 740 85 22];
             app.AdvancedCegrDirectAreaEditField.Value = params.controls.cegr_direct_area_m2.value;
             app.AdvancedCegrDirectAreaEditField.Limits = [1e-12 1];
             app.AdvancedCegrDirectAreaEditField.Tooltip = ...
                 '仅 cEGR 直接控制模式使用；写入 routeA_egr_valve_area_direct。';
             directTargetLabel = uilabel(app.AdvancedPanel);
-            directTargetLabel.Position = [240 435 120 22];
+            directTargetLabel.Position = [255 740 120 22];
             directTargetLabel.Text = '直接目标比 (-):';
             app.AdvancedCegrDirectTargetEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AdvancedCegrDirectTargetEditField.Position = [360 435 85 22];
+            app.AdvancedCegrDirectTargetEditField.Position = [390 740 85 22];
             app.AdvancedCegrDirectTargetEditField.Value = params.controls.target_egr_ratio_comp_in.value;
             app.AdvancedCegrDirectTargetEditField.Limits = [0 0.5];
             app.AdvancedCegrDirectTargetEditField.Tooltip = ...
@@ -2519,91 +2541,91 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             % runner; the result side remains status-only until signals are
             % confirmed in the active model.
             anodeSectionLabel = uilabel(app.AdvancedPanel);
-            anodeSectionLabel.Position = [10 260 420 16];
+            anodeSectionLabel.Position = [10 520 470 16];
             anodeSectionLabel.Text = '输入已接入统一 profile；观测保持 status-only';
             anodeSectionLabel.FontSize = 9;
             anodeSectionLabel.FontWeight = 'normal';
             anodeSectionLabel.FontColor = [0.15 0.25 0.35];
 
             anodeSourcePressureLabel = uilabel(app.AdvancedPanel);
-            anodeSourcePressureLabel.Position = [10 240 135 22];
+            anodeSourcePressureLabel.Position = [10 490 135 22];
             anodeSourcePressureLabel.Text = '源压力 (MPa(abs)):';
             anodeSourcePressureLabel.FontSize = 10;
             app.AnodeSourcePressureEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AnodeSourcePressureEditField.Position = [145 240 85 22];
+            app.AnodeSourcePressureEditField.Position = [145 490 85 22];
             app.AnodeSourcePressureEditField.Value = params.controls.anode_source_pressure_MPa_abs.value;
             app.AnodeSourcePressureEditField.Limits = [0.2 0.5];
             app.AnodeSourcePressureEditField.Tooltip = ...
-                '阳极氢源压力；合法范围 0.2-0.5 MPa(abs)；写入 routeA_command_profile.anode_source_pressure_MPa_abs。';
+                '阳极氢源压力；合法范围 0.2-0.5 MPa(abs)；非默认值作为本次仿真的 Fuel Tank 压力覆盖写入 tank_p。';
 
             anodeSourceTemperatureLabel = uilabel(app.AdvancedPanel);
-            anodeSourceTemperatureLabel.Position = [230 240 110 22];
+            anodeSourceTemperatureLabel.Position = [255 490 120 22];
             anodeSourceTemperatureLabel.Text = '源温度 (degC):';
             anodeSourceTemperatureLabel.FontSize = 10;
             app.AnodeSourceTemperatureEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AnodeSourceTemperatureEditField.Position = [345 240 85 22];
+            app.AnodeSourceTemperatureEditField.Position = [390 490 85 22];
             app.AnodeSourceTemperatureEditField.Value = params.controls.anode_source_temperature_C.value;
             app.AnodeSourceTemperatureEditField.Limits = [10 60];
             app.AnodeSourceTemperatureEditField.Tooltip = ...
-                '阳极氢源温度；合法范围 10-60 degC；写入 routeA_command_profile.anode_source_temperature_C。';
+                '阳极氢源温度；合法范围 10-60 degC；非默认值作为本次仿真的 Fuel Tank 温度覆盖写入 tank_T。';
 
             anodeH2Label = uilabel(app.AdvancedPanel);
-            anodeH2Label.Position = [10 205 105 22];
+            anodeH2Label.Position = [10 455 105 22];
             anodeH2Label.Text = 'H2 分数 (-):';
             anodeH2Label.FontSize = 10;
             app.AnodeH2EditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AnodeH2EditField.Position = [115 205 85 22];
+            app.AnodeH2EditField.Position = [115 455 85 22];
             app.AnodeH2EditField.Value = params.anode.tank.yH2.value;
             app.AnodeH2EditField.Limits = [0.9 1];
             app.AnodeH2EditField.Tooltip = ...
                 '阳极氢气摩尔分数；合法范围 0.9-1.0；写入 tank_yH2，并同步保留在阳极 profile 字段。';
 
             anodeInletPressureLabel = uilabel(app.AdvancedPanel);
-            anodeInletPressureLabel.Position = [230 205 110 22];
+            anodeInletPressureLabel.Position = [255 455 120 22];
             anodeInletPressureLabel.Text = '入口压力 (MPa(abs)):';
             anodeInletPressureLabel.FontSize = 10;
             app.AnodeInletPressureEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AnodeInletPressureEditField.Position = [345 205 85 22];
+            app.AnodeInletPressureEditField.Position = [390 455 85 22];
             app.AnodeInletPressureEditField.Value = params.anode.default_pressure_MPa_abs.value;
             app.AnodeInletPressureEditField.Limits = [0.1 0.3];
             app.AnodeInletPressureEditField.Tooltip = ...
                 '阳极入口压力设定；合法范围 0.1-0.3 MPa(abs)，且必须低于源压力；写入 routeA_command_profile.anode_inlet_pressure_MPa_abs。';
 
             anodeRhLabel = uilabel(app.AdvancedPanel);
-            anodeRhLabel.Position = [10 170 115 22];
+            anodeRhLabel.Position = [10 420 115 22];
             anodeRhLabel.Text = '阳极 RH (-):';
             anodeRhLabel.FontSize = 10;
             app.AnodeHumidifierRHEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AnodeHumidifierRHEditField.Position = [130 170 70 22];
+            app.AnodeHumidifierRHEditField.Position = [130 420 70 22];
             app.AnodeHumidifierRHEditField.Value = params.anode.humidifier.default_rh.value;
             app.AnodeHumidifierRHEditField.Limits = [0 1];
             app.AnodeHumidifierRHEditField.Tooltip = ...
                 '阳极加湿器出口/入口相对湿度比例；合法范围 0-1；写入 routeA_command_profile.anode_humidifier_rh。';
 
             anodeRecircBaseLabel = uilabel(app.AdvancedPanel);
-            anodeRecircBaseLabel.Position = [230 170 110 22];
+            anodeRecircBaseLabel.Position = [255 420 120 22];
             anodeRecircBaseLabel.Text = '回流基础 (-):';
             anodeRecircBaseLabel.FontSize = 10;
             app.AnodeRecirculationBaseEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AnodeRecirculationBaseEditField.Position = [345 170 85 22];
+            app.AnodeRecirculationBaseEditField.Position = [390 420 85 22];
             app.AnodeRecirculationBaseEditField.Value = params.anode.recirculation.base_command.value;
             app.AnodeRecirculationBaseEditField.Limits = [0 1];
             app.AnodeRecirculationBaseEditField.Tooltip = ...
                 '阳极回流基础归一化命令；合法范围 0-1；写入 routeA_command_profile.anode_recirculation_base。';
 
             anodeRecircGainLabel = uilabel(app.AdvancedPanel);
-            anodeRecircGainLabel.Position = [10 135 130 22];
+            anodeRecircGainLabel.Position = [10 385 130 22];
             anodeRecircGainLabel.Text = '回流增益 (1/A):';
             anodeRecircGainLabel.FontSize = 10;
             app.AnodeRecirculationGainEditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AnodeRecirculationGainEditField.Position = [140 135 70 22];
+            app.AnodeRecirculationGainEditField.Position = [140 385 70 22];
             app.AnodeRecirculationGainEditField.Value = params.anode.recirculation.current_gain_A_inv.value;
             app.AnodeRecirculationGainEditField.Limits = [0 1];
             app.AnodeRecirculationGainEditField.Tooltip = ...
                 '阳极回流电流补偿增益；合法范围 0-1 1/A；写入 routeA_command_profile.anode_recirculation_current_gain_A_inv。';
 
             app.AnodePurgeEnabledCheckBox = uicheckbox(app.AdvancedPanel);
-            app.AnodePurgeEnabledCheckBox.Position = [230 135 200 22];
+            app.AnodePurgeEnabledCheckBox.Position = [275 385 190 22];
             app.AnodePurgeEnabledCheckBox.Text = '启用阳极吹扫';
             app.AnodePurgeEnabledCheckBox.Value = logical(params.anode.purge.enabled.value);
             app.AnodePurgeEnabledCheckBox.Tooltip = ...
@@ -2612,29 +2634,29 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 createCallbackFcn(app, @AnodePurgeEnabledChanged, true);
 
             anodePurgeOnLabel = uilabel(app.AdvancedPanel);
-            anodePurgeOnLabel.Position = [10 100 130 22];
+            anodePurgeOnLabel.Position = [10 350 130 22];
             anodePurgeOnLabel.Text = '吹扫开阈值 (-):';
             anodePurgeOnLabel.FontSize = 10;
             app.AnodePurgeOnN2EditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AnodePurgeOnN2EditField.Position = [140 100 70 22];
+            app.AnodePurgeOnN2EditField.Position = [140 350 70 22];
             app.AnodePurgeOnN2EditField.Value = params.anode.purge.on_n2_mole_fraction.value;
             app.AnodePurgeOnN2EditField.Limits = [0 1];
             app.AnodePurgeOnN2EditField.Tooltip = ...
                 '阳极吹扫开启 N2 摩尔分数阈值；合法范围 0-1，且必须高于关闭阈值；写入 command profile。';
 
             anodePurgeOffLabel = uilabel(app.AdvancedPanel);
-            anodePurgeOffLabel.Position = [230 100 110 22];
+            anodePurgeOffLabel.Position = [255 350 120 22];
             anodePurgeOffLabel.Text = '吹扫关阈值 (-):';
             anodePurgeOffLabel.FontSize = 10;
             app.AnodePurgeOffN2EditField = uieditfield(app.AdvancedPanel, 'numeric');
-            app.AnodePurgeOffN2EditField.Position = [345 100 85 22];
+            app.AnodePurgeOffN2EditField.Position = [390 350 85 22];
             app.AnodePurgeOffN2EditField.Value = params.anode.purge.off_n2_mole_fraction.value;
             app.AnodePurgeOffN2EditField.Limits = [0 1];
             app.AnodePurgeOffN2EditField.Tooltip = ...
                 '阳极吹扫关闭 N2 摩尔分数阈值；合法范围 0-1，且必须低于开启阈值；写入 command profile。';
 
             app.AnodeControlStatusLabel = uilabel(app.AdvancedPanel);
-            app.AnodeControlStatusLabel.Position = [10 65 420 22];
+            app.AnodeControlStatusLabel.Position = [10 315 470 22];
             app.AnodeControlStatusLabel.FontSize = 9;
             app.AnodeControlStatusLabel.FontColor = [0.35 0.35 0.35];
             app.AnodeControlStatusLabel.Text = ...
@@ -2714,7 +2736,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.KpiTable.ColumnName = {'caseId', 'V (V)', 'I (A)', 'P (kW)', ...
                 'OER', 'cEGR tgt', 'cEGR act', 'EGR mdot (kg/s)', ...
                 'Air mdot (kg/s)', 'Pca out (MPa)', ...
-                'RH in', 'RH out', 'Water sep (kg/s)', ...
+                'RH in', 'RH out', 'L2 water excess (kg/s)', ...
                 'cEGR ability', 'status'};
             app.KpiTable.ColumnWidth = {100, 65, 65, 65, 55, 65, 65, 90, ...
                 90, 90, 65, 65, 95, 130, 150};
@@ -2797,6 +2819,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.updateCegrControls(true);
             app.updateVoltageControllerControls();
             app.updateAnodeControls();
+            app.applyInputTooltips();
             drawnow;
             app.layoutFigure([]);
             app.alignActiveConfigPage();
@@ -2805,8 +2828,16 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
 
         function promoteConfigChildren(app)
             children = app.ConfigCanvas.Children;
+            fixedChildren = {app.CaseIdLabel, app.CaseIdEditField, ...
+                app.RunButton, app.MatrixButton};
             for idx = 1:numel(children)
-                children(idx).Parent = app.ConfigScrollPanel;
+                isFixedChild = any(cellfun(@(component) ...
+                    isequal(children(idx), component), fixedChildren));
+                if isFixedChild
+                    children(idx).Parent = app.LeftPanel;
+                else
+                    children(idx).Parent = app.ConfigScrollPanel;
+                end
             end
             app.ConfigCanvas.Position = [0 0 1 1];
             app.ConfigCanvas.Visible = 'off';
@@ -2819,6 +2850,173 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             field.Position = fieldPosition;
             field.Limits = limits;
             field.Value = defaultValue;
+            field.Tooltip = sprintf('设备输入“%s”的物理参数。', labelText);
+        end
+
+        function applyInputTooltips(app)
+            % Keep input help compact and discoverable without adding labels
+            % to the already dense configuration pages. Dynamic enable/disable
+            % callbacks may replace the RH and cEGR messages with state-aware
+            % text after this base set is applied.
+            tooltipPairs = { ...
+                app.BoundaryModeDropDown, '定义外部负载如何要求电堆工作：给定电流、功率或端电压。'; ...
+                app.BoundaryCommandEditField, '所选负载边界的目标值；模型据此求解其余电参量。'; ...
+                app.RampDurationEditField, '从冷启动初值平滑升至负载目标的时间，避免初始时刻突变。'; ...
+                app.AirControlModeDropDown, '指定阴极供气的主控制量；三种模式一次只使用一种。'; ...
+                app.OerEditField, '每消耗 1 mol 氧气所供应氧气的倍数；越大通常空气量越高。'; ...
+                app.TargetMdotEditField, '送入空压机入口的空气质量流量目标，用于直接研究供气量。'; ...
+                app.DirectCommandEditField, '直接给空压机的归一化执行量；绕过流量/OER 控制器但仍经过压缩机图谱。'; ...
+                app.BackpressureEditField, '阴极出口排气压力边界；影响堆内气体分压和压缩机负荷。'; ...
+                app.HumidifierRHEditField, '进入阴极前气体的相对湿度；影响膜水合和阴极气体含水量。'; ...
+                app.HumidifierEnabledCheckBox, '决定阴极进气是否经过加湿器；关闭后 RH 设定不参与本次计算。'; ...
+                app.SourceTemperatureEditField, '阴极入口加湿温度参考；当前模型与堆温设定共用同一温度路径。'; ...
+                app.CegrRatioEditField, '回流到阴极进气侧的尾气比例目标；用于研究稀释、湿度与氧浓度变化。'; ...
+                app.CegrEnabledCheckBox, '启用阴极尾气回流支路；关闭时不回流尾气，目标比例按 0 处理。'; ...
+                app.StopTimeEditField, '模型积分结束时间；任意正值均可，研究稳态或周期行为时按过程时间尺度设置。'; ...
+                app.StackTemperatureEditField, '冷却系统维持的堆温设定；同时作为当前阴极加湿温度参考。'; ...
+                app.AdvancedBoundaryModeDropDown, '定义外部负载如何要求电堆工作：给定电流、功率或端电压。'; ...
+                app.AdvancedBoundaryCommandEditField, '所选负载边界的目标值；模型据此求解其余电参量。'; ...
+                app.AdvancedRampDurationEditField, '从冷启动初值平滑升至负载目标的时间，避免初始时刻突变。'; ...
+                app.AdvancedCommandProfileEditField, '可选电边界时序：t,value; t,value；留空使用标量命令。'; ...
+                app.AdvancedAirControlModeDropDown, '指定阴极供气的主控制量；三种模式一次只使用一种。'; ...
+                app.AdvancedOerEditField, '每消耗 1 mol 氧气所供应氧气的倍数；越大通常空气量越高。'; ...
+                app.AdvancedTargetMdotEditField, '送入空压机入口的空气质量流量目标，用于直接研究供气量。'; ...
+                app.AdvancedDirectCommandEditField, '直接给空压机的归一化执行量；绕过流量/OER 控制器但仍经过压缩机图谱。'; ...
+                app.AdvancedSourcePressureEditField, '新鲜空气源的绝对压力边界；用于设定空压机入口供气状态。'; ...
+                app.AdvancedSourceTemperatureEditField, '新鲜空气进入空压机前的温度；与加湿温度是两个不同边界。'; ...
+                app.AdvancedBackpressureEditField, '阴极出口排气压力边界；影响堆内气体分压和压缩机负荷。'; ...
+                app.AdvancedHumidifierRHEditField, '进入阴极前气体的相对湿度；影响膜水合和阴极气体含水量。'; ...
+                app.AdvancedHumidifierEnabledCheckBox, '决定阴极进气是否经过加湿器；关闭后 RH 设定不参与本次计算。'; ...
+                app.AdvancedO2EditField, '新鲜空气中氧气的摩尔分数；用于研究进气富氧或稀释边界。'; ...
+                app.AdvancedH2OEditField, '新鲜空气中水蒸气的摩尔分数；与 RH 共同决定入口湿度状态。'; ...
+                app.AdvancedKpEditField, '电压偏差的即时电流修正强度；过大可能引起控制振荡。'; ...
+                app.AdvancedKiEditField, '电压偏差的累积修正强度；用于消除稳态电压偏差。'; ...
+                app.AdvancedCurrentMinEditField, '电压控制器允许输出的最小电流，防止求解得到不合理负载。'; ...
+                app.AdvancedCurrentMaxEditField, '电压控制器允许输出的最大电流，限制电堆负载上限。'; ...
+                app.AdvancedCegrRatioEditField, '回流到阴极进气侧的尾气比例目标；用于研究稀释、湿度与氧浓度变化。'; ...
+                app.AdvancedCegrEnabledCheckBox, '启用阴极尾气回流支路；关闭时不回流尾气，目标比例按 0 处理。'; ...
+                app.AdvancedCegrControlModeDropDown, '选择由比例闭环调阀，还是直接指定回流阀开度进行机理研究。'; ...
+                app.AdvancedCegrTargetInputModeDropDown, '当前模型以回流比例作为闭环目标，不开放其他目标变量。'; ...
+                app.AdvancedCegrDirectAreaEditField, '直接指定阀的有效流通面积，用于绕过比例闭环研究阀开度影响。'; ...
+                app.AdvancedCegrDirectTargetEditField, '直接开度工况的参考回流比例，只用于结果对照，不强制模型跟踪。'; ...
+                app.AdvancedAmbientTemperatureEditField, '系统外部环境温度；影响与环境换热，环境压力固定为标准大气压。'; ...
+                app.AdvancedAirPidKpEditField, '空压机流量控制器的即时修正增益；决定对流量误差的响应速度。'; ...
+                app.AdvancedAirPidKiEditField, '空压机流量控制器的累积修正增益；用于消除稳态流量误差。'; ...
+                app.AdvancedStackTemperatureEditField, '冷却系统维持的堆温设定；同时作为当前阴极加湿温度参考。'; ...
+                app.AdvancedStopTimeEditField, '模型积分结束时间；任意正值均可，研究稳态或周期行为时按过程时间尺度设置。'; ...
+                app.AdvancedSolverDropDown, '决定 Simscape 方程的积分方式；当前正式模型固定使用自动变步长求解。'; ...
+                app.AdvancedRelTolEditField, '相对误差容许量；数值越小通常越精细，但计算时间可能增加。'; ...
+                app.AdvancedAbsTolEditField, '绝对误差容许量；用于控制接近零量时的数值精度。'; ...
+                app.AdvancedMaxStepEditField, '积分器单步允许跨越的最长物理时间；过大可能漏掉快速控制或吹扫事件。'; ...
+                app.AnodeSourcePressureEditField, '储氢罐至阳极的供氢压力边界；应高于入口压力以维持供氢流动。'; ...
+                app.AnodeSourceTemperatureEditField, '供氢进入阳极前的温度；影响氢气密度和阳极热状态。'; ...
+                app.AnodeH2EditField, '阳极补给气中的氢气比例；其余部分代表惰性气体或稀释组分。'; ...
+                app.AnodeInletPressureEditField, '进入电堆阳极流道的压力设定；影响氢气分压和阳极侧压差。'; ...
+                app.AnodeHumidifierRHEditField, '阳极入口气体湿度；影响阳极侧水蒸气状态和膜两侧水分交换。'; ...
+                app.AnodeRecirculationBaseEditField, '阳极回流装置在零负载附近的基础开度，用于维持循环流动。'; ...
+                app.AnodeRecirculationGainEditField, '阳极回流开度随电流增加的补偿系数，用于匹配负载下的氢气循环需求。'; ...
+                app.AnodePurgeEnabledCheckBox, '允许在氮气累积到阈值后打开吹扫阀，排出阳极回路中的惰性气体。'; ...
+                app.AnodePurgeOnN2EditField, '阳极回路氮气达到该比例时开始吹扫；阈值越低，吹扫越早。'; ...
+                app.AnodePurgeOffN2EditField, '吹扫后氮气降至该比例时关闭吹扫阀；应低于开启阈值以形成滞回。'; ...
+                app.CaseIdEditField, '本次运行的工况标识；会写入结果表和运行日志。'; ...
+                app.OutputLevelDropDown, '选择面板内显示的结果级别；完整版仅在显式导出时使用。'};
+            for tooltipIdx = 1:size(tooltipPairs, 1)
+                control = tooltipPairs{tooltipIdx, 1};
+                if isvalid(control)
+                    control.Tooltip = tooltipPairs{tooltipIdx, 2};
+                end
+            end
+
+            deviceFields = { ...
+                app.DeviceStackNumCellsEditField, app.DeviceStackAreaEditField, ...
+                app.DeviceStackIEditField, app.DeviceStackIoEditField, ...
+                app.DeviceStackAlphaEditField, app.DeviceStackMcpEditField, ...
+                app.DeviceStackMrhoEditField, app.DeviceStackGdlEditField, ...
+                app.DeviceStackMembraneEditField, app.DeviceCegrActuatorTauEditField, ...
+                app.DeviceCegrValveMaxAreaEditField, app.DeviceCegrPipeLengthEditField, ...
+                app.DeviceCegrPipeDEditField, app.DeviceCegrPipeRoughnessEditField, ...
+                app.DeviceIntercoolerMdotEditField, app.DeviceIntercoolerDpEditField, ...
+                app.DeviceIntercoolerAreaEditField, app.DeviceIntercoolerLaminarEditField, ...
+                app.DeviceCathodeSeparatorMdotEditField, app.DeviceCathodeSeparatorDpEditField, ...
+                app.DeviceCathodeSeparatorAreaEditField, app.DeviceCathodeSeparatorLaminarEditField, ...
+                app.DeviceCathodeMixerVolumeEditField, app.DeviceCathodeOutletVolumeEditField, ...
+                app.DeviceAnodeTankPressureEditField, app.DeviceAnodeTankVolumeEditField, ...
+                app.DeviceAnodeTankTemperatureEditField, app.DeviceAnodeSeparatorAreaEditField, ...
+                app.DeviceAnodeSeparatorLaminarEditField, app.DeviceAnodeSeparatorMdotEditField, ...
+                app.DeviceAnodeSeparatorDpEditField, app.DeviceCoolantChannelWidthEditField, ...
+                app.DeviceCoolantNumLayersEditField, app.DeviceCoolantNumPassesEditField, ...
+                app.DeviceCoolantTubeDEditField, app.DeviceRadiatorLengthEditField, ...
+                app.DeviceRadiatorWidthEditField, app.DeviceRadiatorHeightEditField, ...
+                app.DeviceRadiatorTubeCountEditField, app.DeviceRadiatorTubeHeightEditField, ...
+                app.DeviceRadiatorFinSpacingEditField, app.DeviceRadiatorFinEfficiencyEditField, ...
+                app.DeviceRadiatorWallThicknessEditField, app.DeviceRadiatorDensityEditField, ...
+                app.DeviceRadiatorSpecificHeatEditField, app.DeviceCegrCondTauEditField, ...
+                app.DeviceCegrValveMinAreaEditField, app.DeviceCegrInletMixerP0EditField, ...
+                app.DeviceCegrOutletP0EditField, app.DeviceCegrPipeExtraLengthEditField, ...
+                app.DeviceCegrPipeP0EditField};
+            deviceTooltipPairs = { ...
+                app.DeviceStackNumCellsEditField, '电堆串联单体数；决定额定电压的堆叠规模。'; ...
+                app.DeviceStackAreaEditField, '单体有效反应面积；决定同一电流密度下的电流和功率规模。'; ...
+                app.DeviceStackIEditField, '极限电流密度；表示电化学/传质模型允许的电流密度上限。'; ...
+                app.DeviceStackIoEditField, '交换电流密度；表示电极反应动力学的基准快慢。'; ...
+                app.DeviceStackAlphaEditField, '电荷转移系数；决定活化极化对电流变化的敏感程度。'; ...
+                app.DeviceStackMcpEditField, 'MEA 比热；决定膜电极组件吸收相同热量后的温升幅度。'; ...
+                app.DeviceStackMrhoEditField, 'MEA 密度；与比热和体积共同决定膜电极组件的热惯性。'; ...
+                app.DeviceStackGdlEditField, 'GDL 厚度；影响反应气体扩散路径及液水迁移阻力。'; ...
+                app.DeviceStackMembraneEditField, '膜厚度；影响质子传导阻力和膜内水传输距离。'; ...
+                app.DeviceCegrActuatorTauEditField, 'cEGR 阀执行器时间常数；越大表示阀门动作越慢、回流响应越滞后。'; ...
+                app.DeviceCegrValveMaxAreaEditField, 'cEGR 阀最大流通面积；决定回流支路的最大通流能力。'; ...
+                app.DeviceCegrPipeLengthEditField, 'cEGR 管路长度；影响沿程压降和回流气体滞留时间。'; ...
+                app.DeviceCegrPipeDEditField, 'cEGR 管路内径；决定流通截面积，并影响流速和压降。'; ...
+                app.DeviceCegrPipeRoughnessEditField, 'cEGR 管壁粗糙度；用于计算气体沿程摩擦压降。'; ...
+                app.DeviceIntercoolerMdotEditField, '中冷器额定流量；作为中冷器压降/换热特性的标定流量点。'; ...
+                app.DeviceIntercoolerDpEditField, '中冷器额定压降；表示额定流量下空气通过中冷器的压力损失。'; ...
+                app.DeviceIntercoolerAreaEditField, '中冷器换热面积；决定空气与冷却侧之间的换热能力。'; ...
+                app.DeviceIntercoolerLaminarEditField, '中冷器层流分数；控制压降模型中层流与非层流阻力的混合比例。'; ...
+                app.DeviceCathodeSeparatorMdotEditField, '阴极分离器额定流量；作为分离器流阻特性的标定流量点。'; ...
+                app.DeviceCathodeSeparatorDpEditField, '阴极分离器额定压降；表示额定流量下通过分离器的压力损失。'; ...
+                app.DeviceCathodeSeparatorAreaEditField, '阴极分离器流通面积；决定气体通过分离器的局部阻力。'; ...
+                app.DeviceCathodeSeparatorLaminarEditField, '阴极分离器层流分数；控制局部流阻中层流项的占比。'; ...
+                app.DeviceCathodeMixerVolumeEditField, '阴极入口混合容积；决定新鲜空气与回流气体混合时的气体滞留量。'; ...
+                app.DeviceCathodeOutletVolumeEditField, '阴极出口腔容积；决定出口压力和组分变化的动态缓冲。'; ...
+                app.DeviceAnodeTankPressureEditField, '阳极储氢罐压力；决定氢源可提供的压力边界和初始储氢状态。'; ...
+                app.DeviceAnodeTankVolumeEditField, '阳极储氢罐容积；决定储氢量及压力随取气变化的缓冲能力。'; ...
+                app.DeviceAnodeTankTemperatureEditField, '阳极储氢罐温度；决定氢气源的热状态和密度。'; ...
+                app.DeviceAnodeSeparatorAreaEditField, '阳极分离器流通面积；决定阳极气体通过分离器的局部阻力。'; ...
+                app.DeviceAnodeSeparatorLaminarEditField, '阳极分离器层流分数；控制阳极分离器流阻模型的层流占比。'; ...
+                app.DeviceAnodeSeparatorMdotEditField, '阳极分离器额定流量；作为阳极分离器流阻特性的标定流量点。'; ...
+                app.DeviceAnodeSeparatorDpEditField, '阳极分离器额定压降；表示额定流量下通过阳极分离器的压力损失。'; ...
+                app.DeviceCoolantChannelWidthEditField, '冷却通道宽度；影响冷却液流通面积、流速和通道压降。'; ...
+                app.DeviceCoolantNumLayersEditField, '冷却通道层数；决定并联换热通道数量和有效换热面积。'; ...
+                app.DeviceCoolantNumPassesEditField, '冷却通道走向数；影响冷却液在堆内的流动路径和停留时间。'; ...
+                app.DeviceCoolantTubeDEditField, '冷却管内径；影响冷却回路流阻和单位长度换热周长。'; ...
+                app.DeviceRadiatorLengthEditField, '散热器核心长度；决定冷却液在散热器中的流动距离。'; ...
+                app.DeviceRadiatorWidthEditField, '散热器管宽度；决定单根扁管的流通截面和换热几何。'; ...
+                app.DeviceRadiatorHeightEditField, '散热器核心高度；影响迎风面积、管间距及空气侧换热能力。'; ...
+                app.DeviceRadiatorTubeCountEditField, '散热器管数；决定并联冷却流道数量和总换热面积。'; ...
+                app.DeviceRadiatorTubeHeightEditField, '散热器管高；决定扁管流道截面及空气侧排列几何。'; ...
+                app.DeviceRadiatorFinSpacingEditField, '散热器翅片间距；影响空气侧流阻和有效翅片面积。'; ...
+                app.DeviceRadiatorFinEfficiencyEditField, '翅片效率；表示翅片实际换热能力相对理想等温翅片的比例。'; ...
+                app.DeviceRadiatorWallThicknessEditField, '散热器壁厚；影响管壁导热阻力和金属热容量。'; ...
+                app.DeviceRadiatorDensityEditField, '散热器材料密度；与几何共同决定金属部件热质量。'; ...
+                app.DeviceRadiatorSpecificHeatEditField, '散热器材料比热；决定散热器金属储存热量的能力。'; ...
+                app.DeviceCegrCondTauEditField, 'cEGR 冷凝时间常数；决定回流气体含水状态向冷凝平衡变化的快慢。'; ...
+                app.DeviceCegrValveMinAreaEditField, 'cEGR 阀最小面积；表示阀关闭时保留的最小泄漏通道。'; ...
+                app.DeviceCegrInletMixerP0EditField, 'cEGR 入口混合器初始压力；用于回流支路启动时的气体初始状态。'; ...
+                app.DeviceCegrOutletP0EditField, 'cEGR 出口腔初始压力；用于回流支路出口容积的初始状态。'; ...
+                app.DeviceCegrPipeExtraLengthEditField, 'cEGR 管路附加长度；补充未建模直管段的压降和气体容积。'; ...
+                app.DeviceCegrPipeP0EditField, 'cEGR 管路初始压力；用于管路气体容积的初始化状态。'};
+            for deviceTooltipIdx = 1:size(deviceTooltipPairs, 1)
+                deviceControl = deviceTooltipPairs{deviceTooltipIdx, 1};
+                if isvalid(deviceControl)
+                    deviceControl.Tooltip = deviceTooltipPairs{deviceTooltipIdx, 2};
+                end
+            end
+            for deviceIdx = 1:numel(deviceFields)
+                if isvalid(deviceFields{deviceIdx}) && strlength(string(deviceFields{deviceIdx}.Tooltip)) == 0
+                    deviceFields{deviceIdx}.Tooltip = '该输入用于本子系统的设备特性设置。';
+                end
+            end
         end
 
         function BoundaryModeChanged(app, ~)
@@ -2939,9 +3137,9 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             rh.Enable = app.enableState(logical(enabled));
             if logical(enabled)
                 rh.Tooltip = ...
-                    '加湿器出口/阴极入口 RH (0-1)；温度参考为同一 simCase 的加湿温度';
+                    '进入阴极前气体的相对湿度；影响膜水合和阴极气体含水量。';
             else
-                rh.Tooltip = '加湿器未启用；该 RH 值保留但本次运行不生效';
+                rh.Tooltip = '加湿器未启用；该 RH 数值会保留，但本次进气不经过加湿处理。';
             end
         end
 
@@ -2962,12 +3160,14 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             state = app.enableState(logical(enabled));
             ratio.Enable = state;
             if logical(enabled)
-                ratio.Tooltip = '目标 cEGR 比例；运行时写入 cegr_ratio';
+                ratio.Tooltip = ...
+                    '回流到阴极进气侧的尾气比例目标；用于研究稀释、湿度与氧浓度变化。';
             else
-                ratio.Tooltip = 'cEGR 未启用；本次运行目标自动按 0 处理';
+                ratio.Tooltip = ...
+                    'cEGR 未启用；阴极尾气不回流，本次计算的回流目标自动按 0 处理。';
             end
             if advanced
-                valve.Enable = state;
+                valve.Enable = 'off';
                 direct = [app.AdvancedCegrDirectAreaEditField, ...
                     app.AdvancedCegrDirectTargetEditField];
                 directState = app.enableState(logical(enabled) && control.Value == 2);
@@ -2975,8 +3175,10 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                 direct(2).Enable = directState;
                 control.Enable = state;
                 targetInput.Enable = 'off';
-                control.Tooltip = '1=目标比例闭环；2=直接支路模式';
-                targetInput.Tooltip = 'P1 固定使用 cEGR 比例输入';
+                control.Tooltip = ...
+                    '选择由比例闭环调阀，还是直接指定回流阀开度进行机理研究。';
+                targetInput.Tooltip = ...
+                    '当前模型以回流比例作为闭环目标，不开放其他目标变量。';
             end
         end
 
@@ -3279,7 +3481,7 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.simCase.controls.environment.ambientTemperature_C = ...
                 app.AdvancedAmbientTemperatureEditField.Value;
             app.simCase.controls.environment.ambientPressure_MPa_abs = ...
-                app.AdvancedAmbientPressureEditField.Value;
+                routeA_platform_default_parameters().environment.ambient_p_MPa_abs.value;
             app.simCase.controls.cegr.enabled = ...
                 app.AdvancedCegrEnabledCheckBox.Value;
             app.simCase.controls.cegr.targetRatio = ...
@@ -3511,13 +3713,17 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
                     textValue = '基础页可编辑';
                 case "advanced"
                     textValue = '高级页可编辑';
+                case "read_only_catalog"
+                    textValue = '固定平台边界 / 只读';
                 otherwise
                     textValue = '已接入';
             end
         end
 
         function textValue = catalogApplyText(~, entry)
-            if entry.status ~= "active"
+            if entry.panelExposure == "read_only_catalog"
+                textValue = '固定为 platform_default';
+            elseif entry.status ~= "active"
                 textValue = '只读：待模型接口接入';
             elseif entry.requiresCompile == "compile"
                 textValue = '运行前写入并编译';
@@ -4205,8 +4411,6 @@ classdef RouteA_Panel_v01 < matlab.apps.AppBase
             app.AdvancedCegrEnabledCheckBox.Value = app.CegrEnabledCheckBox.Value;
             app.AdvancedAmbientTemperatureEditField.Value = ...
                 app.simCase.controls.environment.ambientTemperature_C;
-            app.AdvancedAmbientPressureEditField.Value = ...
-                app.simCase.controls.environment.ambientPressure_MPa_abs;
             app.AdvancedAirPidKpEditField.Value = ...
                 app.simCase.controls.cathode.airController.Kp;
             app.AdvancedAirPidKiEditField.Value = ...

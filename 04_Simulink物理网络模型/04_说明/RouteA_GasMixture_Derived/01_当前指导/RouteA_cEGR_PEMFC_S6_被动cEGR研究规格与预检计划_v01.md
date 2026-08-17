@@ -1,12 +1,12 @@
 # Route A 被动 cEGR 研究规格与预检计划 v01
 
-日期：2026-08-11
+日期：2026-08-11；2026-08-14 按工程化架构总规划更新边界和指标口径
 状态：S6-W0、S6-P0 与 S6-S1 已完成；S6-S2 单因素扩展待规格化。
 前置证据：P3 参数契约收口、P4 cEGR profile、负载 ramp 和 OER step 的 600 s 动态验证均已通过。
 
 ## 1. 研究边界
 
-本计划只研究活动 Route A 主模型中的**被动**阴极尾气回流：阴极出口分流 -> 阀阻力 -> EGR pipe -> 阴极入口混合。目标比经 PI、执行器和阀面积转换，实际回流由压差与气路网络决定。
+本计划只研究活动 Route A 主模型中的**被动基线**阴极尾气回流：阴极出口分离后气相边界 -> 回流/排放分流 -> 阀阻力 -> EGR pipe -> 空压机入口混合。目标比经 PI、执行器和阀面积转换，实际回流由压差与气路网络决定。工程化架构对照和后续主动/自增湿配置服从 `RouteA_cEGR_PEMFC_工程化架构决策与聚焦模型总体规划_v01.md`。
 
 以下内容不进入本轮：
 
@@ -69,7 +69,7 @@
 | 域 | 必须记录 | 口径与边界 |
 |---|---|---|
 | 电边界 | 目标/实际 Power、Voltage、Current、边界误差 | Power 尾窗误差和完整 `logsout` 时序由正式 runner 计算 |
-| cEGR 控制 | target/actual ratio、尾窗误差、`EGR_mdot_log`、阀面积/面积分数、上下游压力、压差、控制误差 | target 与 actual 不得混称；`EGR_mdot_log` 单位取注册表 `kg/s`，上游嵌入式元数据缺失须保留 warning |
+| cEGR 控制 | target、执行器命令、分流点 `r_split`、空压机入口 `x_comp_in`、`r_fresh`、`EGR_mdot_log`、阀面积/面积分数、上下游压力、压差、控制误差 | target 与 actual 不得混称；`EGR_mdot_log` 单位取注册表 `kg/s`，分流点排放流量必须同时可读回 |
 | 阴极气路 | 压缩机入口流量/压力/温度、阴极出口压力/温度、入口/出口组分、RH、lambda | 当前已注册信号和气相闭合结果；组分口径必须说明为 registry 的现有质量分数口径 |
 | 氧代理 | 阴极入口氧组分与入口压力 | 当前正式结果不把它直接命名为 `pO2`。若后续要报告氧分压，必须明确 mole-basis 换算、湿/干基和单位，并增加 runner 读回证据 |
 | 水 | `waterSeparationRate_kg_s`、入口/出口 RH | 仅 L2 气相/饱和过量代理；不报告液水库存、排液或分离效率 |
@@ -89,10 +89,10 @@
 
 - 只调用 `run_routeA_electrical_boundary_study`；不为 S6 再建并行 runner。
 - S6-P0 先 serial 执行并保存 compact study 摘要；通过后 S6-S1 可采用 `parsim`，但 case 参数、模型版本和统计窗不变。
-- 每个结果表至少同时显示 `target cEGR / actual cEGR / target OER / actual gas-path KPI / I-V-P`，并另列失败或排除原因。
+- 每个结果表至少同时显示 `target cEGR / actual r_split / x_comp_in / r_fresh / target OER / actual gas-path KPI / I-V-P`，并另列失败或排除原因。
 - 研究报告应将“控制可达性”和“性能响应”分开：控制不通过的工况不参与性能优劣比较。
-- 增加主动泵方案前，必须另立模型与 interface contract；不得把当前阀面积、压差或压缩机功率代理称为泵性能。
+- 增加主动泵方案前，必须按工程化架构总规划另立配置和 interface contract；不得把当前阀面积、压差或压缩机功率代理称为泵性能。
 
 ## 7. 当前出口
 
-本计划已完成两例 S6-P0 预检和 9 例 S6-S1 筛选，实际结果见 `02_实施记录/01_当前分卷/RouteA_cEGR_PEMFC_实施记录_20260811_S6被动cEGR_S1筛选_v01.md`。后续仅按同一 runner 建立一个独立的背压扩展切片，不自动扩大到湿度、主动泵或液水研究。
+本计划已完成两例 S6-P0 预检和 9 例 S6-S1 筛选，实际结果见 `02_实施记录/01_当前分卷/RouteA_cEGR_PEMFC_实施记录_20260811_S6被动cEGR_S1筛选_v01.md`。这些结果继续作为被动基线历史证据；后续扩展不再由本文件单独决定，统一按工程化架构总规划的 Gate 0--Gate 3 和单轴对照顺序执行。

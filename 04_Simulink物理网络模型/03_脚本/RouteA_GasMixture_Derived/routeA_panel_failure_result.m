@@ -22,7 +22,7 @@ initialStateMode = getNestedFieldOr(simCase, ...
     {'initialState', 'mode'}, "cold");
 
 result = struct();
-result.resultContractVersion = "RouteA_Panel_Result_v02";
+result.resultContractVersion = "RouteA_Panel_Result_v03";
 result.caseId = caseId;
 result.status = "failed";
 result.warningOnly = false;

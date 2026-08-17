@@ -103,7 +103,7 @@ thermal.stackTemperatureSet_C = pTherm.stack_temperature_set_C.value;  % 堆温/
 
 % 环境/边界条件
 environment = struct();
-environment.ambientPressure_MPa_abs = pEnv.ambient_p_MPa_abs.value;  % 环境压力
+environment.ambientPressure_MPa_abs = pEnv.ambient_p_MPa_abs.value;  % 固定标准大气压（只读追溯）
 environment.ambientTemperature_C = pEnv.ambient_T_C.value;           % 环境温度
 environment.o2MoleFraction = pEnv.o2_mole_fraction.value;            % 环境 O2 分数 -> env_yO2
 environment.h2oMoleFraction = pEnv.h2o_mole_fraction.value;          % 环境 H2O 分数 -> env_yH20

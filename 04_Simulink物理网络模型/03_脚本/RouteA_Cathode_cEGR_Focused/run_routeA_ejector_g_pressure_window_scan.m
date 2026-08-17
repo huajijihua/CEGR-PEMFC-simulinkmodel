@@ -1,0 +1,243 @@
+function study = run_routeA_ejector_g_pressure_window_scan(scanCfg)
+% Scan the official Gas ejector pressure window through one formal runner.
+%
+% The scan is an official-domain feasibility study. It does not represent
+% FuelCell four-species closed-loop behavior.
+
+scriptDir = fileparts(mfilename('fullpath'));
+defaultModelFile = fullfile(scriptDir, '..', '..', '01_模型', ...
+    'RouteA_Cathode_cEGR_Focused', 'RouteA_Ejector_Gas_Benchmark_v01.slx');
+if nargin < 1 || isempty(scanCfg)
+    scanCfg = struct();
+end
+cfg = normalizeConfig(scanCfg, defaultModelFile);
+modelFile = char(cfg.modelFile);
+[~, modelName] = fileparts(modelFile);
+if ~bdIsLoaded(modelName)
+    load_system(modelFile);
+end
+
+ejectorPath = Simulink.ID.getFullName([modelName ':1']);
+primaryReservoirPath = Simulink.ID.getFullName([modelName ':2']);
+secondaryReservoirPath = Simulink.ID.getFullName([modelName ':3']);
+outletReservoirPath = Simulink.ID.getFullName([modelName ':4']);
+
+caseTemplate = resultTemplate();
+results = repmat(caseTemplate, numel(cfg.cases), 1);
+execution = struct( ...
+    'requestedCaseIds', strings(0, 1), ...
+    'executedCaseIds', strings(0, 1), ...
+    'failedCaseIds', strings(0, 1), ...
+    'executionMode', "serial", ...
+    'matrixComplete', false);
+
+for idx = 1:numel(cfg.cases)
+    caseCfg = cfg.cases(idx);
+    caseId = string(caseCfg.caseId);
+    execution.requestedCaseIds(end + 1, 1) = caseId;
+    result = caseTemplate;
+    result.caseId = caseId;
+    result.input = caseCfg;
+    try
+        in = Simulink.SimulationInput(modelName);
+        in = setReservoir(in, primaryReservoirPath, ...
+            caseCfg.pA_MPa_abs, caseCfg.TA_K);
+        in = setReservoir(in, secondaryReservoirPath, ...
+            caseCfg.pS_MPa_abs, caseCfg.TS_K);
+        in = setReservoir(in, outletReservoirPath, ...
+            caseCfg.pB_MPa_abs, caseCfg.TB_K);
+        in = setEjector(in, ejectorPath, cfg.ejector);
+        in = in.setModelParameter( ...
+            'StopTime', formatNumber(cfg.stopTime_s), ...
+            'RelTol', formatNumber(cfg.relativeTolerance), ...
+            'MaxStep', formatNumber(cfg.maxStep_s), ...
+            'ReturnWorkspaceOutputs', 'on');
+
+        out = sim(in);
+        if strlength(string(out.ErrorMessage)) > 0
+            error('RouteA:EjectorGasScanSimulation', '%s', out.ErrorMessage);
+        end
+        result.mdotA_kg_s = finalSignal(out, 'routeA_ejector_g_mdot_A');
+        result.mdotS_kg_s = finalSignal(out, 'routeA_ejector_g_mdot_S');
+        result.mdotB_kg_s = finalSignal(out, 'routeA_ejector_g_mdot_B');
+        result.entrainmentRatio = result.mdotS_kg_s / result.mdotA_kg_s;
+        result.secondaryDirection = flowDirection(result.mdotS_kg_s, ...
+            cfg.directionTolerance_kg_s);
+        result.massClosureError_kg_s = result.mdotA_kg_s + ...
+            result.mdotS_kg_s - result.mdotB_kg_s;
+        result.simCompleted = true;
+        result.finiteOutputs = all(isfinite([result.mdotA_kg_s, ...
+            result.mdotS_kg_s, result.mdotB_kg_s, ...
+            result.entrainmentRatio, result.massClosureError_kg_s]));
+        result.status = "executed";
+        execution.executedCaseIds(end + 1, 1) = caseId;
+    catch exception
+        result.status = "failed";
+        result.errorId = string(exception.identifier);
+        result.errorMessage = string(getReport(exception, 'extended', ...
+            'hyperlinks', 'off'));
+        execution.failedCaseIds(end + 1, 1) = caseId;
+    end
+    results(idx, 1) = result;
+end
+
+execution.matrixComplete = numel(execution.executedCaseIds) == numel(cfg.cases);
+study = struct();
+study.schemaVersion = "RouteA_Ejector_Gas_PressureWindowScan_v01";
+study.timestamp = string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
+study.model = string(modelName);
+study.modelFile = string(modelFile);
+study.domain = "foundation.gas.gas";
+study.resultInterpretation = "official_domain_surrogate_not_fuelcell_closed_loop";
+study.ejector = cfg.ejector;
+study.solver = struct( ...
+    'stopTime_s', cfg.stopTime_s, ...
+    'relativeTolerance', cfg.relativeTolerance, ...
+    'maxStep_s', cfg.maxStep_s);
+study.cases = results;
+study.execution = execution;
+study.passed = execution.matrixComplete && ...
+    all([results.simCompleted]) && all([results.finiteOutputs]);
+study.directionRule = "mdot_S > tolerance means positive suction";
+study.massClosureRule = "mdot_A + mdot_S - mdot_B is reported, not used as a hard pass gate";
+
+if strlength(cfg.resultFile) > 0
+    routeA_ejector_g_pressure_window_scan = study;
+    save(char(cfg.resultFile), 'routeA_ejector_g_pressure_window_scan', '-v7.3');
+    study.resultFile = cfg.resultFile;
+else
+    study.resultFile = "";
+end
+assignin('base', 'routeA_ejector_g_pressure_window_scan', study);
+end
+
+function cfg = normalizeConfig(user, defaultModelFile)
+cfg = struct( ...
+    'modelFile', string(defaultModelFile), ...
+    'stopTime_s', 1, ...
+    'relativeTolerance', 1e-3, ...
+    'maxStep_s', 0.05, ...
+    'directionTolerance_kg_s', 1e-6, ...
+    'ejector', defaultEjector(), ...
+    'cases', defaultCases(), ...
+    'resultFile', "");
+names = fieldnames(user);
+for idx = 1:numel(names)
+    if ~isfield(cfg, names{idx})
+        error('RouteA:EjectorGasScanField', ...
+            'Unsupported pressure-window scan field: %s.', names{idx});
+    end
+    cfg.(names{idx}) = user.(names{idx});
+end
+validateattributes(cfg.stopTime_s, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'positive'}, 'scanCfg.stopTime_s');
+validateattributes(cfg.relativeTolerance, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'positive'}, ...
+    'scanCfg.relativeTolerance');
+validateattributes(cfg.maxStep_s, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'positive'}, 'scanCfg.maxStep_s');
+validateattributes(cfg.directionTolerance_kg_s, {'numeric'}, ...
+    {'scalar', 'real', 'finite', 'nonnegative'}, ...
+    'scanCfg.directionTolerance_kg_s');
+cfg.modelFile = string(cfg.modelFile);
+cfg.resultFile = string(cfg.resultFile);
+if ~isstruct(cfg.cases) || isempty(cfg.cases)
+    error('RouteA:EjectorGasScanCases', ...
+        'scanCfg.cases must be a nonempty struct array.');
+end
+end
+
+function ejector = defaultEjector()
+ejector = struct( ...
+    'area_throat', 1e-4, ...
+    'area_ratio_nozzle', 3, ...
+    'area_ratio_mixing', 8, ...
+    'min_area_ratio_secondary', 0.1, ...
+    'loss_primary', 0.95, ...
+    'loss_secondary', 0.85, ...
+    'loss_expansion', 0.88, ...
+    'loss_mixing', 0.84, ...
+    'area_A', 0.01, ...
+    'area_B', 0.01, ...
+    'area_S', 0.01);
+end
+
+function cases = defaultCases()
+cases = makeCase("p025_p0104_p020", 0.25, 0.104336, 0.20);
+cases(end + 1) = makeCase("p025_p0104_p019", 0.25, 0.104336, 0.19);
+cases(end + 1) = makeCase("p025_p0104_p018", 0.25, 0.104336, 0.18);
+cases(end + 1) = makeCase("p025_p0104_p017", 0.25, 0.104336, 0.17);
+cases(end + 1) = makeCase("p025_p0104_p016", 0.25, 0.104336, 0.16);
+cases(end + 1) = makeCase("p0183_p0104_p0183", 0.183437, 0.104336, 0.183437);
+cases(end + 1) = makeCase("p0183_p0104_p016", 0.183437, 0.104336, 0.16);
+cases(end + 1) = makeCase("p0183_p0104_p014", 0.183437, 0.104336, 0.14);
+cases(end + 1) = makeCase("p0270_p0203_p0245", 0.270, 0.203, 0.245);
+cases(end + 1) = makeCase("p0270_p0203_p0235", 0.270, 0.203, 0.235);
+cases(end + 1) = makeCase("p0270_p0203_p0225", 0.270, 0.203, 0.225);
+end
+
+function value = makeCase(caseId, pA, pS, pB)
+value = struct( ...
+    'caseId', string(caseId), ...
+    'pA_MPa_abs', pA, ...
+    'pS_MPa_abs', pS, ...
+    'pB_MPa_abs', pB, ...
+    'TA_K', 300, ...
+    'TS_K', 315, ...
+    'TB_K', 310);
+end
+
+function in = setReservoir(in, blockPath, pressure_MPa, temperature_K)
+in = in.setBlockParameter(blockPath, 'reservoir_pressure', ...
+    formatNumber(pressure_MPa));
+in = in.setBlockParameter(blockPath, 'reservoir_temperature', ...
+    formatNumber(temperature_K));
+end
+
+function in = setEjector(in, blockPath, ejector)
+names = fieldnames(ejector);
+for idx = 1:numel(names)
+    in = in.setBlockParameter(blockPath, names{idx}, ...
+        formatNumber(ejector.(names{idx})));
+end
+end
+
+function value = finalSignal(out, name)
+signal = out.get(name);
+if isempty(signal) || ~isprop(signal, 'Data') || isempty(signal.Data)
+    error('RouteA:EjectorGasScanSignal', ...
+        'SimulationOutput does not contain a nonempty signal: %s.', name);
+end
+value = double(signal.Data(end));
+end
+
+function direction = flowDirection(mdot, tolerance)
+if mdot > tolerance
+    direction = "positive_suction";
+elseif mdot < -tolerance
+    direction = "reverse_flow";
+else
+    direction = "near_zero";
+end
+end
+
+function value = formatNumber(number)
+value = sprintf('%.17g', double(number));
+end
+
+function result = resultTemplate()
+result = struct( ...
+    'caseId', "", ...
+    'input', struct(), ...
+    'status', "not_run", ...
+    'simCompleted', false, ...
+    'finiteOutputs', false, ...
+    'mdotA_kg_s', NaN, ...
+    'mdotS_kg_s', NaN, ...
+    'mdotB_kg_s', NaN, ...
+    'entrainmentRatio', NaN, ...
+    'secondaryDirection', "not_available", ...
+    'massClosureError_kg_s', NaN, ...
+    'errorId', "", ...
+    'errorMessage', "");
+end

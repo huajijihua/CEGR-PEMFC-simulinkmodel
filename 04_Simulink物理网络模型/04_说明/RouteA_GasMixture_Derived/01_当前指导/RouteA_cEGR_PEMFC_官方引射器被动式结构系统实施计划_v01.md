@@ -2,16 +2,22 @@
 
 文件类型：当前指导、官方引射器架构实施计划
 日期：2026-08-14
-状态：E0-E4 首轮已实施；官方 Gas 基准和 FuelCell 域结构副本已建立，开启引射器冷态验证未通过，暂以关闭基线作为正式可执行状态。
+状态：E0-E4 首轮已实施；官方 Gas 基准和 FuelCell 域结构副本已建立。2026-08-17 根因诊断确认高层 A/S/B 接线正确，但当前 FuelCell 域引射器本构方程不具备可解的被动吸入压力耦合；后压缩机引射架构本身保留为“有压力裕度条件下可行”，当前副本工况尚不可行。2026-08-17 增量已完成 Ejector 参数合同、模型工作区默认值和唯一 runner 写入链；开启模式仍不得进入参数标定或性能研究，关闭基线仍是正式可执行状态。
 
 ## 1.1 当前执行状态（2026-08-17）
 
 - 已建立副本：`PEMFuelCellSystem_Cathode_cEGR_Ejector_SelfHumidifying_v01.slx`；源阀门自增湿模型未修改。
-- 已建立官方基准：`RouteA_Ejector_Gas_Benchmark_v01.slx`，使用官方 `Ejector (G)`，结构检查 healthy，1 s 官方 Gas 仿真已执行完成。
+- 已建立官方基准：`RouteA_Ejector_Gas_Benchmark_v01.slx`，使用官方 `Ejector (G)` 和 A/S/B 流量观测，结构检查 healthy；唯一官方 Gas 压力窗口 runner 已完成 11 点、1 s/点扫描。
 - 已建立 FuelCell 域组件：`RouteAEjector_lib/Ejector (FC)`，源文件为 `+RouteAEjector/EjectorFC.ssc`，`ssc_build` 已通过。
-- 副本最终默认：`ejector_enabled=false`；关闭基线 5 A、180 s、尾窗 150--180 s 通过正式 focused runner。
+- 副本最终默认：`ejector_enabled=false`；既有 5 A、180 s、尾窗 150--180 s 基线保持有效；本次参数化后新增 10 s 关闭基线 smoke 仍返回 `study.passed=1`、`matrixComplete=1`、`simCompleted=1`。
 - 开启模式 392 A smoke 已执行但发生 `NE_DAE_IC_Failure`，不能标记为行为验证或工程验证。
-- 当前剩余工作：冷态可启动的开启/旁通策略、引射器几何/效率参数校准、真实液水分离和开启模式守恒验证。
+- 同一冷态输入下，5 A 和 392 A 均表现为 `ejector_enabled=false` 可执行、`true` 初始化失败；392 A 下将 `pressure_recovery` 从 1.05 扫至 2.0 仍失败，极大通流面积/近似无压升参数也仍失败。
+- 根因状态：`Cathode_Air_cEGR_BOP/B -> A`、`Cathode_Exhaust_Backpressure_Water/Conn1 -> S`、`B -> CathodeInletMassFlowSensor_FC -> Stack_Core` 的模型读回正确；失败来自 `EjectorFC.ssc` 的本构压力关系和缺少主流喷射-次流吸入动量耦合，不是端口 A/S/B 互换。
+- 参数链状态：`routeA_focused_parameter_defaults`、`routeA_focused_case_template`、`routeA_focused_parameter_bridge` 和 `run_routeA_focused_study` 已纳入 `ejector_enabled`、几何、效率、压力恢复和平滑参数；模型块 `Cathode_Ejector_FC` 已读回为工作区变量引用，模型工作区已保存 15 项默认值。该链只证明参数可追踪和关闭模式可执行，不证明开启本构正确。
+- 官方 Gas 域边界扫频已由 `run_routeA_ejector_g_pressure_window_scan.m` 正式执行：`pA=0.25 MPa、pS=0.104336 MPa` 时，`pB=0.20/0.19/0.18 MPa` 为次流反向，`pB=0.17 MPa` 出现正向吸入，`pB=0.16 MPa` 的实测引射比为 `0.150025`；`pA=0.183437 MPa` 时 `pB=0.14 MPa` 仅得到 `mdot_S=0.002418968 kg/s`、引射比 `0.05815512`。结果保存为 `RouteA_Ejector_Gas_PressureWindowScan_20260817_v01.mat`。
+- 物理可行性裁决：`Passive_Ejector_PostSeparatorGas_PostCompressorCathodeInlet` 不予否决，但必须满足 `pA > pB` 的主流压力裕度、足够的 `pA/pS` 吸入窗口、压缩机工作点和反向流保护；当前 `pA≈pB≈0.183 MPa` 不能作为正向回流基线。
+- 当前剩余工作：首轮官方 Gas 压力/流量可行域已冻结为参考边界；下一步重建或受控替换 FuelCell 域引射器本构、补齐独立组件守恒/临界/反向流测试，随后加入冷态旁通和 S 端隔离保护，最后才进行几何参数校准、真实液水分离和开启模式验证。
+- 2026-08-17 最新本构诊断：`EjectorFC.ssc` 的端口方程计数已收敛，最终 `ssc_build('RouteAEjector')` 通过；但正确写入 `ejector_enabled=true` 后，5 A/180 s、0 A、直接起步、压力恢复软化和仅压力诊断闭合均在整机冷态初值求解处 `NE_DAE_IC_Failure`。关闭模式 5 A/180 s 回归仍通过。当前阻塞收敛为 FuelCell 三端压力网络与现有冷态初值边界不相容，开启模式继续保持 `not_validated`。
 
 ## 1. 计划目的
 

@@ -76,11 +76,17 @@ end
 intermediates
     T_A = if lt(A.T, A.T_min), A.T_min; else A.T; end;
     T_S = if lt(S.T, S.T_min), S.T_min; else S.T; end;
-    recovery = if ejector_enabled, pressure_recovery; else 1; end;
+    T_B = if lt(B.T, B.T_min), B.T_min; else B.T; end;
+    motive_activation = abs(mdot_A) / ...
+        (abs(mdot_A) + mdot_smoothing);
+    primary_activation = 1e-3 + (1 - 1e-3)*motive_activation;
+    recovery = if ejector_enabled, ...
+        1 + (pressure_recovery - 1)*primary_activation; else 1; end;
     p_mix = B.p/recovery;
 
     x_A = A.x_i;
     x_S = S.x_i;
+    x_B = B.x_i;
     R_A = dot(x_A, A.R);
     R_S = dot(x_S, S.R);
 
@@ -100,8 +106,23 @@ intermediates
         T_A*[1;1;1;1], interpolation = linear, extrapolation = linear);
     h_S_i = tablelookup([1;2;3;4], S.T_LUT, S.h, [1;2;3;4], ...
         T_S*[1;1;1;1], interpolation = linear, extrapolation = linear);
+    h_B_i = tablelookup([1;2;3;4], B.T_LUT, B.h, [1;2;3;4], ...
+        T_B*[1;1;1;1], interpolation = linear, extrapolation = linear);
     h_A = dot(x_A, h_A_i);
     h_S = dot(x_S, h_S_i);
+    h_B = dot(x_B, h_B_i);
+
+    m_A_in = if gt(mdot_A, 0), mdot_A; else 0; end;
+    m_S_in = if gt(mdot_S, 0), mdot_S; else 0; end;
+    m_B_in = if gt(mdot_B, 0), mdot_B; else 0; end;
+    m_in_sum = m_A_in + m_S_in + m_B_in;
+    m_mix_in = m_A_in + m_S_in + m_B_in + mdot_smoothing;
+    x_mix = if gt(m_in_sum, 0), ...
+        (m_A_in*x_A + m_S_in*x_S + m_B_in*x_B)/m_mix_in; ...
+        else x_A; end;
+    h_mix = if gt(m_in_sum, 0), ...
+        (m_A_in*h_A + m_S_in*h_S + m_B_in*h_B)/m_mix_in; ...
+        else h_A; end;
 
     secondary_area_ratio = if gt((area_ratio_mixing-area_ratio_nozzle) ...
             * efficiency_expansion, min_area_ratio_secondary), ...
@@ -113,18 +134,25 @@ intermediates
 
     area_primary_eff = efficiency_primary*area_throat;
     area_secondary_eff = efficiency_secondary*area_secondary;
+    area_mixing_eff = efficiency_mixing*area_throat*area_ratio_mixing;
+    mdot_mix = mdot_A + mdot_S;
     dp_A_model = mdot_A*sqrt(mdot_A*mdot_A + mdot_smoothing*mdot_smoothing) ...
         /(2*rho_A*area_primary_eff*area_primary_eff);
-    dp_S_model = mdot_S*sqrt(mdot_S*mdot_S + mdot_smoothing*mdot_smoothing) ...
+    dp_S_flow = mdot_S*sqrt(mdot_S*mdot_S + mdot_smoothing*mdot_smoothing) ...
         /(2*rho_S*area_secondary_eff*area_secondary_eff);
+    dp_S_model = (1 - primary_activation)*(p_mix - S.p) + ...
+        primary_activation*dp_S_flow;
+    dp_mixing_model = mdot_mix*sqrt(mdot_mix*mdot_mix + ...
+        mdot_smoothing*mdot_smoothing) ...
+        /(2*rho_A*area_mixing_eff*area_mixing_eff);
 
 end
 
 % Pressure-driven throat relations are disabled for the cold baseline.
 if ejector_enabled
     equations
-        A.p - p_mix == dp_A_model;
-        S.p - p_mix == dp_S_model;
+        A.p - p_mix == dp_A_model + dp_mixing_model;
+        p_mix - S.p == dp_S_model;
     end
 else
     equations
@@ -180,10 +208,13 @@ end
 
 if ejector_enabled
     equations
-        convection_A.ht_i == convection_B.ht_i;
-        convection_S.ht_i == convection_B.ht_i;
-        convection_A.x_i == convection_B.x_i;
-        convection_S.x_i == convection_B.x_i;
+        % B is the mixed outlet. A is the independent motive inlet.
+        convection_B.ht_i == (1 - motive_activation)*h_A + ...
+            motive_activation*h_mix;
+        convection_B.x_i == (1 - motive_activation)*x_A + ...
+            motive_activation*x_mix;
+        convection_A.ht_i == h_A;
+        convection_A.x_i == x_A;
     end
 else
     equations

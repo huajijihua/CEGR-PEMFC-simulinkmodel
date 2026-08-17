@@ -4,6 +4,12 @@
 
 本文件是人类可读索引；可执行矩阵以 `03_脚本/RouteA_GasMixture_Derived/routeA_p1_panel_capability_matrix.m` 为准。矩阵从参数注册表和观测注册表读回名称、单位、状态，并补充 UI 属性、`simCase` 路径、`SimulationInput` 写入点、结果链接、owner 和后续阶段。矩阵和契约脚本只用于开发期接线、排错和必要回归，不是用户运行面板前必须完成的研究验收包。
 
+## 当前可信性裁决（2026-08-14）
+
+面板输入和展示结果当前处于 `audit_pending`，不得用于工程汇报。对 101 个可编辑输入的审计不能以“任一关联结果改变”作为判据；每个输入必须先定义并读回其专属链路：UI -> `simCase` -> `SimulationInput` -> 实际模型消费者 -> 同一物理意义的模型观测 -> 单位/采样位置/方向判据。
+
+`run_routeA_panel_trust_audit.m` 当前为 v10。其静态契约已覆盖 101/101 项：96 项物理响应、5 项数值一致性，零项因“未观测”或“数值设置”被禁止运行。v02-v08 的 `failed`、`no_observable_response` 和 `passed` 均不可复用；模型、采样位置或提取适配器变更后，必须从新版本的短时基线/扰动重新取证。OER、阴极背压仅是该通用规则的示例，不构成审计范围限制。
+
 ## P1 当前工作口径
 
 P1 当前只追求一条通顺的面板直驱链：用户在基础或高级视图选择模式、勾选开关、输入合法数值，面板将值收集到 `simCase`，经 `routeA_validate_case` 和 `routeA_panel_build_simulation_input` 传入当前正式模型；模型实际运行后，状态、KPI、可观测域和失败信息返回同一窗口。
@@ -16,8 +22,8 @@ P1 当前只追求一条通顺的面板直驱链：用户在基础或高级视�
 |---|---:|---|
 | 旧计划 active 基线 | 25 | 仅用于追溯计划初始计数 |
 | 当前 active 参数 | 40 | 原 active 项 + 10 个本轮阳极输入；以注册表实际读回为准 |
-| P1 result 观测 | 22 | 进入结果契约和 `signalManifest` |
-| status-only / unresolved | 4 | 阳极入口/出口压力、阳极 purge、冷却侧响应；阳极输入已 active，阳极结果仍待确认 |
+| P1 result 观测 | 30 | 进入结果契约和 `signalManifest` |
+| status-only / unresolved | 2 | 阳极出口压力、冷却侧响应；不作为本轮输入物理判据 |
 | cEGR 控制入口 | 1 | 目标比例 profile；不同时开放阀面积命令 |
 | 研究矩阵 | 0 | P1 只运行独立单工况 |
 
@@ -55,8 +61,8 @@ P1 当前只追求一条通顺的面板直驱链：用户在基础或高级视�
 | 求解器 | `solver.relTol` | `AdvancedRelTolEditField` | `solver.relTol` | model `RelTol` | solver provenance |
 | 求解器 | `solver.absTol` | `AdvancedAbsTolEditField` | `solver.absTol` | model `AbsTol` | solver provenance |
 | 求解器 | `solver.maxStep_s` | `AdvancedMaxStepEditField` | `solver.maxStep_s` | model `MaxStep` | solver provenance |
-| 阳极 | `anode.sourcePressure_MPa_abs` | `AnodeSourcePressureEditField` | `controls.anode.sourcePressure_MPa_abs` | `routeA_command_profile.anode_source_pressure_MPa_abs` | 输入已接入；结果 status-only |
-| 阳极 | `anode.sourceTemperature_C` | `AnodeSourceTemperatureEditField` | `controls.anode.sourceTemperature_C` | `routeA_command_profile.anode_source_temperature_C` | 输入已接入；结果 status-only |
+| 阳极 | `anode.sourcePressure_MPa_abs` | `AnodeSourcePressureEditField` | `controls.anode.sourcePressure_MPa_abs` | `tank_p` | 燃料罐出口压力观测；短时行为待 v10 复核 |
+| 阳极 | `anode.sourceTemperature_C` | `AnodeSourceTemperatureEditField` | `controls.anode.sourceTemperature_C` | `tank_T` | 燃料罐出口温度观测；短时行为待 v10 复核 |
 | 阳极 | `anode.h2MoleFraction` | `AnodeH2EditField` | `controls.anode.h2MoleFraction` | `tank_yH2` + `routeA_command_profile.anode_source_h2_mole_fraction` | 编译时组分 + profile |
 | 阳极 | `anode.inletPressure_MPa_abs` | `AnodeInletPressureEditField` | `controls.anode.inletPressure_MPa_abs` | `routeA_command_profile.anode_inlet_pressure_MPa_abs` | 输入已接入；结果 status-only |
 | 阳极 | `anode.humidifierRH` | `AnodeHumidifierRHEditField` | `controls.anode.humidifierRH` | `routeA_command_profile.anode_humidifier_rh` | 输入已接入；结果 status-only |
@@ -116,6 +122,14 @@ P1 的实际仿真验证只选 `cEGR=0` 与 `cEGR=0.3` 两个简单面板 case�
 
 ## Gate 状态
 
+## 101 项输入可信性审计闸门（2026-08-14）
+
+正式 runner 为 `run_routeA_panel_trust_audit.m`（v10），范围严格读取注册表中的 101 个 `active` 参数。runner 支持 `dryRun`、`maxCases`、`resume`、`caseFilter`、`domainFilter`、10 s 短时筛查、600 s 条件复核，以及 MAT/CSV/Markdown 三件套证据。每项 fingerprint 包含模型文件、runner 版本、基线/扰动值、单位和短/长时设置；模型、输入契约或观测适配器改变后不得复用旧完成项。
+
+截至本轮，v10 的 dry-run 已生成 101 条完整计划，证据位于 `02_结果/RouteA_GasMixture_Derived/outputs/RouteA_Panel/trust_audit_v10_contract/dry_run/`。尚未执行任何 v10 短时或 600 s case。v08 曾实际执行 `anode.sourcePressure_MPa_abs` 的 10 s 基线与 10 s 扰动（共 2 次 `sim()`、20 s 模型时间）；写入、消费者、单位和响应通过，但其主观测错误设在减压阀出口而导致方向失败。该发现已经通过燃料罐出口 P/T 观测和 v10 契约修复，v08 不作为行为结论。下一次只能从 v10 的短时基线/扰动开始，短时通过后才可运行该项的 600 s 复核。
+
+在 101 项全部完成、失败/无响应/不可观测项逐项裁决前，`panelTrust` 继续为 `audit_pending`，所有主 KPI 仍不得用于工程汇报。`Water sep` 固定为 `not_validated` 的 L2 气相冷凝过量诊断估算。
+
 | Gate | 当前状态 |
 |---|---|
 | W0/G0 | 参数/观测/控件映射用于开发追踪，活动链路持续迭代 |
@@ -126,3 +140,10 @@ P1 的实际仿真验证只选 `cEGR=0` 与 `cEGR=0.3` 两个简单面板 case�
 | W5/G4 | v02 结果契约、failureStack、signalManifest、full export 回读已接线 |
 | W6/G5 | 面板直驱链作为主线；acceptance/contract runner 仅保留为可选开发工具 |
 | G6 | 保持最新面板窗口打开，由用户进行面板-模型联合评审 |
+# 当前可信性闸门
+
+截至 2026-08-13，面板整体状态为 `audit_pending`。注册表中的“已连线/已记录”不等于行为已验证；主结果不得用于工程汇报。所有观测的 `acceptanceAllowed` 在完成冷态基线-单变量扰动证据前保持 `false`。
+
+`Water sep` 仅允许以“L2 气相冷凝过量估算”出现在诊断区，不能解释为真实分离器流量、液水库存、排液量或分离效率。正式模型已在 `Cathode_Exhaust_Backpressure_Water/OutletPressure_Pa_to_MPa` 完成 Pa 到 MPa 的显式转换。
+
+温度语义必须区分堆实际温度、热控设定温度、加湿器温度和阴极出口气体温度；面板不得用 command/profile 值替代模型观测值。

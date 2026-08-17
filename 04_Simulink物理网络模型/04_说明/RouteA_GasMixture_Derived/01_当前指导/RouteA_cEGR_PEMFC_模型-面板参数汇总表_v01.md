@@ -3,8 +3,9 @@
 本表由 `routeA_audit_parameter_inventory.m` 从当前 `.slx` 的模型工作区和 `Simulink.findVars` 生成。模型引用是参数有效性的唯一依据；面板可写项必须指向实际被模型引用的写入目标。
 
 - 模型：`PEMFuelCellSystem_GasMixture_cEGR_RouteA_v01`
-- 生成时间：2026-08-11 17:41:02
+- 生成时间：2026-08-12 08:57:49
 - 模型 Dirty：`off`
+- 2026-08-14 语义更新：阴极 separator 参数按 L2 流阻/边界代理解释，不代表已闭合的液水分离器工程参数。
 
 ## 覆盖摘要
 
@@ -108,7 +109,7 @@
 | device.anode.separatorMdotNominal_kg_s | 设备页可编辑 | kg/s | [2.220446e-16, 1] | anode_separator_mdot_nominal | - | anode_separator_mdot_nominal | - | compile_and_smoke | 模型写入目标已引用 |
 | device.anode.separatorDpNominal_MPa | 设备页可编辑 | MPa | [0, 0.1] | anode_separator_dp_nominal | - | anode_separator_dp_nominal | - | compile_and_smoke | 模型写入目标已引用 |
 | environment.ambientTemperature_C | 高级页可编辑 | degC | [-50, 100] | env_T | - | env_T | - | compile_and_smoke | 模型写入目标已引用 |
-| environment.ambientPressure_MPa_abs | 高级页可编辑 | MPa(abs) | [0.01, 1] | env_p | - | env_p | - | compile_and_smoke | 模型写入目标已引用 |
+| environment.ambientPressure_MPa_abs | 固定平台边界 / 只读 | MPa(abs) | [0.101325, 0.101325] | env_p | - | env_p | - | fixed_platform_default | 模型写入目标已引用 |
 | cathode.airController.Kp | 高级页可编辑 | - | [2.220446e-16, Inf] | routeA_air_pid_Kp | - | routeA_air_pid_Kp | - | compile_and_smoke | 模型写入目标已引用 |
 | cathode.airController.Ki | 高级页可编辑 | 1/s | [2.220446e-16, Inf] | routeA_air_pid_Ki | - | routeA_air_pid_Ki | - | compile_and_smoke | 模型写入目标已引用 |
 | cegr.directValveArea_m2 | 高级页可编辑 | m^2 | [1e-12, 1] | routeA_egr_valve_area_direct | - | routeA_egr_valve_area_direct | - | compile_and_smoke | 模型写入目标已引用 |
@@ -153,16 +154,16 @@
 | anode_separator_roughness | 1.5e-05 | double [1 1] | 阳极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 未引用 / 工作区辅助 | - | - | - |
 | anode_tube_D | 0.02 | double [1 1] | 模型内部配置或辅助参数 | 只读：多块共享的内部管路几何；需结构一致性验证后再考虑开放 | 模型已引用 / 待开放 | Anode_Hydrogen_BOP/Anode Exhaust/Convective Heat<br>Transfer; Anode_Hydrogen_BOP/Anode Exhaust/Environment; Anode_Hydrogen_BOP/Anode Exhaust/Max Area; ... (+5) | - | - |
 | cathode_outlet_chamber_V | 0.2 | double [1 1] | 模型内部配置或辅助参数 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Stack_Core/CathodeOutletChamber | device.cathode.outletChamberVolume_L | 设备页可编辑 |
-| cathode_separator_D | 0.05 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 未引用 / 工作区辅助 | - | - | - |
-| cathode_separator_T0 | 20 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 未引用 / 工作区辅助 | - | - | - |
-| cathode_separator_area | 0.0019634954 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Cathode_Exhaust_Backpressure_Water/CathodeWaterSeparator_FC | device.cathode.separatorArea_m2 | 设备页可编辑 |
-| cathode_separator_dp_nominal | 0.0005 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Cathode_Exhaust_Backpressure_Water/CathodeWaterSeparator_FC | device.cathode.separatorDpNominal_MPa | 设备页可编辑 |
-| cathode_separator_extra_length | 0.05 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 未引用 / 工作区辅助 | - | - | - |
-| cathode_separator_laminar_fraction | 0.001 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Cathode_Exhaust_Backpressure_Water/CathodeWaterSeparator_FC | device.cathode.separatorLaminarFraction | 设备页可编辑 |
-| cathode_separator_length | 0.15 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 未引用 / 工作区辅助 | - | - | - |
-| cathode_separator_mdot_nominal | 0.1 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Cathode_Exhaust_Backpressure_Water/CathodeWaterSeparator_FC | device.cathode.separatorMdotNominal_kg_s | 设备页可编辑 |
-| cathode_separator_p0 | 0.101325 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 未引用 / 工作区辅助 | - | - | - |
-| cathode_separator_roughness | 1.5e-05 | double [1 1] | 阴极分离器流阻与初始状态参数 | 可进入开放审查；需完成写入、范围和响应验证 | 未引用 / 工作区辅助 | - | - | - |
+| cathode_separator_D | 0.05 | double [1 1] | 阴极分离边界的流阻/初始状态代理；不等同于分离器几何实物 | 暂不作为工程分离效率参数；需完成官方模块来源、写入和响应审查 | 未引用 / 工作区辅助 | - | - | - |
+| cathode_separator_T0 | 20 | double [1 1] | 阴极分离边界的温度代理；不等同于液水分离器温度 | 暂不作为工程设备参数；需完成边界语义审查 | 未引用 / 工作区辅助 | - | - | - |
+| cathode_separator_area | 0.0019634954 | double [1 1] | 阴极分离边界流阻代理面积；不代表分离效率或允许含液率 | 模型已引用 / 面板已承接；仅作 L2 代理，不得用于工程分离结论 | Cathode_Exhaust_Backpressure_Water/CathodeWaterSeparator_FC | device.cathode.separatorArea_m2 | 设备页可编辑 |
+| cathode_separator_dp_nominal | 0.0005 | double [1 1] | 阴极分离边界名义压降代理 | 模型已引用 / 面板已承接；需标记为流阻代理，不得解释为真实分离器压损 | Cathode_Exhaust_Backpressure_Water/CathodeWaterSeparator_FC | device.cathode.separatorDpNominal_MPa | 设备页可编辑 |
+| cathode_separator_extra_length | 0.05 | double [1 1] | 阴极分离边界附加长度代理 | 暂不作为工程设备几何参数 | 未引用 / 工作区辅助 | - | - | - |
+| cathode_separator_laminar_fraction | 0.001 | double [1 1] | 阴极分离边界流阻模型的层流分数代理 | 模型已引用 / 面板已承接；不代表液滴分离特性 | Cathode_Exhaust_Backpressure_Water/CathodeWaterSeparator_FC | device.cathode.separatorLaminarFraction | 设备页可编辑 |
+| cathode_separator_length | 0.15 | double [1 1] | 阴极分离边界长度代理 | 暂不作为工程设备几何参数 | 未引用 / 工作区辅助 | - | - | - |
+| cathode_separator_mdot_nominal | 0.1 | double [1 1] | 阴极分离边界名义质量流量代理 | 模型已引用 / 面板已承接；不代表分离器处理能力 | Cathode_Exhaust_Backpressure_Water/CathodeWaterSeparator_FC | device.cathode.separatorMdotNominal_kg_s | 设备页可编辑 |
+| cathode_separator_p0 | 0.101325 | double [1 1] | 阴极分离边界初始压力代理 | 暂不作为工程设备参数 | 未引用 / 工作区辅助 | - | - | - |
+| cathode_separator_roughness | 1.5e-05 | double [1 1] | 阴极分离边界粗糙度代理 | 暂不作为工程设备几何参数 | 未引用 / 工作区辅助 | - | - | - |
 | cathode_tube_D | 0.05 | double [1 1] | 模型内部配置或辅助参数 | 只读：多块共享的内部管路几何；需结构一致性验证后再考虑开放 | 模型已引用 / 待开放 | Cathode_Air_cEGR_BOP/Oxygen<br>Source/Compressor; Cathode_Air_cEGR_BOP/Oxygen<br>Source/Compressor<br>Volume; Cathode_Exhaust_Backpressure_Water/Cathode Exhaust/Convective Heat<br>Transfer1; ... (+3) | - | - |
 | cegr_comp_map_t_denom_epsilon | 1e-09 | double [1 1] | cEGR 回流管、阀或支路控制参数 | 只读：压缩机图谱数值保护量，不代表设备性能设定 | 模型已引用 / 待开放 | Cathode_Air_cEGR_BOP/Oxygen<br>Source/Compressor Map/TDenGuardBias | - | - |
 | cegr_cond_tau | 1 | double [1 1] | cEGR 回流管、阀或支路控制参数 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Cathode_Air_cEGR_BOP/EGRPipe; Cathode_Air_cEGR_BOP/Oxygen<br>Source/CompressorInletMixer; Stack_Core/CathodeOutletChamber | device.cegr.condensationTau_s | 设备页可编辑 |
@@ -189,8 +190,8 @@
 | drive_cycle_time | [0;0.5;60.5;600] | double [4 1] | 电边界命令时序或其辅助字段 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | System_Control_Observability/Electrical Load/Inputs/Voltage Demand/Voltage Reference | electrical.current.profile, electrical.power.profile, electrical.voltage.profile | 基础页可编辑 |
 | drive_cycle_voltage | [427.6;427.6;410;410] | double [4 1] | 电边界命令时序或其辅助字段 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | System_Control_Observability/Electrical Load/Inputs/Voltage Demand/Voltage Reference | electrical.voltage.profile | 基础页可编辑 |
 | env_RH | 0.5 | double [1 1] | 环境压力、温度、湿度或气体组分边界 | 可进入开放审查；需完成写入、范围和响应验证 | 未引用 / 工作区辅助 | - | - | - |
-| env_T | 20 | double [1 1] | 环境压力、温度、湿度或气体组分边界 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Anode_Hydrogen_BOP/Anode<br>Humidifier/Pipe (N Gas); Anode_Hydrogen_BOP/Anode Exhaust/Environment; Anode_Hydrogen_BOP/Anode Exhaust/Environment<br>Temperature; ... (+19) | environment.ambientTemperature_C | 高级页可编辑 |
-| env_p | 0.101325 | double [1 1] | 环境压力、温度、湿度或气体组分边界 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Anode_Hydrogen_BOP/Anode<br>Humidifier/Pipe (N Gas); Anode_Hydrogen_BOP/Anode Exhaust/Environment; Anode_Hydrogen_BOP/Anode Exhaust/Pipe (FC); ... (+10) | environment.ambientPressure_MPa_abs | 高级页可编辑 |
+| env_T | 20 | double [1 1] | 环境压力、温度、湿度或气体组分边界 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Anode_Hydrogen_BOP/Anode<br>Humidifier/Pipe (N Gas); Anode_Hydrogen_BOP/Anode Exhaust/Environment; Anode_Hydrogen_BOP/Anode Exhaust/Environment<br>Temperature; ... (+22) | environment.ambientTemperature_C | 高级页可编辑 |
+| env_p | 0.101325 | double [1 1] | 环境压力、温度、湿度或气体组分边界 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Anode_Hydrogen_BOP/Anode<br>Humidifier/Pipe (N Gas); Anode_Hydrogen_BOP/Anode Exhaust/Environment; Anode_Hydrogen_BOP/Anode Exhaust/Pipe (FC); ... (+11) | environment.ambientPressure_MPa_abs | 固定平台边界 / 只读 |
 | env_pSat_H2O | 0.0023393182 | double [1 1] | 环境压力、温度、湿度或气体组分边界 | 可进入开放审查；需完成写入、范围和响应验证 | 未引用 / 工作区辅助 | - | - | - |
 | env_yH20 | 0.011543638 | double [1 1] | 环境压力、温度、湿度或气体组分边界 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Anode_Hydrogen_BOP/Anode Exhaust/Environment; Cathode_Air_cEGR_BOP/Cathode<br>Humidifier/Pipe (FC); Cathode_Air_cEGR_BOP/EGRPipe; ... (+7) | cathode.h2oMoleFraction | 高级页可编辑 |
 | env_yO2 | 0.21 | double [1 1] | 环境压力、温度、湿度或气体组分边界 | 可进入开放审查；需完成写入、范围和响应验证 | 模型已引用 / 面板已承接 | Anode_Hydrogen_BOP/Anode Exhaust/Environment; Cathode_Air_cEGR_BOP/Cathode<br>Humidifier/Pipe (FC); Cathode_Air_cEGR_BOP/EGRPipe; ... (+7) | cathode.o2MoleFraction | 高级页可编辑 |

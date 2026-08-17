@@ -125,8 +125,42 @@ catch ME
     return;
 end
 if ~isa(values, 'timeseries')
-    message = "Registered observation is not a timeseries.";
+    [values, converted] = structureWithTimeToTimeseries(values);
+    if ~converted
+        message = "Registered observation is not a timeseries or Structure With Time output.";
+    end
 end
+end
+
+function [signal, converted] = structureWithTimeToTimeseries(value)
+signal = value;
+converted = false;
+if isstruct(value) && isfield(value, 'time') && isfield(value, 'signals') && ...
+        isfield(value.signals, 'values')
+    time = double(value.time(:));
+    signal = timeseries(timeAlignedData(value.signals.values, time), time);
+    converted = true;
+elseif isstruct(value) && isfield(value, 'Time') && isfield(value, 'Data')
+    time = double(value.Time(:));
+    signal = timeseries(timeAlignedData(value.Data, time), time);
+    converted = true;
+end
+end
+
+function data = timeAlignedData(rawData, time)
+timeCount = numel(time);
+rawData = double(rawData);
+dimensions = size(rawData);
+timeDimension = find(dimensions == timeCount, 1, 'last');
+if isempty(timeDimension)
+    error('RouteA:ObservationShape', ...
+        'Structure With Time data has no dimension matching its time vector.');
+end
+if timeDimension ~= 1
+    order = [timeDimension, setdiff(1:ndims(rawData), timeDimension, 'stable')];
+    rawData = permute(rawData, order);
+end
+data = reshape(rawData, timeCount, []);
 end
 
 function value = signalUnit(signal)

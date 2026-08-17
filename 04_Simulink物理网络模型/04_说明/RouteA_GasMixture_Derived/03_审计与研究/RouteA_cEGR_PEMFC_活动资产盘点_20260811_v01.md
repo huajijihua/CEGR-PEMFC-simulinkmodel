@@ -39,6 +39,10 @@
 
 `model_check` 返回 77 条 `unconnected_ports` warning、无悬空线错误。已有 warning ledger 将其分为 Simscape/Variant 读回限制、容器端口、未注册观测和未用物理输入；因此它们不是已忽略的零风险项，后续新增端口或观测时仍须按 ledger 复核。
 
+### 3.1 2026-08-14 后续裁决
+
+`Cathode_Exhaust_Backpressure_Water/SeparatorOrCondensation` 中的 MATLAB Function 仍是历史 L2 饱和过量水蒸气代理；它可以作为当前行为证据的已知边界，但不再作为新架构的正式物理模块模板。后续应优先使用官方 Simscape/Simulink 气体、湿度和相态模块；在完成替换或删除前，任何结果必须继续标注为气相 L2 代理，不得表述为液水分离器、液水库存或排液模型。
+
 ### 3.2 面板、参数与输入装配
 
 | 资产 | 唯一职责 | 实际证据 | 状态 |
