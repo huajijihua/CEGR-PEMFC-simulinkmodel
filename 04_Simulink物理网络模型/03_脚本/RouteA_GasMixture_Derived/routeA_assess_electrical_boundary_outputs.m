@@ -37,10 +37,11 @@ rhOut = waterRelativeHumidity(outputTimeseries(out, logsout, ...
 waterSeparator = outputTimeseries(out, logsout, 'routeA_m_water_sep', ...
     'routeA_m_water_sep_ts');
 speciesMdot = out.get('routeA_mdot_species_ca_in_ts');
-[~, speciesTotal, speciesMassFraction] = inletSpeciesMetrics(speciesMdot);
+[species, speciesTotal, speciesMassFraction] = inletSpeciesMetrics(speciesMdot);
 inletTotalMdot = timeseries(speciesTotal, speciesMdot.Time);
 inletO2MassFraction = timeseries(speciesMassFraction(:, 2), ...
     speciesMdot.Time);
+inletWaterVaporMdot = timeseries(species(:, 4), speciesMdot.Time);
 lambdaCaIn = inletOxygenStoich(speciesMdot, stackCurrent, context.stackCells);
 egrAtCompressorTime = interpolate(egrMdot.Time, egrMdot.Data, ...
     compMdot.Time);
@@ -61,6 +62,8 @@ tail.egrRatio = windowStats(ratio, context.tailWindow_s);
 tail.egrMdot_kg_s = windowStats(egrMdot, context.tailWindow_s);
 tail.freshAirApprox_kg_s = windowStats(freshAirApprox, context.tailWindow_s);
 tail.inletTotalMdot_kg_s = windowStats(inletTotalMdot, context.tailWindow_s);
+tail.inletWaterVaporMdot_kg_s = windowStats(inletWaterVaporMdot, ...
+    context.tailWindow_s);
 tail.stackCurrent_A = windowStats(stackCurrent, context.tailWindow_s);
 tail.stackVoltage_V = windowStats(stackVoltage, context.tailWindow_s);
 tail.stackPower_kW = windowStats(stackPower, context.tailWindow_s);
@@ -97,7 +100,7 @@ steadySignals = struct( ...
     'compressorMdot_kg_s', compMdot, ...
     'compressorPressure_Pa', compP, ...
     'compressorTemperature_K', compT, ...
-    'cathodeInletRH', rhIn, ...
+    'cathodeInletWaterVaporMdot_kg_s', inletWaterVaporMdot, ...
     'cathodeOxygenStoich', lambdaCaIn, ...
     'egrRatio', ratio);
 steady = assessSteady(steadySignals, context);
@@ -109,7 +112,8 @@ boundary = assessBoundary(context.boundaryType, boundaryTarget, ...
     stackCurrent, stackVoltage, stackPower, context, acceptance);
 cegrTarget = interp1(context.cegrModelTime_s, context.cegrProfile.value, ...
     ratio.Time, 'linear', 'extrap');
-cegr = assessCegr(cegrTarget, ratio, context.tailWindow_s, acceptance);
+cegr = assessCegr(cegrTarget, ratio, context.tailWindow_s, ...
+    context.cegrControls, acceptance);
 saturation = assessSaturation(logsout, context, stackVoltage, ...
     stackPower, acceptance);
 
@@ -127,6 +131,7 @@ result.targetRatio = cegr.targetValue;
 result.actualRatio = tail.egrRatio.mean;
 result.targetError = cegr.tailMeanError;
 result.targetTolerance = cegr.tolerance;
+result.cegrTrackingRequired = cegr.trackingRequired;
 result.targetAirEquivalentOer = context.air.targetOer;
 result.targetCurrentA = commandTailValue(context, "Current");
 result.targetPower_kW = commandTailValue(context, "Power");
@@ -144,7 +149,7 @@ result.gasClosure = gasClosure;
 result.gasClosurePassed = gasClosure.passed;
 result.purge = purge;
 result.periodicAnode = periodicAnode;
-result.tailPurgeFree = purge.tailEventCount == 0;
+result.tailPurgeFree = purge.observed && purge.tailEventCount == 0;
 result.finiteTail = tailFinite(tail);
 result.steadyPassed = steady.passed;
 result.steadyStrictPassed = steady.strictPassed;
@@ -159,12 +164,24 @@ result.areaPassed = tail.egrValveAreaFraction.minimum >= 0 && ...
 result.compressorRpmLookupPassed = ...
     tail.compressorRpm.minimum >= context.compressorRpmLookupBounds(1) - 1e-9 && ...
     tail.compressorRpm.maximum <= context.compressorRpmLookupBounds(2) + 1e-9;
-result.compressorMdotTrackingPassed = ...
+% Mode 3 is an intentional direct compressor command and bypasses the
+% mass-flow/OER controller. Its flow mismatch is diagnostic only, not a
+% tracking failure. Modes 1 and 2 retain the closed-loop tracking gate.
+result.compressorMdotTrackingPassed = context.air.modeId == 3 || ...
     tail.compressorMdotTrackingError_kg_s.maximumAbs <= ...
     max(0.02 * abs(tail.compressorMdotSet_kg_s.mean), 5e-4);
 result.boundaryPassed = boundary.passed;
 result.cegrPassed = cegr.passed;
 result.saturationPassed = saturation.passed;
+% This signal is produced by the L2 saturation-excess estimator. It is not
+% a physical liquid separator flow, inventory, drain flow, or efficiency.
+result.waterSeparation = struct( ...
+    'sourceSignal', "routeA_m_water_sep_ts", ...
+    'unit', "kg/s", ...
+    'samplingLocation', "cathode exhaust observer before any liquid-water closure", ...
+    'postProcessFormula', "model L2 saturation-excess estimate", ...
+    'status', "not_validated_L2_estimate", ...
+    'validationEvidence', "requires pressure/temperature/composition consistency; no liquid closure");
 result.localPassed = result.finiteTail && result.boundaryPassed && ...
     result.cegrPassed && result.saturationPassed && result.lambdaPassed && ...
     result.pressureDirectionPassed && result.areaPassed && ...
@@ -225,7 +242,7 @@ end
 boundary = stats;
 end
 
-function cegr = assessCegr(target, actual, window, acceptance)
+function cegr = assessCegr(target, actual, window, controls, acceptance)
 mask = actual.Time >= window(1) & actual.Time < window(2);
 if ~any(mask)
     error('RouteA:ElectricalBoundaryCegrWindow', ...
@@ -239,7 +256,15 @@ cegr.actualTailMean = mean(data);
 cegr.tailMeanError = cegr.actualTailMean - cegr.targetValue;
 cegr.tolerance = targetTolerance(cegr.targetValue, acceptance);
 cegr.maxAbsError = max(abs(data - targetData));
-cegr.passed = abs(cegr.tailMeanError) <= cegr.tolerance;
+cegr.trackingRequired = controls.controlMode == 1;
+if cegr.trackingRequired
+    cegr.passed = abs(cegr.tailMeanError) <= cegr.tolerance;
+else
+    % Direct valve-area control has no ratio feedback loop. Keep the
+    % commanded reference and measured ratio for diagnosis, but accept the
+    % physical response rather than applying the closed-loop tracking gate.
+    cegr.passed = all(isfinite(data)) && all(data >= 0) && all(data <= 0.5);
+end
 end
 
 function steady = assessSteady(signals, context)
@@ -308,8 +333,8 @@ switch string(name)
         scale = 1e3;
     case "compressorMdot_kg_s"
         scale = 1e-6;
-    case "cathodeInletRH"
-        scale = 1e-3;
+    case "cathodeInletWaterVaporMdot_kg_s"
+        scale = 1e-8;
     case "egrRatio"
         scale = 1e-4;
     otherwise
@@ -601,27 +626,56 @@ lambda = timeseries(o2SupplyMolS ./ o2ConsumptionMolS, speciesMdot.Time);
 end
 
 function purge = purgeStats(out, model, context)
-simlog = out.get(get_param(model, 'SimscapeLogName'));
-mea = routeA_simscape_log_mea(simlog);
-time = mea.x_i_anode.series.time;
-anode = mea.x_i_anode.series.values('1');
-anode = squeeze(anode);
-if size(anode, 1) ~= numel(time)
-    anode = anode.';
+purge = emptyPurgeStats();
+try
+    simlog = out.get(get_param(model, 'SimscapeLogName'));
+    paths = routeA_block_paths(model);
+    exhaust = simscape.logging.findNode(simlog, paths.anodeExhaust);
+    valve = exhaust.Purge_Valve;
+    series = valve.AR.series;
+    time = series.time();
+    area = series.values('m^2');
+    time = time(:);
+    area = area(:);
+    if numel(time) ~= numel(area) || isempty(time) || ...
+            any(~isfinite(time)) || any(~isfinite(area))
+        return;
+    end
+
+    % Purge is an actual valve-open event, not an inferred anode-composition
+    % slope. A scale-aware threshold avoids numerical zero around a closed valve.
+    threshold = max(1e-12, 1e-6 * max(abs(area)));
+    open = abs(area) > threshold;
+    starts = [open(1); diff(double(open)) == 1];
+    stops = [diff(double(open)) == -1; open(end)];
+    eventTimes = time(starts);
+    eventEndTimes = time(stops);
+    eventDurations = max(0, eventEndTimes - eventTimes);
+    tailMask = eventTimes >= context.tailWindow_s(1) & ...
+        eventTimes < context.tailWindow_s(2);
+
+    purge.observed = true;
+    purge.source = "anode_exhaust_purge_valve_area";
+    purge.openThreshold_m2 = threshold;
+    purge.valveAreaMaximum_m2 = max(area);
+    purge.eventTimesModel_s = eventTimes(:).';
+    purge.eventEndTimesModel_s = eventEndTimes(:).';
+    purge.eventDurations_s = eventDurations(:).';
+    purge.tailEventTimesModel_s = eventTimes(tailMask).';
+    purge.tailEventCount = sum(tailMask);
+catch
+    % The panel must distinguish unavailable anode observability from a
+    % physically event-free run. Acceptance remains conservative below.
 end
-slope = diff(anode(:, 1)) ./ diff(time(:));
-candidate = find(slope < -0.02);
-if isempty(candidate)
-    eventTimes = zeros(0, 1);
-else
-    eventIndices = candidate([true; diff(candidate) > 1]) + 1;
-    eventTimes = time(eventIndices);
 end
-tailEvents = eventTimes(eventTimes >= context.tailWindow_s(1) & ...
-    eventTimes < context.tailWindow_s(2));
-purge = struct('eventTimesModel_s', eventTimes(:).', ...
-    'tailEventTimesModel_s', tailEvents(:).', ...
-    'tailEventCount', numel(tailEvents));
+
+function purge = emptyPurgeStats()
+purge = struct('observed', false, 'source', "not_observable", ...
+    'openThreshold_m2', NaN, 'valveAreaMaximum_m2', NaN, ...
+    'eventTimesModel_s', zeros(1, 0), ...
+    'eventEndTimesModel_s', zeros(1, 0), ...
+    'eventDurations_s', zeros(1, 0), ...
+    'tailEventTimesModel_s', zeros(1, 0), 'tailEventCount', 0);
 end
 
 function periodic = assessPeriodicAnodeBehavior(current, voltage, power, ...

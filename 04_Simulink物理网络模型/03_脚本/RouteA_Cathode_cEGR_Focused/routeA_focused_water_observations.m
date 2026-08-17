@@ -26,6 +26,9 @@ try
         'cathode_gas', [paths.cathodeGas '/Cathode'], 'mdot_cond'; ...
         'cathode_outlet_chamber', paths.outletChamber, 'mdot_cond'; ...
         'egr_pipe', paths.egrPipe, 'mdot_c'; ...
+        'membrane_humidifier_wet_L2', ...
+            [model '/Cathode_Exhaust_Backpressure_Water/' ...
+            'MembraneHumidifierWet_L2_FC'], 'mdot_c'; ...
         'cathode_exhaust_pipe', ...
             [paths.cathodeExhaustBlock '/Pipe (N Gas)1'], 'mdot_c'};
 
@@ -36,7 +39,11 @@ try
         item.condensationQuantity = string(specs{idx, 3});
         node = simscape.logging.findNode(simlog, char(item.path));
         if isempty(node) || ~isprop(node, char(item.condensationQuantity))
-            item.status = "unavailable";
+            if item.name == "membrane_humidifier_wet_L2"
+                item.status = "not_applicable_L2_no_storage";
+            else
+                item.status = "unavailable";
+            end
             water.nodes(end + 1) = item; %#ok<AGROW>
             continue;
         end
@@ -48,7 +55,8 @@ try
         water.nodes(end + 1) = item; %#ok<AGROW>
     end
 
-    collected = [water.nodes.status] == "collected";
+    collected = [water.nodes.status] == "collected" | ...
+        [water.nodes.status] == "not_applicable_L2_no_storage";
     if all(collected)
         water.status = "collected";
     elseif any(collected)

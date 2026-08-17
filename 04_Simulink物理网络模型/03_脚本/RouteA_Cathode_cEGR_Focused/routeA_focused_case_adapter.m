@@ -38,6 +38,11 @@ if ~isfield(caseCfg, 'description') || isempty(caseCfg.description)
     caseCfg.description = "Focused cathode-cEGR case";
 end
 
+caseCfg = applyFocusedExternalCaseSizing(caseCfg, defaults);
+[caseCfg, selfHumidifyingBoundary] = applySelfHumidifyingBoundary( ...
+    caseCfg, defaults);
+adapter.selfHumidifyingBoundary = selfHumidifyingBoundary;
+
 if isfield(inputCase, 'initialState') && isstruct(inputCase.initialState) && ...
         isfield(inputCase.initialState, 'mode') && ...
         string(inputCase.initialState.mode) ~= "cold"
@@ -48,6 +53,138 @@ end
 [focused, bridge] = routeA_focused_parameter_bridge(caseCfg, defaults);
 caseCfg.focused = focused;
 caseCfg.focusedParameterBridge = bridge;
+end
+
+function [caseCfg, boundary] = applySelfHumidifyingBoundary(caseCfg, defaults)
+boundary = struct( ...
+    'status', "not_applicable", ...
+    'ambientTemperature_C', NaN, ...
+    'ambientPressure_MPa_abs', NaN, ...
+    'ambientRelativeHumidity', NaN, ...
+    'waterVaporPartialPressure_Pa', NaN, ...
+    'freshAirWaterMoleFraction', NaN, ...
+    'humidifierEnabled', NaN);
+
+if string(defaults.modelId) ~= "self_humidifying"
+    return;
+end
+
+if ~isfield(caseCfg, 'environment') || ~isstruct(caseCfg.environment)
+    caseCfg.environment = defaults.environment;
+end
+if ~isfield(caseCfg.environment, 'ambientTemperature_C') || ...
+        isempty(caseCfg.environment.ambientTemperature_C)
+    caseCfg.environment.ambientTemperature_C = ...
+        defaults.environment.ambientTemperature_C;
+end
+if ~isfield(caseCfg.environment, 'ambientPressure_MPa_abs') || ...
+        isempty(caseCfg.environment.ambientPressure_MPa_abs)
+    caseCfg.environment.ambientPressure_MPa_abs = ...
+        defaults.environment.ambientPressure_MPa_abs;
+end
+if ~isfield(caseCfg.environment, 'ambientRelativeHumidity') || ...
+        isempty(caseCfg.environment.ambientRelativeHumidity)
+    caseCfg.environment.ambientRelativeHumidity = ...
+        defaults.environment.ambientRelativeHumidity;
+end
+
+temperature_C = double(caseCfg.environment.ambientTemperature_C);
+pressure_MPa = double(caseCfg.environment.ambientPressure_MPa_abs);
+relativeHumidity = double(caseCfg.environment.ambientRelativeHumidity);
+validateattributes(temperature_C, {'numeric'}, {'scalar', 'real', 'finite', ...
+    '>=', -30, '<=', 60}, 'RouteA:FocusedAmbientTemperature');
+validateattributes(pressure_MPa, {'numeric'}, {'scalar', 'real', 'finite', ...
+    '>', 0.05, '<=', 0.2}, 'RouteA:FocusedAmbientPressure');
+validateattributes(relativeHumidity, {'numeric'}, {'scalar', 'real', 'finite', ...
+    '>=', 0, '<=', 1}, 'RouteA:FocusedAmbientRelativeHumidity');
+
+saturationPressure_Pa = waterSaturationPressure_Pa(temperature_C);
+waterVaporPartialPressure_Pa = relativeHumidity * saturationPressure_Pa;
+freshAirWaterMoleFraction = waterVaporPartialPressure_Pa / ...
+    (pressure_MPa * 1e6);
+if freshAirWaterMoleFraction >= 0.1
+    error('RouteA:FocusedAmbientHumidity', ...
+        'Ambient humidity produces an invalid fresh-air water mole fraction.');
+end
+
+if ~isfield(caseCfg, 'cathode') || ~isstruct(caseCfg.cathode)
+    error('RouteA:FocusedCathodeBoundary', ...
+        'Focused self-humidifying cases require a cathode boundary struct.');
+end
+caseCfg.cathode.humidifierEnabled = 0;
+caseCfg.cathode.freshAirWaterMoleFraction = freshAirWaterMoleFraction;
+caseCfg.environment.waterVaporPartialPressure_Pa = ...
+    waterVaporPartialPressure_Pa;
+caseCfg.environment.freshAirWaterMoleFraction = ...
+    freshAirWaterMoleFraction;
+
+boundary.status = "derived_from_ambient_T_p_RH";
+boundary.ambientTemperature_C = temperature_C;
+boundary.ambientPressure_MPa_abs = pressure_MPa;
+boundary.ambientRelativeHumidity = relativeHumidity;
+boundary.waterVaporPartialPressure_Pa = waterVaporPartialPressure_Pa;
+boundary.freshAirWaterMoleFraction = freshAirWaterMoleFraction;
+boundary.humidifierEnabled = 0;
+end
+
+function pressure_Pa = waterSaturationPressure_Pa(temperature_C)
+% Buck equation for liquid-water saturation pressure over -30 to 60 degC.
+pressure_Pa = 611.21 * exp((18.678 - temperature_C / 234.5) * ...
+    (temperature_C / (257.14 + temperature_C)));
+end
+
+function caseCfg = applyFocusedExternalCaseSizing(caseCfg, defaults)
+% The focused model is an external 240 kW case, so its active stack and
+% cathode BOP must not inherit smaller platform values from a standard simCase.
+if ~isfield(caseCfg, 'devices') || ~isstruct(caseCfg.devices) || ...
+        ~isfield(caseCfg.devices, 'cathode') || ...
+        ~isfield(caseCfg.devices, 'cegr') || ...
+        ~isfield(caseCfg, 'stack') || ~isstruct(caseCfg.stack)
+    error('RouteA:FocusedExternalCaseContract', ...
+        'Focused cases require stack, cathode, and cEGR device contracts.');
+end
+
+caseCfg.stack.numCells = defaults.stack.numCells;
+caseCfg.stack.area_cm2 = defaults.stack.area_cm2;
+caseCfg.stack.iL_A_cm2 = defaults.stack.iL_A_cm2;
+caseCfg.stack.io_A_cm2 = defaults.stack.io_A_cm2;
+
+bop = defaults.bop;
+caseCfg.devices.cathode.compressorMap.rpm_TLU = bop.compressorMap.rpm_TLU;
+caseCfg.devices.cathode.compressorMap.p_ratio_TLU = ...
+    bop.compressorMap.p_ratio_TLU;
+caseCfg.devices.cathode.compressorMap.mdot_corr_TLU = ...
+    bop.compressorMap.mdot_corr_TLU;
+caseCfg.devices.cathode.intercoolerMdotNominal_kg_s = ...
+    bop.intercoolerMdotNominal_kg_s;
+caseCfg.devices.cathode.intercoolerDpNominal_MPa = ...
+    focusedDeviceValue(caseCfg, 'intercoolerDpNominal_MPa', ...
+    bop.intercoolerDpNominal_MPa, [0, 0.1]);
+caseCfg.devices.cathode.intercoolerArea_m2 = bop.intercoolerArea_m2;
+caseCfg.devices.cathode.separatorMdotNominal_kg_s = ...
+    bop.separatorMdotNominal_kg_s;
+caseCfg.devices.cathode.separatorDpNominal_MPa = ...
+    bop.separatorDpNominal_MPa;
+caseCfg.devices.cathode.separatorArea_m2 = bop.separatorArea_m2;
+caseCfg.devices.cegr.valveMaxArea_m2 = bop.cegrValveMaxArea_m2;
+caseCfg.devices.cegr.pipeDiameter_m = bop.cegrPipeDiameter_m;
+end
+
+function value = focusedDeviceValue(caseCfg, fieldName, default, limits)
+value = default;
+if ~isfield(caseCfg, 'focused') || ~isstruct(caseCfg.focused) || ...
+        ~isfield(caseCfg.focused, fieldName) || ...
+        isempty(caseCfg.focused.(fieldName))
+    return;
+end
+value = caseCfg.focused.(fieldName);
+validateattributes(value, {'numeric'}, {'scalar', 'real', 'finite'}, ...
+    'RouteA:FocusedDeviceOverride', "focused." + string(fieldName));
+if value < limits(1) || value > limits(2)
+    error('RouteA:FocusedDeviceOverrideRange', ...
+        'focused.%s must be within [%.6g, %.6g].', ...
+        fieldName, limits(1), limits(2));
+end
 end
 
 function caseCfg = standardSimCaseToFocused(simCase)
